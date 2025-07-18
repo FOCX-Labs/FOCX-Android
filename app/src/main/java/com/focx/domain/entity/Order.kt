@@ -1,0 +1,40 @@
+package com.focx.domain.entity
+
+data class Order(
+    val id: String,
+    val buyerId: String,
+    val sellerId: String,
+    val sellerName: String,
+    val items: List<OrderItem>,
+    val totalAmount: Double,
+    val currency: String = "USDC",
+    val status: String,
+    val shippingAddress: ShippingAddress? = null,
+    val paymentMethod: String,
+    val transactionHash: String? = null,
+    val trackingNumber: String? = null,
+    val orderDate: Long = System.currentTimeMillis(),
+    val updatedAt: Long = System.currentTimeMillis(),
+    val estimatedDelivery: Long? = null
+)
+
+enum class OrderStatus {
+    PENDING_PAYMENT,
+    PAID,
+    PROCESSING,
+    SHIPPED,
+    DELIVERED,
+    CANCELLED,
+    REFUNDED
+}
+
+data class ShippingAddress(
+    val recipientName: String,
+    val addressLine1: String,
+    val addressLine2: String? = null,
+    val city: String,
+    val state: String,
+    val postalCode: String,
+    val country: String,
+    val phoneNumber: String
+)
