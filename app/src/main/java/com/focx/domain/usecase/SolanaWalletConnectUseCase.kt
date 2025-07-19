@@ -2,6 +2,7 @@ package com.focx.domain.usecase
 
 import com.focx.domain.entity.Connected
 import com.focx.domain.entity.User
+import com.focx.utils.Log
 import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
 import com.solana.mobilewalletadapter.clientlib.MobileWalletAdapter
 import com.solana.mobilewalletadapter.clientlib.TransactionResult
@@ -69,5 +70,16 @@ class SolanaWalletConnectUseCase @Inject constructor(
 
     fun getStoredConnection(): com.focx.domain.entity.WalletConnection {
         return persistenceUseCase.getWalletConnection()
+    }
+
+    fun loadConnection(): com.focx.domain.entity.WalletConnection {
+        val persistedConn = persistenceUseCase.getWalletConnection()
+
+        if (persistedConn is Connected) {
+            walletAdapter.authToken = persistedConn.authToken
+            Log.d("loadConnection", "Loaded connection success: ${persistedConn.authToken}")
+        }
+
+        return persistedConn
     }
 }

@@ -10,6 +10,7 @@ import com.focx.domain.entity.MerchantStatus
 import com.focx.domain.repository.IMerchantRepository
 import com.focx.domain.usecase.RecentBlockhashUseCase
 import com.focx.utils.Log
+import com.focx.utils.SolanaTokenUtils
 import com.funkatronics.encoders.Base58
 import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
 import com.solana.mobilewalletadapter.clientlib.MobileWalletAdapter
@@ -24,13 +25,8 @@ import com.solana.transaction.Transaction
 import com.solana.transaction.TransactionInstruction
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
-import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.bouncycastle.math.ec.rfc8032.Ed25519
-import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
-import java.security.MessageDigest
-import java.security.Security
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -50,31 +46,31 @@ class SolanaMerchantDataSource @Inject constructor(
         merchantRegistration: MerchantRegistration, activityResultSender: ActivityResultSender
     ): MerchantRegistrationResult {
         return try {
-            Log.d(TAG, "Starting merchant registration for: ${merchantRegistration.name}")
+            Log.d(TAG, "Starting registerMerchantAtomic walletAdapter authToken: ${walletAdapter.authToken}")
 
             val result = walletAdapter.transact(activityResultSender) { authResult ->
-                Log.d(TAG, "registerMerchantAtomic authResult:${authResult}")
+                Log.d(TAG, "registerMerchantAtomic authResult.authToken:${authResult.authToken}")
                 val merchantPublicKey = SolanaPublicKey.from(merchantRegistration.merchantPublicKey)
                 val programId = SolanaPublicKey.from(merchantRegistration.programId)
 
                 // Calculate PDAs (Program Derived Addresses)
-                val globalRootPda = findProgramAddress(
+                val globalRootPda = SolanaTokenUtils.findProgramAddress(
                     listOf("global_id_root".toByteArray()), programId.bytes
                 )
 
-                val merchantInfoPda = findProgramAddress(
+                val merchantInfoPda = SolanaTokenUtils.findProgramAddress(
                     listOf(
                         "merchant_info".toByteArray(), merchantPublicKey.bytes
                     ), programId.bytes
                 )
-
-                val merchantIdAccountPda = findProgramAddress(
-                    listOf(
-                        "merchant".toByteArray(), merchantPublicKey.bytes
-                    ), programId.bytes
+                val systemConfigPda = SolanaTokenUtils.findProgramAddress(
+                    listOf("system_config".toByteArray()), programId.bytes
+                )
+                val merchantIdAccountPda = SolanaTokenUtils.findProgramAddress(
+                    listOf("merchant".toByteArray(), merchantPublicKey.bytes), programId.bytes
                 )
 
-                val initialChunkPda = findProgramAddress(
+                val initialChunkPda = SolanaTokenUtils.findProgramAddress(
                     listOf(
                         "id_chunk".toByteArray(),
                         merchantPublicKey.bytes,
@@ -98,12 +94,11 @@ class SolanaMerchantDataSource @Inject constructor(
                     AccountMeta(merchantPublicKey, true, true), // merchant (signer, writable)
                     AccountMeta(merchantPublicKey, true, true), // payer (signer, writable)
                     AccountMeta(globalRootPda.first, false, true), // globalRoot (writable)
+                    AccountMeta(systemConfigPda.first, false, true),
                     AccountMeta(merchantInfoPda.first, false, true), // merchantInfo (writable)
                     AccountMeta(merchantIdAccountPda.first, false, true), // merchantIdAccount (writable)
                     AccountMeta(initialChunkPda.first, false, true), // initialChunk (writable)
-                    AccountMeta(
-                        SolanaPublicKey.from("11111111111111111111111111111112"), false, false
-                    ) // systemProgram
+                    AccountMeta(SolanaTokenUtils.ProgramIds.SYSTEM_PROGRAM, false, false)
                 )
 
                 // Create the instruction
@@ -124,6 +119,7 @@ class SolanaMerchantDataSource @Inject constructor(
 
                 val message = Message.Builder().addInstruction(instruction).setRecentBlockhash(recentBlockhash).build()
                 val transaction = Transaction(message)
+
                 Log.d(TAG, "  signAndSendTransactions: before}")
                 val result = signAndSendTransactions(arrayOf(transaction.serialize()))
                 Log.d(TAG, "  signAndSendTransactions:${result}")
@@ -185,6 +181,28 @@ class SolanaMerchantDataSource @Inject constructor(
         }
     }
 
+    /**
+     * mock Solana Memo Program
+     */
+    private fun mockMemoTransaction(
+        merchantPublicKey: SolanaPublicKey,
+        recentBlockHash: SolanaPublicKey
+    ): Transaction {
+        val memoProgramId = SolanaPublicKey.from("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr")
+        val memoInstruction = TransactionInstruction(
+            memoProgramId,
+            listOf(AccountMeta(merchantPublicKey, true, true)),
+            "HelloFocxMemo".encodeToByteArray()
+        )
+
+        // Build Message
+        val memoTxMessage = Message.Builder()
+            .addInstruction(memoInstruction)
+            .setRecentBlockhash(recentBlockHash)
+            .build()
+        return Transaction(memoTxMessage)
+    }
+
     override suspend fun registerMerchantAtomic(
         merchantRegistration: MerchantRegistration
     ): MerchantRegistrationResult {
@@ -222,12 +240,12 @@ class SolanaMerchantDataSource @Inject constructor(
             val programId = SolanaPublicKey.from(AppConstants.App.PROGRAM_ID)
 
             // Calculate merchant info PDA
-            val merchantInfoPda = findProgramAddress(
+            val merchantInfoPda = SolanaTokenUtils.findProgramAddress(
                 listOf("merchant_info".toByteArray(), merchantPublicKey.bytes), programId.bytes
             )
 
             // Calculate merchant ID account PDA
-            val merchantIdAccountPda = findProgramAddress(
+            val merchantIdAccountPda = SolanaTokenUtils.findProgramAddress(
                 listOf("merchant".toByteArray(), merchantPublicKey.bytes), programId.bytes
             )
 
@@ -277,47 +295,6 @@ class SolanaMerchantDataSource @Inject constructor(
         }
     }
 
-    /**
-     * Find program address (PDA) similar to Anchor's findProgramAddressSync
-     * Simplified implementation for development
-     */
-    fun findProgramAddress(seeds: List<ByteArray>, programId: ByteArray): Pair<SolanaPublicKey, Int> {
-        Security.addProvider(BouncyCastleProvider())
-        require(programId.size == 32) { "programId must be 32 bytes" }
-        require(seeds.size <= 16) { "Too many seeds" }
-        for (seed in seeds) require(seed.size <= 32) { "Each seed must be <= 32 bytes" }
-
-        for (bump in 255 downTo 0) {
-            val allSeeds = seeds + byteArrayOf(bump.toByte())
-            val data = ByteArrayOutputStream().apply {
-                allSeeds.forEach { write(it) }
-                write(programId)
-                write("ProgramDerivedAddress".toByteArray(Charsets.UTF_8))
-            }.toByteArray()
-            val hash = MessageDigest.getInstance("SHA-256").digest(data)
-            if (!isOnCurve(hash)) {
-                return Pair(SolanaPublicKey(hash), bump)
-            }
-        }
-        return Pair(SolanaPublicKey.from("11111111111111111111111111111112"), 255);
-    }
-
-    /**
-     * Check if the public key is on the Ed25519 curve (i.e., is a valid public key)
-     * @param publicKey 32 bytes
-     * @return true = on curve (has private key, cannot be used as PDA), false = off curve (can be used as PDA)
-     */
-    fun isOnCurve(publicKey: ByteArray): Boolean {
-        if (publicKey.size != 32) return false
-        // Ed25519 检查
-        return try {
-            val point = ByteArray(32)
-            System.arraycopy(publicKey, 0, point, 0, 32)
-            Ed25519.validatePublicKeyFull(point, 0)
-        } catch (e: Exception) {
-            false
-        }
-    }
 
     /**
      * Query account info from Solana RPC using SolanaRpcClient
@@ -380,6 +357,166 @@ class SolanaMerchantDataSource @Inject constructor(
                 status = AppConstants.Merchant.DEFAULT_STATUS
             )
         }
+    }
+
+    override suspend fun depositMerchantFunds(
+        merchantAccount: String,
+        depositAmount: Long,
+        activityResultSender: ActivityResultSender
+    ): MerchantRegistrationResult {
+        return try {
+            Log.d(TAG, "Starting depositMerchantFunds for merchant: $merchantAccount, amount: $depositAmount")
+
+            val result = walletAdapter.transact(activityResultSender) { authResult ->
+                val merchantPublicKey = SolanaPublicKey.from(merchantAccount)
+                val authorityPublicKey = SolanaPublicKey.from(AppConstants.App.AUTHORITY_PUBLIC_KEY)
+                val programId = SolanaPublicKey.from(AppConstants.App.PROGRAM_ID)
+
+                // Calculate PDAs
+                val merchantInfoPda = SolanaTokenUtils.findProgramAddress(
+                    listOf("merchant_info".toByteArray(), merchantPublicKey.bytes),
+                    programId.bytes
+                )
+
+                val systemConfigPda = SolanaTokenUtils.findProgramAddress(
+                    listOf("system_config".toByteArray()),
+                    programId.bytes
+                )
+
+                // Calculate USDC token account addresses using Associated Token Account (ATA)
+                val usdcMint = SolanaTokenUtils.TokenMints.USDC
+                val tokenProgramId = SolanaTokenUtils.ProgramIds.TOKEN_PROGRAM
+
+                // Calculate merchant's USDC Associated Token Account
+                val merchantUsdcAccount = SolanaTokenUtils.getUsdcAssociatedTokenAccount(merchantPublicKey)
+
+                // Calculate program's USDC Associated Token Account
+                val programUsdcAccount = SolanaTokenUtils.getUsdcAssociatedTokenAccount(programId)
+
+                Log.d(TAG, "Calculated PDAs for deposit:")
+                Log.d(TAG, "  merchantInfoPda: ${merchantInfoPda.first.base58()}")
+                Log.d(TAG, "  systemConfigPda: ${systemConfigPda.first.base58()}")
+                Log.d(TAG, "  merchantUsdcAccount: ${merchantUsdcAccount.base58()}")
+                Log.d(TAG, "  programUsdcAccount: ${programUsdcAccount.base58()}")
+                Log.d(TAG, "  usdcMint: ${usdcMint.base58()}")
+
+                // Create instruction data for depositMerchantFunds
+                val instructionData = createDepositMerchantFundsInstructionData(depositAmount)
+
+                // Create account metas for the instruction
+                val accountMetas = listOf(
+                    AccountMeta(merchantPublicKey, true, true), // merchant (signer, writable)
+                    AccountMeta(authorityPublicKey, true, false), // authority (signer)
+                    AccountMeta(merchantInfoPda.first, false, true), // merchantInfo (writable)
+                    AccountMeta(systemConfigPda.first, false, true), // systemConfig (writable)
+                    AccountMeta(merchantUsdcAccount, false, true), // merchantUsdcAccount (writable)
+                    AccountMeta(programUsdcAccount, false, true), // programUsdcAccount (writable)
+                    AccountMeta(tokenProgramId, false, false) // tokenProgram
+                )
+
+                // Create the instruction
+                val instruction = TransactionInstruction(
+                    programId, accountMetas, instructionData
+                )
+
+                // Get recent blockhash and create transaction
+                val recentBlockhash = try {
+                    kotlinx.coroutines.withTimeout(NetworkConfig.READ_TIMEOUT_MS) {
+                        recentBlockhashUseCase()
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to get recent blockhash for deposit: ${e.message}", e)
+                    throw Exception("Failed to get recent blockhash: ${e.message}", e)
+                }
+
+                val message = Message.Builder()
+                    .addInstruction(instruction)
+                    .setRecentBlockhash(recentBlockhash)
+                    .build()
+                val transaction = Transaction(message)
+
+                Log.d(TAG, "Executing depositMerchantFunds transaction")
+                val result = signAndSendTransactions(arrayOf(transaction.serialize()))
+                Log.d(TAG, "depositMerchantFunds result: $result")
+                result
+            }
+
+            when (result) {
+                is TransactionResult.Success -> {
+                    val signature = result.successPayload?.signatures?.first()
+                    if (signature != null) {
+                        Log.d(TAG, "Deposit successful: ${Base58.encodeToString(signature)}")
+                        MerchantRegistrationResult(
+                            success = true,
+                            transactionSignature = Base58.encodeToString(signature),
+                            merchantAccount = merchantAccount,
+                            errorMessage = null
+                        )
+                    } else {
+                        MerchantRegistrationResult(
+                            success = false,
+                            transactionSignature = null,
+                            merchantAccount = null,
+                            errorMessage = "No signature returned from deposit transaction"
+                        )
+                    }
+                }
+
+                is TransactionResult.NoWalletFound -> {
+                    MerchantRegistrationResult(
+                        success = false,
+                        transactionSignature = null,
+                        merchantAccount = null,
+                        errorMessage = "No wallet found for deposit"
+                    )
+                }
+
+                is TransactionResult.Failure -> {
+                    Log.e(TAG, "Deposit failed: ${result.e.message}")
+                    MerchantRegistrationResult(
+                        success = false,
+                        transactionSignature = null,
+                        merchantAccount = null,
+                        errorMessage = "Deposit transaction failed: ${result.e.message}"
+                    )
+                }
+            }
+
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Log.e(TAG, "Deposit exception:", e)
+            MerchantRegistrationResult(
+                success = false,
+                transactionSignature = null,
+                merchantAccount = null,
+                errorMessage = "Deposit failed: ${e.message}"
+            )
+        }
+    }
+
+    /**
+     * Create instruction data for depositMerchantFunds method
+     * Based on the Anchor program method signature
+     */
+    private fun createDepositMerchantFundsInstructionData(depositAmount: Long): ByteArray {
+        // Instruction discriminator for depositMerchantFunds method
+        // This should match the method hash in your Anchor program
+        val discriminator = byteArrayOf(
+            0x2E.toByte(),
+            0x8A.toByte(),
+            0x1F.toByte(),
+            0x3C.toByte(),
+            0x9B.toByte(),
+            0x7D.toByte(),
+            0x4E.toByte(),
+            0x6F.toByte()
+        )
+
+        // Serialize deposit amount as u64 (8 bytes, little endian)
+        val amountBytes = ByteBuffer.allocate(8).order(ByteOrder.LITTLE_ENDIAN).putLong(depositAmount).array()
+
+        // Combine discriminator and amount
+        return discriminator + amountBytes
     }
 
     /**

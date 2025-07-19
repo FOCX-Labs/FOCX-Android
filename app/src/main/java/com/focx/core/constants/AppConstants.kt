@@ -7,6 +7,18 @@ object AppConstants {
 
     object App {
         const val PROGRAM_ID = "H2ijJPLXRpj2Vw9mSPUSDU7tFZfqVSWkA5xZEkxdfin7"
+
+        //SPL Token Program
+        const val SPL_TOKEN_PROGRAM_ID = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+
+        //Associated Token Program
+        const val ASSOCIATED_TOKEN_PROGRAM_ID = "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+
+        //USDC Token Mint (Devnet) //TODO Check Address
+        const val USDC_MINT = "Gh9ZwEmdLJ8DscKNTkTqPbNwLNNBjuSzaG9Vp2KGtKJr"
+
+        //mainKeypair, Galahad wallet address
+        const val AUTHORITY_PUBLIC_KEY = "AyrDj67STAAt9UHc28S694scrq955vbH54rAMtmuQBME"
         const val APP_NAME = "FOCX"
         const val APP_VERSION = "1.0.0"
         const val APP_IDENTITY_URI = "https://focx.app"

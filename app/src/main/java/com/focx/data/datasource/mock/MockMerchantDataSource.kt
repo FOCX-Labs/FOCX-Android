@@ -76,6 +76,48 @@ class MockMerchantDataSource @Inject constructor() : IMerchantRepository {
         emit(status)
     }
 
+    override suspend fun depositMerchantFunds(
+        merchantAccount: String,
+        depositAmount: Long,
+        activityResultSender: ActivityResultSender
+    ): MerchantRegistrationResult {
+        return try {
+            // Simulate network delay
+            delay(800)
+
+            // Simulate deposit transaction processing
+            val transactionSignature = generateMockTransactionSignature()
+
+            // Update merchant status with new deposit (if merchant exists)
+            val existingMerchant = registeredMerchants.values.find { it.merchantAccount == merchantAccount }
+            if (existingMerchant != null) {
+                val currentDeposit = existingMerchant.securityDeposit?.toLongOrNull() ?: 0L
+                val updatedDeposit = currentDeposit + depositAmount
+                val walletAddress =
+                    registeredMerchants.entries.find { it.value.merchantAccount == merchantAccount }?.key
+                if (walletAddress != null) {
+                    registeredMerchants[walletAddress] = existingMerchant.copy(
+                        securityDeposit = updatedDeposit.toString()
+                    )
+                }
+            }
+
+            MerchantRegistrationResult(
+                success = true,
+                transactionSignature = transactionSignature,
+                merchantAccount = merchantAccount,
+                errorMessage = null
+            )
+        } catch (e: Exception) {
+            MerchantRegistrationResult(
+                success = false,
+                transactionSignature = null,
+                merchantAccount = null,
+                errorMessage = "Deposit failed: ${e.message}"
+            )
+        }
+    }
+
     private fun generateMockTransactionSignature(): String {
         return "mock_tx_" + (1..64).map { "0123456789abcdef".random() }.joinToString("")
     }

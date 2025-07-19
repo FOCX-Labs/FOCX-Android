@@ -3,7 +3,6 @@ package com.focx.presentation.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.focx.core.constants.AppConstants
-
 import com.focx.domain.entity.MerchantRegistration
 import com.focx.domain.usecase.GetCurrentWalletAddressUseCase
 import com.focx.domain.usecase.GetMerchantStatusUseCase
@@ -154,7 +153,7 @@ class SellerRegistrationViewModel @Inject constructor(
                     description = currentState.storeDescription,
                     merchantPublicKey = merchantPublicKey,
                     payerPublicKey = payerPublicKey,
-                    securityDeposit = "0.01", // 1,000 USDC as mentioned in UI
+                    securityDeposit = "1000", // 1,000 USDC as mentioned in UI
                     programId = AppConstants.App.PROGRAM_ID
                 )
 
