@@ -1,7 +1,7 @@
 [versions]
-agp = "8.3.2"
+agp = "8.11.0"
 bcprovJdk15on = "1.70"
-kotlin = "1.9.20"
+kotlin = "1.9.24"
 coreKtx = "1.10.1"
 junit = "4.13.2"
 junitVersion = "1.1.5"
@@ -16,13 +16,14 @@ constraintlayout = "2.1.4"
 compose-bom = "2024.02.00"
 compose-activity = "1.8.2"
 compose-navigation = "2.7.6"
+composeCompiler = "1.5.14"
 
 # Architecture
 lifecycle = "2.7.0"
 viewmodel-compose = "2.7.0"
 hilt = "2.48"
 hilt-navigation-compose = "1.1.0"
-ksp = "1.9.20-1.0.14"
+ksp = "1.9.24-1.0.20"
 
 # Network
 retrofit = "2.9.0"

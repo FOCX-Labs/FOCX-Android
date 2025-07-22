@@ -1,0 +1,6015 @@
+{
+  "address": "8532a3ot7B2RoE3XoxzPy4NqiBqpsFg9wcWXu7Cebe1N",
+  "metadata": {
+    "name": "solana_e_commerce",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Created with Anchor"
+  },
+  "instructions": [
+    {
+      "name": "add_product_to_keyword_index",
+      "discriminator": [
+        243,
+        134,
+        232,
+        148,
+        238,
+        90,
+        87,
+        167
+      ],
+      "accounts": [
+        {
+          "name": "keyword_root",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  107,
+                  101,
+                  121,
+                  119,
+                  111,
+                  114,
+                  100,
+                  95,
+                  114,
+                  111,
+                  111,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "keyword"
+              }
+            ]
+          }
+        },
+        {
+          "name": "target_shard",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  107,
+                  101,
+                  121,
+                  119,
+                  111,
+                  114,
+                  100,
+                  95,
+                  115,
+                  104,
+                  97,
+                  114,
+                  100
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "keyword"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  0,
+                  0,
+                  0,
+                  0
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "keyword",
+          "type": "string"
+        },
+        {
+          "name": "product_id",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "add_product_to_price_index",
+      "discriminator": [
+        42,
+        43,
+        51,
+        228,
+        199,
+        12,
+        242,
+        97
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "price_index",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  105,
+                  99,
+                  101,
+                  95,
+                  105,
+                  110,
+                  100,
+                  101,
+                  120
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "price_range_start"
+              },
+              {
+                "kind": "arg",
+                "path": "price_range_end"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "price_range_start",
+          "type": "u64"
+        },
+        {
+          "name": "price_range_end",
+          "type": "u64"
+        },
+        {
+          "name": "product_id",
+          "type": "u64"
+        },
+        {
+          "name": "price",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "add_product_to_sales_index",
+      "discriminator": [
+        128,
+        183,
+        234,
+        115,
+        106,
+        63,
+        182,
+        134
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "sales_index",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  97,
+                  108,
+                  101,
+                  115,
+                  95,
+                  105,
+                  110,
+                  100,
+                  101,
+                  120
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "sales_range_start"
+              },
+              {
+                "kind": "arg",
+                "path": "sales_range_end"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "sales_range_start",
+          "type": "u32"
+        },
+        {
+          "name": "sales_range_end",
+          "type": "u32"
+        },
+        {
+          "name": "product_id",
+          "type": "u64"
+        },
+        {
+          "name": "sales",
+          "type": "u32"
+        }
+      ]
+    },
+    {
+      "name": "allocate_new_chunk",
+      "discriminator": [
+        201,
+        223,
+        225,
+        254,
+        40,
+        177,
+        20,
+        69
+      ],
+      "accounts": [
+        {
+          "name": "global_root",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  108,
+                  111,
+                  98,
+                  97,
+                  108,
+                  95,
+                  105,
+                  100,
+                  95,
+                  114,
+                  111,
+                  111,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "merchant_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  114,
+                  99,
+                  104,
+                  97,
+                  110,
+                  116,
+                  95,
+                  105,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchant"
+              }
+            ]
+          }
+        },
+        {
+          "name": "merchant",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "new_chunk",
+          "writable": true
+        },
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [],
+      "returns": "pubkey"
+    },
+    {
+      "name": "batch_generate_ids",
+      "discriminator": [
+        200,
+        125,
+        236,
+        30,
+        205,
+        194,
+        50,
+        160
+      ],
+      "accounts": [
+        {
+          "name": "merchant_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  114,
+                  99,
+                  104,
+                  97,
+                  110,
+                  116,
+                  95,
+                  105,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchant"
+              }
+            ]
+          }
+        },
+        {
+          "name": "merchant",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "active_chunk",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "count",
+          "type": "u16"
+        }
+      ],
+      "returns": {
+        "vec": "u64"
+      }
+    },
+    {
+      "name": "close_id_chunk",
+      "discriminator": [
+        107,
+        104,
+        198,
+        252,
+        175,
+        239,
+        166,
+        232
+      ],
+      "accounts": [
+        {
+          "name": "id_chunk",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  105,
+                  100,
+                  95,
+                  99,
+                  104,
+                  117,
+                  110,
+                  107
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchant"
+              },
+              {
+                "kind": "arg",
+                "path": "chunk_index"
+              }
+            ]
+          }
+        },
+        {
+          "name": "beneficiary",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "merchant",
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "merchant_id",
+          "type": "u64"
+        },
+        {
+          "name": "chunk_index",
+          "type": "u32"
+        },
+        {
+          "name": "force",
+          "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "close_keyword_root",
+      "discriminator": [
+        141,
+        242,
+        59,
+        53,
+        78,
+        180,
+        2,
+        117
+      ],
+      "accounts": [
+        {
+          "name": "keyword_root",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  107,
+                  101,
+                  121,
+                  119,
+                  111,
+                  114,
+                  100,
+                  95,
+                  114,
+                  111,
+                  111,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "keyword"
+              }
+            ]
+          }
+        },
+        {
+          "name": "beneficiary",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "authority",
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "keyword",
+          "type": "string"
+        },
+        {
+          "name": "force",
+          "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "close_keyword_shard",
+      "discriminator": [
+        168,
+        27,
+        232,
+        181,
+        155,
+        23,
+        16,
+        68
+      ],
+      "accounts": [
+        {
+          "name": "keyword_shard",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  107,
+                  101,
+                  121,
+                  119,
+                  111,
+                  114,
+                  100,
+                  95,
+                  115,
+                  104,
+                  97,
+                  114,
+                  100
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "keyword"
+              },
+              {
+                "kind": "arg",
+                "path": "shard_index"
+              }
+            ]
+          }
+        },
+        {
+          "name": "beneficiary",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "authority",
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "keyword",
+          "type": "string"
+        },
+        {
+          "name": "shard_index",
+          "type": "u32"
+        },
+        {
+          "name": "force",
+          "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "close_merchant",
+      "discriminator": [
+        138,
+        96,
+        102,
+        11,
+        220,
+        136,
+        154,
+        11
+      ],
+      "accounts": [
+        {
+          "name": "merchant_info",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  114,
+                  99,
+                  104,
+                  97,
+                  110,
+                  116,
+                  95,
+                  105,
+                  110,
+                  102,
+                  111
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "beneficiary",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "owner",
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "force",
+          "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "close_merchant_id_account",
+      "discriminator": [
+        144,
+        146,
+        124,
+        219,
+        173,
+        192,
+        184,
+        125
+      ],
+      "accounts": [
+        {
+          "name": "merchant_id_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  114,
+                  99,
+                  104,
+                  97,
+                  110,
+                  116,
+                  95,
+                  105,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchant"
+              }
+            ]
+          }
+        },
+        {
+          "name": "beneficiary",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "merchant",
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "force",
+          "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "close_payment_config",
+      "discriminator": [
+        201,
+        184,
+        174,
+        187,
+        207,
+        83,
+        9,
+        190
+      ],
+      "accounts": [
+        {
+          "name": "payment_config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  121,
+                  109,
+                  101,
+                  110,
+                  116,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "beneficiary",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "authority",
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "force",
+          "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "confirm_delivery",
+      "discriminator": [
+        11,
+        109,
+        227,
+        53,
+        179,
+        190,
+        88,
+        155
+      ],
+      "accounts": [
+        {
+          "name": "order",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  100,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "buyer_key"
+              },
+              {
+                "kind": "arg",
+                "path": "merchant"
+              },
+              {
+                "kind": "arg",
+                "path": "product_id"
+              },
+              {
+                "kind": "arg",
+                "path": "timestamp"
+              }
+            ]
+          }
+        },
+        {
+          "name": "order_stats",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  100,
+                  101,
+                  114,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  115
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "merchant_info",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  114,
+                  99,
+                  104,
+                  97,
+                  110,
+                  116,
+                  95,
+                  105,
+                  110,
+                  102,
+                  111
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "order.merchant",
+                "account": "Order"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  121,
+                  115,
+                  116,
+                  101,
+                  109,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "program_token_account",
+          "writable": true
+        },
+        {
+          "name": "deposit_escrow_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  101,
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  95,
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "program_authority"
+        },
+        {
+          "name": "buyer",
+          "signer": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "buyer_key",
+          "type": "pubkey"
+        },
+        {
+          "name": "merchant",
+          "type": "pubkey"
+        },
+        {
+          "name": "product_id",
+          "type": "u64"
+        },
+        {
+          "name": "timestamp",
+          "type": "i64"
+        }
+      ]
+    },
+    {
+      "name": "create_keyword_shard",
+      "discriminator": [
+        251,
+        187,
+        156,
+        45,
+        87,
+        245,
+        118,
+        199
+      ],
+      "accounts": [
+        {
+          "name": "keyword_root",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  107,
+                  101,
+                  121,
+                  119,
+                  111,
+                  114,
+                  100,
+                  95,
+                  114,
+                  111,
+                  111,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "keyword"
+              }
+            ]
+          }
+        },
+        {
+          "name": "prev_shard",
+          "writable": true
+        },
+        {
+          "name": "new_shard",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  107,
+                  101,
+                  121,
+                  119,
+                  111,
+                  114,
+                  100,
+                  95,
+                  115,
+                  104,
+                  97,
+                  114,
+                  100
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "keyword"
+              },
+              {
+                "kind": "arg",
+                "path": "shard_index"
+              }
+            ]
+          }
+        },
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "keyword",
+          "type": "string"
+        },
+        {
+          "name": "shard_index",
+          "type": "u32"
+        }
+      ]
+    },
+    {
+      "name": "create_order",
+      "discriminator": [
+        141,
+        54,
+        37,
+        207,
+        237,
+        210,
+        250,
+        215
+      ],
+      "accounts": [
+        {
+          "name": "user_purchase_count",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  117,
+                  115,
+                  101,
+                  114,
+                  95,
+                  112,
+                  117,
+                  114,
+                  99,
+                  104,
+                  97,
+                  115,
+                  101,
+                  95,
+                  99,
+                  111,
+                  117,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "buyer"
+              }
+            ]
+          }
+        },
+        {
+          "name": "order",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  100,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "buyer"
+              },
+              {
+                "kind": "account",
+                "path": "merchant"
+              },
+              {
+                "kind": "arg",
+                "path": "product_id"
+              },
+              {
+                "kind": "account",
+                "path": "user_purchase_count.purchase_count",
+                "account": "UserPurchaseCount"
+              }
+            ]
+          }
+        },
+        {
+          "name": "order_stats",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  100,
+                  101,
+                  114,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  115
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "product",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  100,
+                  117,
+                  99,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "product_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "merchant",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  114,
+                  99,
+                  104,
+                  97,
+                  110,
+                  116,
+                  95,
+                  105,
+                  110,
+                  102,
+                  111
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchant.owner",
+                "account": "Merchant"
+              }
+            ]
+          }
+        },
+        {
+          "name": "buyer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "product_id",
+          "type": "u64"
+        },
+        {
+          "name": "timestamp",
+          "type": "i64"
+        },
+        {
+          "name": "quantity",
+          "type": "u32"
+        },
+        {
+          "name": "shipping_address",
+          "type": "string"
+        },
+        {
+          "name": "notes",
+          "type": "string"
+        },
+        {
+          "name": "transaction_signature",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "create_product",
+      "discriminator": [
+        183,
+        155,
+        202,
+        119,
+        43,
+        114,
+        174,
+        225
+      ],
+      "accounts": [
+        {
+          "name": "merchant",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "global_root",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  108,
+                  111,
+                  98,
+                  97,
+                  108,
+                  95,
+                  105,
+                  100,
+                  95,
+                  114,
+                  111,
+                  111,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "merchant_id_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  114,
+                  99,
+                  104,
+                  97,
+                  110,
+                  116,
+                  95,
+                  105,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchant"
+              }
+            ]
+          }
+        },
+        {
+          "name": "merchant_info",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  114,
+                  99,
+                  104,
+                  97,
+                  110,
+                  116,
+                  95,
+                  105,
+                  110,
+                  102,
+                  111
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchant"
+              }
+            ]
+          }
+        },
+        {
+          "name": "active_chunk",
+          "writable": true
+        },
+        {
+          "name": "payment_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  121,
+                  109,
+                  101,
+                  110,
+                  116,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "product_account",
+          "writable": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "description",
+          "type": "string"
+        },
+        {
+          "name": "price",
+          "type": "u64"
+        },
+        {
+          "name": "keywords",
+          "type": {
+            "vec": "string"
+          }
+        },
+        {
+          "name": "inventory",
+          "type": "u64"
+        },
+        {
+          "name": "payment_token",
+          "type": "pubkey"
+        },
+        {
+          "name": "token_decimals",
+          "type": "u8"
+        },
+        {
+          "name": "token_price",
+          "type": "u64"
+        },
+        {
+          "name": "image_video_urls",
+          "type": {
+            "vec": "string"
+          }
+        },
+        {
+          "name": "shipping_location",
+          "type": "string"
+        },
+        {
+          "name": "sales_regions",
+          "type": {
+            "vec": "string"
+          }
+        },
+        {
+          "name": "logistics_methods",
+          "type": {
+            "vec": "string"
+          }
+        }
+      ],
+      "returns": "u64"
+    },
+    {
+      "name": "delete_product",
+      "discriminator": [
+        173,
+        212,
+        141,
+        230,
+        33,
+        82,
+        166,
+        25
+      ],
+      "accounts": [
+        {
+          "name": "merchant",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "merchant_info",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  114,
+                  99,
+                  104,
+                  97,
+                  110,
+                  116,
+                  95,
+                  105,
+                  110,
+                  102,
+                  111
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchant"
+              }
+            ]
+          }
+        },
+        {
+          "name": "product",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  100,
+                  117,
+                  99,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "product_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "beneficiary",
+          "writable": true,
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "product_id",
+          "type": "u64"
+        },
+        {
+          "name": "hard_delete",
+          "type": "bool"
+        },
+        {
+          "name": "force",
+          "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "deposit_merchant_deposit",
+      "discriminator": [
+        70,
+        75,
+        51,
+        78,
+        233,
+        4,
+        117,
+        177
+      ],
+      "accounts": [
+        {
+          "name": "merchant_owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "merchant",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  114,
+                  99,
+                  104,
+                  97,
+                  110,
+                  116,
+                  95,
+                  105,
+                  110,
+                  102,
+                  111
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchant_owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  121,
+                  115,
+                  116,
+                  101,
+                  109,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "merchant_token_account",
+          "writable": true
+        },
+        {
+          "name": "deposit_token_mint"
+        },
+        {
+          "name": "deposit_escrow_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  101,
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  95,
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "generate_product_id",
+      "discriminator": [
+        204,
+        200,
+        95,
+        199,
+        43,
+        150,
+        179,
+        74
+      ],
+      "accounts": [
+        {
+          "name": "merchant_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  114,
+                  99,
+                  104,
+                  97,
+                  110,
+                  116,
+                  95,
+                  105,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchant"
+              }
+            ]
+          }
+        },
+        {
+          "name": "merchant",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "active_chunk",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  105,
+                  100,
+                  95,
+                  99,
+                  104,
+                  117,
+                  110,
+                  107
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchant"
+              },
+              {
+                "kind": "account",
+                "path": "merchant_account.last_chunk_index",
+                "account": "MerchantIdAccount"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [],
+      "returns": "u64"
+    },
+    {
+      "name": "get_merchant_deposit_info",
+      "discriminator": [
+        233,
+        103,
+        193,
+        9,
+        136,
+        7,
+        193,
+        141
+      ],
+      "accounts": [
+        {
+          "name": "merchant",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  114,
+                  99,
+                  104,
+                  97,
+                  110,
+                  116,
+                  95,
+                  105,
+                  110,
+                  102,
+                  111
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchant_owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "merchant_owner",
+          "signer": true
+        },
+        {
+          "name": "system_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  121,
+                  115,
+                  116,
+                  101,
+                  109,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": [],
+      "returns": {
+        "defined": {
+          "name": "MerchantDepositInfo"
+        }
+      }
+    },
+    {
+      "name": "get_merchant_stats",
+      "discriminator": [
+        120,
+        49,
+        39,
+        98,
+        142,
+        165,
+        84,
+        158
+      ],
+      "accounts": [
+        {
+          "name": "merchant_info",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  114,
+                  99,
+                  104,
+                  97,
+                  110,
+                  116,
+                  95,
+                  105,
+                  110,
+                  102,
+                  111
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "owner",
+          "signer": true
+        }
+      ],
+      "args": [],
+      "returns": {
+        "defined": {
+          "name": "MerchantStats"
+        }
+      }
+    },
+    {
+      "name": "get_order_stats",
+      "discriminator": [
+        174,
+        2,
+        36,
+        228,
+        213,
+        73,
+        204,
+        188
+      ],
+      "accounts": [
+        {
+          "name": "order_stats",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  100,
+                  101,
+                  114,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  115
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "initialize_keyword_index",
+      "discriminator": [
+        36,
+        128,
+        212,
+        91,
+        103,
+        123,
+        46,
+        6
+      ],
+      "accounts": [
+        {
+          "name": "keyword_root",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  107,
+                  101,
+                  121,
+                  119,
+                  111,
+                  114,
+                  100,
+                  95,
+                  114,
+                  111,
+                  111,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "keyword"
+              }
+            ]
+          }
+        },
+        {
+          "name": "first_shard",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  107,
+                  101,
+                  121,
+                  119,
+                  111,
+                  114,
+                  100,
+                  95,
+                  115,
+                  104,
+                  97,
+                  114,
+                  100
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "keyword"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  0,
+                  0,
+                  0,
+                  0
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "keyword",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "initialize_order_stats",
+      "discriminator": [
+        188,
+        141,
+        99,
+        39,
+        119,
+        215,
+        43,
+        254
+      ],
+      "accounts": [
+        {
+          "name": "order_stats",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  100,
+                  101,
+                  114,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  115
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "initialize_payment_system",
+      "discriminator": [
+        115,
+        181,
+        85,
+        189,
+        43,
+        0,
+        123,
+        183
+      ],
+      "accounts": [
+        {
+          "name": "payment_config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  121,
+                  109,
+                  101,
+                  110,
+                  116,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "supported_tokens",
+          "type": {
+            "vec": {
+              "defined": {
+                "name": "SupportedToken"
+              }
+            }
+          }
+        },
+        {
+          "name": "fee_rate",
+          "type": "u16"
+        },
+        {
+          "name": "fee_recipient",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "initialize_price_index",
+      "discriminator": [
+        242,
+        209,
+        79,
+        4,
+        245,
+        6,
+        189,
+        234
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "price_index",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  105,
+                  99,
+                  101,
+                  95,
+                  105,
+                  110,
+                  100,
+                  101,
+                  120
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "price_range_start"
+              },
+              {
+                "kind": "arg",
+                "path": "price_range_end"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "price_range_start",
+          "type": "u64"
+        },
+        {
+          "name": "price_range_end",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "initialize_sales_index",
+      "discriminator": [
+        225,
+        105,
+        245,
+        176,
+        194,
+        41,
+        219,
+        31
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "sales_index",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  97,
+                  108,
+                  101,
+                  115,
+                  95,
+                  105,
+                  110,
+                  100,
+                  101,
+                  120
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "sales_range_start"
+              },
+              {
+                "kind": "arg",
+                "path": "sales_range_end"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "sales_range_start",
+          "type": "u32"
+        },
+        {
+          "name": "sales_range_end",
+          "type": "u32"
+        }
+      ]
+    },
+    {
+      "name": "initialize_system",
+      "discriminator": [
+        50,
+        173,
+        248,
+        140,
+        202,
+        35,
+        141,
+        150
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "global_root",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  108,
+                  111,
+                  98,
+                  97,
+                  108,
+                  95,
+                  105,
+                  100,
+                  95,
+                  114,
+                  111,
+                  111,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "config",
+          "type": {
+            "defined": {
+              "name": "SystemConfig"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "initialize_system_config",
+      "discriminator": [
+        43,
+        153,
+        196,
+        116,
+        233,
+        36,
+        208,
+        246
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  121,
+                  115,
+                  116,
+                  101,
+                  109,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "config",
+          "type": {
+            "defined": {
+              "name": "SystemConfig"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "is_id_exists",
+      "discriminator": [
+        242,
+        72,
+        82,
+        8,
+        248,
+        209,
+        123,
+        135
+      ],
+      "accounts": [
+        {
+          "name": "merchant_account",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  114,
+                  99,
+                  104,
+                  97,
+                  110,
+                  116,
+                  95,
+                  105,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchant"
+              }
+            ]
+          }
+        },
+        {
+          "name": "merchant",
+          "signer": true
+        },
+        {
+          "name": "id_chunk"
+        }
+      ],
+      "args": [
+        {
+          "name": "id",
+          "type": "u64"
+        }
+      ],
+      "returns": "bool"
+    },
+    {
+      "name": "purchase_product_escrow",
+      "discriminator": [
+        54,
+        19,
+        131,
+        52,
+        56,
+        59,
+        154,
+        129
+      ],
+      "accounts": [
+        {
+          "name": "buyer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "product",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  100,
+                  117,
+                  99,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "product_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "payment_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  121,
+                  109,
+                  101,
+                  110,
+                  116,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "escrow_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "buyer"
+              },
+              {
+                "kind": "arg",
+                "path": "product_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "order",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  100,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "buyer"
+              },
+              {
+                "kind": "account",
+                "path": "product.merchant",
+                "account": "Product"
+              },
+              {
+                "kind": "arg",
+                "path": "product_id"
+              },
+              {
+                "kind": "arg",
+                "path": "timestamp"
+              }
+            ]
+          }
+        },
+        {
+          "name": "order_stats",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  100,
+                  101,
+                  114,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  115
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "merchant",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  114,
+                  99,
+                  104,
+                  97,
+                  110,
+                  116,
+                  95,
+                  105,
+                  110,
+                  102,
+                  111
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "product.merchant",
+                "account": "Product"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  121,
+                  115,
+                  116,
+                  101,
+                  109,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "escrow_token_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119,
+                  95,
+                  116,
+                  111,
+                  107,
+                  101,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "buyer"
+              },
+              {
+                "kind": "arg",
+                "path": "product_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "buyer_token_account",
+          "writable": true
+        },
+        {
+          "name": "payment_token_mint"
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "rent",
+          "address": "SysvarRent111111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "product_id",
+          "type": "u64"
+        },
+        {
+          "name": "amount",
+          "type": "u64"
+        },
+        {
+          "name": "timestamp",
+          "type": "i64"
+        },
+        {
+          "name": "shipping_address",
+          "type": "string"
+        },
+        {
+          "name": "notes",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "refund_order",
+      "discriminator": [
+        164,
+        168,
+        47,
+        144,
+        154,
+        1,
+        241,
+        255
+      ],
+      "accounts": [
+        {
+          "name": "order",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  100,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "buyer"
+              },
+              {
+                "kind": "arg",
+                "path": "merchant_key"
+              },
+              {
+                "kind": "arg",
+                "path": "product_id"
+              },
+              {
+                "kind": "arg",
+                "path": "timestamp"
+              }
+            ]
+          }
+        },
+        {
+          "name": "order_stats",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  100,
+                  101,
+                  114,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  115
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "merchant",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  114,
+                  99,
+                  104,
+                  97,
+                  110,
+                  116,
+                  95,
+                  105,
+                  110,
+                  102,
+                  111
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchant.owner",
+                "account": "Merchant"
+              }
+            ]
+          }
+        },
+        {
+          "name": "merchant_token_account",
+          "writable": true
+        },
+        {
+          "name": "buyer_token_account",
+          "writable": true
+        },
+        {
+          "name": "authority",
+          "signer": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "buyer",
+          "type": "pubkey"
+        },
+        {
+          "name": "merchant_key",
+          "type": "pubkey"
+        },
+        {
+          "name": "product_id",
+          "type": "u64"
+        },
+        {
+          "name": "timestamp",
+          "type": "i64"
+        }
+      ]
+    },
+    {
+      "name": "register_merchant_atomic",
+      "discriminator": [
+        32,
+        44,
+        174,
+        126,
+        35,
+        71,
+        237,
+        6
+      ],
+      "accounts": [
+        {
+          "name": "merchant",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "global_root",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  108,
+                  111,
+                  98,
+                  97,
+                  108,
+                  95,
+                  105,
+                  100,
+                  95,
+                  114,
+                  111,
+                  111,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "merchant_info",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  114,
+                  99,
+                  104,
+                  97,
+                  110,
+                  116,
+                  95,
+                  105,
+                  110,
+                  102,
+                  111
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchant"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  121,
+                  115,
+                  116,
+                  101,
+                  109,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "merchant_id_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  114,
+                  99,
+                  104,
+                  97,
+                  110,
+                  116,
+                  95,
+                  105,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchant"
+              }
+            ]
+          }
+        },
+        {
+          "name": "initial_chunk",
+          "writable": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "description",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "remove_product_from_keyword_index",
+      "discriminator": [
+        155,
+        169,
+        181,
+        6,
+        131,
+        34,
+        247,
+        171
+      ],
+      "accounts": [
+        {
+          "name": "keyword_root",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  107,
+                  101,
+                  121,
+                  119,
+                  111,
+                  114,
+                  100,
+                  95,
+                  114,
+                  111,
+                  111,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "keyword"
+              }
+            ]
+          }
+        },
+        {
+          "name": "target_shard",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  107,
+                  101,
+                  121,
+                  119,
+                  111,
+                  114,
+                  100,
+                  95,
+                  115,
+                  104,
+                  97,
+                  114,
+                  100
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "keyword"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  0,
+                  0,
+                  0,
+                  0
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "keyword",
+          "type": "string"
+        },
+        {
+          "name": "product_id",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "remove_product_from_price_index",
+      "discriminator": [
+        110,
+        178,
+        178,
+        193,
+        139,
+        225,
+        59,
+        52
+      ],
+      "accounts": [
+        {
+          "name": "price_node",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  105,
+                  99,
+                  101,
+                  95,
+                  105,
+                  110,
+                  100,
+                  101,
+                  120
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "price_node.price_range_start",
+                "account": "PriceIndexNode"
+              },
+              {
+                "kind": "account",
+                "path": "price_node.price_range_end",
+                "account": "PriceIndexNode"
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "product_id",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "remove_product_from_sales_index",
+      "discriminator": [
+        49,
+        37,
+        83,
+        165,
+        184,
+        118,
+        207,
+        143
+      ],
+      "accounts": [
+        {
+          "name": "sales_node",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  97,
+                  108,
+                  101,
+                  115,
+                  95,
+                  105,
+                  110,
+                  100,
+                  101,
+                  120
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "sales_node.sales_range_start",
+                "account": "SalesIndexNode"
+              },
+              {
+                "kind": "account",
+                "path": "sales_node.sales_range_end",
+                "account": "SalesIndexNode"
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "product_id",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "return_order",
+      "discriminator": [
+        118,
+        247,
+        207,
+        86,
+        42,
+        154,
+        15,
+        235
+      ],
+      "accounts": [
+        {
+          "name": "order",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  100,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "buyer"
+              },
+              {
+                "kind": "arg",
+                "path": "merchant_key"
+              },
+              {
+                "kind": "arg",
+                "path": "product_id"
+              },
+              {
+                "kind": "arg",
+                "path": "timestamp"
+              }
+            ]
+          }
+        },
+        {
+          "name": "order_stats",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  100,
+                  101,
+                  114,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  115
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "merchant",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  114,
+                  99,
+                  104,
+                  97,
+                  110,
+                  116,
+                  95,
+                  105,
+                  110,
+                  102,
+                  111
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchant.owner",
+                "account": "Merchant"
+              }
+            ]
+          }
+        },
+        {
+          "name": "program_token_account",
+          "writable": true
+        },
+        {
+          "name": "buyer_token_account",
+          "writable": true
+        },
+        {
+          "name": "program_authority"
+        },
+        {
+          "name": "authority",
+          "signer": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "buyer",
+          "type": "pubkey"
+        },
+        {
+          "name": "merchant_key",
+          "type": "pubkey"
+        },
+        {
+          "name": "product_id",
+          "type": "u64"
+        },
+        {
+          "name": "timestamp",
+          "type": "i64"
+        },
+        {
+          "name": "return_reason",
+          "type": {
+            "option": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "split_price_node",
+      "discriminator": [
+        234,
+        133,
+        114,
+        69,
+        187,
+        147,
+        66,
+        41
+      ],
+      "accounts": [
+        {
+          "name": "price_node",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  105,
+                  99,
+                  101,
+                  95,
+                  105,
+                  110,
+                  100,
+                  101,
+                  120
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "price_range_start"
+              },
+              {
+                "kind": "arg",
+                "path": "price_range_end"
+              }
+            ]
+          }
+        },
+        {
+          "name": "new_price_node",
+          "writable": true
+        },
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "price_range_start",
+          "type": "u64"
+        },
+        {
+          "name": "price_range_end",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "update_deposit_requirement",
+      "discriminator": [
+        125,
+        163,
+        42,
+        239,
+        221,
+        28,
+        211,
+        74
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  121,
+                  115,
+                  116,
+                  101,
+                  109,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "new_requirement",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "update_fee_rate",
+      "discriminator": [
+        195,
+        241,
+        226,
+        216,
+        102,
+        1,
+        5,
+        122
+      ],
+      "accounts": [
+        {
+          "name": "payment_config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  121,
+                  109,
+                  101,
+                  110,
+                  116,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "fee_rate",
+          "type": "u16"
+        }
+      ]
+    },
+    {
+      "name": "update_merchant_info",
+      "discriminator": [
+        254,
+        42,
+        5,
+        10,
+        82,
+        188,
+        116,
+        32
+      ],
+      "accounts": [
+        {
+          "name": "merchant_info",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  114,
+                  99,
+                  104,
+                  97,
+                  110,
+                  116,
+                  95,
+                  105,
+                  110,
+                  102,
+                  111
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "owner",
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "name",
+          "type": {
+            "option": "string"
+          }
+        },
+        {
+          "name": "description",
+          "type": {
+            "option": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "update_order_status",
+      "discriminator": [
+        88,
+        95,
+        133,
+        241,
+        63,
+        159,
+        32,
+        71
+      ],
+      "accounts": [
+        {
+          "name": "order",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  100,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "buyer_key"
+              },
+              {
+                "kind": "arg",
+                "path": "merchant_key"
+              },
+              {
+                "kind": "arg",
+                "path": "product_id"
+              },
+              {
+                "kind": "arg",
+                "path": "timestamp"
+              }
+            ]
+          }
+        },
+        {
+          "name": "order_stats",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  100,
+                  101,
+                  114,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  115
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "merchant",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  114,
+                  99,
+                  104,
+                  97,
+                  110,
+                  116,
+                  95,
+                  105,
+                  110,
+                  102,
+                  111
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchant.owner",
+                "account": "Merchant"
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "buyer",
+          "type": "pubkey"
+        },
+        {
+          "name": "merchant",
+          "type": "pubkey"
+        },
+        {
+          "name": "product_id",
+          "type": "u64"
+        },
+        {
+          "name": "timestamp",
+          "type": "i64"
+        },
+        {
+          "name": "new_status",
+          "type": {
+            "defined": {
+              "name": "OrderManagementStatus"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "update_product",
+      "discriminator": [
+        139,
+        180,
+        241,
+        126,
+        123,
+        240,
+        13,
+        224
+      ],
+      "accounts": [
+        {
+          "name": "merchant",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "product",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  100,
+                  117,
+                  99,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "product_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "payment_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  121,
+                  109,
+                  101,
+                  110,
+                  116,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "product_id",
+          "type": "u64"
+        },
+        {
+          "name": "name",
+          "type": {
+            "option": "string"
+          }
+        },
+        {
+          "name": "description",
+          "type": {
+            "option": "string"
+          }
+        },
+        {
+          "name": "price",
+          "type": {
+            "option": "u64"
+          }
+        },
+        {
+          "name": "keywords",
+          "type": {
+            "option": {
+              "vec": "string"
+            }
+          }
+        },
+        {
+          "name": "inventory",
+          "type": {
+            "option": "u64"
+          }
+        },
+        {
+          "name": "payment_token",
+          "type": {
+            "option": "pubkey"
+          }
+        },
+        {
+          "name": "token_decimals",
+          "type": {
+            "option": "u8"
+          }
+        },
+        {
+          "name": "token_price",
+          "type": {
+            "option": "u64"
+          }
+        },
+        {
+          "name": "image_video_urls",
+          "type": {
+            "option": {
+              "vec": "string"
+            }
+          }
+        },
+        {
+          "name": "shipping_location",
+          "type": {
+            "option": "string"
+          }
+        },
+        {
+          "name": "sales_regions",
+          "type": {
+            "option": {
+              "vec": "string"
+            }
+          }
+        },
+        {
+          "name": "logistics_methods",
+          "type": {
+            "option": {
+              "vec": "string"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "update_product_price",
+      "discriminator": [
+        224,
+        194,
+        162,
+        206,
+        125,
+        101,
+        44,
+        234
+      ],
+      "accounts": [
+        {
+          "name": "merchant",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "product",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  100,
+                  117,
+                  99,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "product_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "merchant_info",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  114,
+                  99,
+                  104,
+                  97,
+                  110,
+                  116,
+                  95,
+                  105,
+                  110,
+                  102,
+                  111
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchant"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "product_id",
+          "type": "u64"
+        },
+        {
+          "name": "new_price",
+          "type": "u64"
+        },
+        {
+          "name": "new_token_price",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "update_product_sales_index",
+      "discriminator": [
+        73,
+        101,
+        231,
+        61,
+        87,
+        30,
+        208,
+        221
+      ],
+      "accounts": [
+        {
+          "name": "old_sales_node",
+          "writable": true
+        },
+        {
+          "name": "new_sales_node",
+          "writable": true
+        },
+        {
+          "name": "authority",
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "product_id",
+          "type": "u64"
+        },
+        {
+          "name": "old_sales",
+          "type": "u32"
+        },
+        {
+          "name": "new_sales",
+          "type": "u32"
+        }
+      ]
+    },
+    {
+      "name": "update_sales_count",
+      "discriminator": [
+        174,
+        185,
+        96,
+        64,
+        196,
+        81,
+        222,
+        245
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "product",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  100,
+                  117,
+                  99,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "product_id"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "product_id",
+          "type": "u64"
+        },
+        {
+          "name": "sales_increment",
+          "type": "u32"
+        }
+      ]
+    },
+    {
+      "name": "update_supported_tokens",
+      "discriminator": [
+        224,
+        58,
+        155,
+        90,
+        86,
+        65,
+        78,
+        199
+      ],
+      "accounts": [
+        {
+          "name": "payment_config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  121,
+                  109,
+                  101,
+                  110,
+                  116,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "supported_tokens",
+          "type": {
+            "vec": {
+              "defined": {
+                "name": "SupportedToken"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "withdraw_merchant_deposit",
+      "discriminator": [
+        20,
+        19,
+        35,
+        124,
+        181,
+        39,
+        149,
+        187
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "merchant",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  114,
+                  99,
+                  104,
+                  97,
+                  110,
+                  116,
+                  95,
+                  105,
+                  110,
+                  102,
+                  111
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchant_owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "merchant_owner",
+          "docs": [
+            "商户所有者公钥（用于PDA计算和权限验证）"
+          ]
+        },
+        {
+          "name": "system_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  121,
+                  115,
+                  116,
+                  101,
+                  109,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "recipient_token_account",
+          "writable": true
+        },
+        {
+          "name": "deposit_escrow_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  101,
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  95,
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "EscrowAccount",
+      "discriminator": [
+        36,
+        69,
+        48,
+        18,
+        128,
+        225,
+        125,
+        135
+      ]
+    },
+    {
+      "name": "GlobalIdRoot",
+      "discriminator": [
+        160,
+        52,
+        193,
+        100,
+        232,
+        227,
+        104,
+        89
+      ]
+    },
+    {
+      "name": "IdChunk",
+      "discriminator": [
+        181,
+        3,
+        189,
+        241,
+        130,
+        58,
+        50,
+        91
+      ]
+    },
+    {
+      "name": "KeywordRoot",
+      "discriminator": [
+        37,
+        2,
+        46,
+        224,
+        85,
+        99,
+        149,
+        246
+      ]
+    },
+    {
+      "name": "KeywordShard",
+      "discriminator": [
+        65,
+        240,
+        150,
+        126,
+        194,
+        124,
+        129,
+        127
+      ]
+    },
+    {
+      "name": "Merchant",
+      "discriminator": [
+        71,
+        235,
+        30,
+        40,
+        231,
+        21,
+        32,
+        64
+      ]
+    },
+    {
+      "name": "MerchantIdAccount",
+      "discriminator": [
+        101,
+        205,
+        154,
+        159,
+        88,
+        102,
+        213,
+        82
+      ]
+    },
+    {
+      "name": "Order",
+      "discriminator": [
+        134,
+        173,
+        223,
+        185,
+        77,
+        86,
+        28,
+        51
+      ]
+    },
+    {
+      "name": "OrderStats",
+      "discriminator": [
+        158,
+        4,
+        69,
+        167,
+        243,
+        156,
+        250,
+        225
+      ]
+    },
+    {
+      "name": "PaymentConfig",
+      "discriminator": [
+        252,
+        166,
+        185,
+        239,
+        186,
+        79,
+        212,
+        152
+      ]
+    },
+    {
+      "name": "PriceIndexNode",
+      "discriminator": [
+        140,
+        233,
+        236,
+        104,
+        100,
+        161,
+        6,
+        120
+      ]
+    },
+    {
+      "name": "Product",
+      "discriminator": [
+        102,
+        76,
+        55,
+        251,
+        38,
+        73,
+        224,
+        229
+      ]
+    },
+    {
+      "name": "SalesIndexNode",
+      "discriminator": [
+        185,
+        183,
+        45,
+        92,
+        72,
+        101,
+        157,
+        210
+      ]
+    },
+    {
+      "name": "SystemConfig",
+      "discriminator": [
+        218,
+        150,
+        16,
+        126,
+        102,
+        185,
+        75,
+        1
+      ]
+    },
+    {
+      "name": "UserPurchaseCount",
+      "discriminator": [
+        218,
+        163,
+        123,
+        229,
+        41,
+        108,
+        161,
+        253
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "MerchantRegisteredAtomic",
+      "discriminator": [
+        166,
+        239,
+        156,
+        104,
+        215,
+        191,
+        159,
+        14
+      ]
+    },
+    {
+      "name": "ProductEvent",
+      "discriminator": [
+        254,
+        182,
+        14,
+        1,
+        15,
+        26,
+        228,
+        34
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "MissingKeywordAccount",
+      "msg": "缺少关键词账户"
+    },
+    {
+      "code": 6001,
+      "name": "TooManyKeywords",
+      "msg": "关键词数量超出限制"
+    },
+    {
+      "code": 6002,
+      "name": "ShardFull",
+      "msg": "分片空间不足"
+    },
+    {
+      "code": 6003,
+      "name": "IdGenerationFailed",
+      "msg": "ID生成失败"
+    },
+    {
+      "code": 6004,
+      "name": "RentCalculationFailed",
+      "msg": "租金计算失败"
+    },
+    {
+      "code": 6005,
+      "name": "MerchantNotRegistered",
+      "msg": "商户未注册"
+    },
+    {
+      "code": 6006,
+      "name": "IdAlreadyInUse",
+      "msg": "ID已被使用"
+    },
+    {
+      "code": 6007,
+      "name": "IdNotFound",
+      "msg": "ID不存在"
+    },
+    {
+      "code": 6008,
+      "name": "IdRangeOverflow",
+      "msg": "ID区间超出范围"
+    },
+    {
+      "code": 6009,
+      "name": "NoAvailableId",
+      "msg": "无可用ID"
+    },
+    {
+      "code": 6010,
+      "name": "InvalidId",
+      "msg": "无效的ID"
+    },
+    {
+      "code": 6011,
+      "name": "ProductNotFound",
+      "msg": "商品不存在"
+    },
+    {
+      "code": 6012,
+      "name": "InvalidProduct",
+      "msg": "无效的商品"
+    },
+    {
+      "code": 6013,
+      "name": "InvalidProductAccount",
+      "msg": "无效的商品账户"
+    },
+    {
+      "code": 6014,
+      "name": "InvalidPrice",
+      "msg": "无效的价格"
+    },
+    {
+      "code": 6015,
+      "name": "InvalidProductNameLength",
+      "msg": "无效的商品名称长度"
+    },
+    {
+      "code": 6016,
+      "name": "InvalidProductDescriptionLength",
+      "msg": "无效的商品描述长度"
+    },
+    {
+      "code": 6017,
+      "name": "InvalidMerchant",
+      "msg": "无效的商户"
+    },
+    {
+      "code": 6018,
+      "name": "InvalidMerchantNameLength",
+      "msg": "无效的商户名称长度"
+    },
+    {
+      "code": 6019,
+      "name": "InvalidMerchantDescriptionLength",
+      "msg": "无效的商户描述长度"
+    },
+    {
+      "code": 6020,
+      "name": "UnauthorizedMerchant",
+      "msg": "未授权的商户操作"
+    },
+    {
+      "code": 6021,
+      "name": "InvalidKeyword",
+      "msg": "无效的关键词"
+    },
+    {
+      "code": 6022,
+      "name": "InvalidKeywordLength",
+      "msg": "无效的关键词长度"
+    },
+    {
+      "code": 6023,
+      "name": "InvalidKeywordCount",
+      "msg": "无效的关键词数量"
+    },
+    {
+      "code": 6024,
+      "name": "DuplicateKeyword",
+      "msg": "重复的关键词"
+    },
+    {
+      "code": 6025,
+      "name": "ShardIsFull",
+      "msg": "分片已满"
+    },
+    {
+      "code": 6026,
+      "name": "InvalidShardIndex",
+      "msg": "无效的分片索引"
+    },
+    {
+      "code": 6027,
+      "name": "PriceIndexNodeNotFound",
+      "msg": "价格索引节点不存在"
+    },
+    {
+      "code": 6028,
+      "name": "SalesIndexNodeNotFound",
+      "msg": "销量索引节点不存在"
+    },
+    {
+      "code": 6029,
+      "name": "InvalidPriceRange",
+      "msg": "无效的价格区间"
+    },
+    {
+      "code": 6030,
+      "name": "InvalidSalesRange",
+      "msg": "无效的销量区间"
+    },
+    {
+      "code": 6031,
+      "name": "BloomFilterUpdateFailed",
+      "msg": "布隆过滤器更新失败"
+    },
+    {
+      "code": 6032,
+      "name": "KeywordIndexNotEmpty",
+      "msg": "关键词索引不为空"
+    },
+    {
+      "code": 6033,
+      "name": "KeywordShardNotEmpty",
+      "msg": "关键词分片不为空"
+    },
+    {
+      "code": 6034,
+      "name": "MerchantHasActiveProducts",
+      "msg": "商户仍有活跃产品"
+    },
+    {
+      "code": 6035,
+      "name": "IdChunkNotEmpty",
+      "msg": "ID块不为空"
+    },
+    {
+      "code": 6036,
+      "name": "MerchantIdAccountNotEmpty",
+      "msg": "商户ID账户不为空"
+    },
+    {
+      "code": 6037,
+      "name": "UnsupportedToken",
+      "msg": "不支持的代币"
+    },
+    {
+      "code": 6038,
+      "name": "InsufficientTokenBalance",
+      "msg": "代币余额不足"
+    },
+    {
+      "code": 6039,
+      "name": "InsufficientSolBalance",
+      "msg": "SOL余额不足"
+    },
+    {
+      "code": 6040,
+      "name": "InvalidTokenAmount",
+      "msg": "无效的代币金额"
+    },
+    {
+      "code": 6041,
+      "name": "TokenTransferFailed",
+      "msg": "代币转账失败"
+    },
+    {
+      "code": 6042,
+      "name": "FeeCalculationError",
+      "msg": "手续费计算错误"
+    },
+    {
+      "code": 6043,
+      "name": "PaymentConfigNotFound",
+      "msg": "支付配置未找到"
+    },
+    {
+      "code": 6044,
+      "name": "TokenNotActive",
+      "msg": "代币未激活"
+    },
+    {
+      "code": 6045,
+      "name": "BelowMinimumAmount",
+      "msg": "低于最小交易金额"
+    },
+    {
+      "code": 6046,
+      "name": "ProductCreationFailed",
+      "msg": "商品创建失败"
+    },
+    {
+      "code": 6047,
+      "name": "AtomicOperationFailed",
+      "msg": "原子操作失败"
+    },
+    {
+      "code": 6048,
+      "name": "InvalidFeeRate",
+      "msg": "无效的手续费率"
+    },
+    {
+      "code": 6049,
+      "name": "TooManyTokens",
+      "msg": "代币数量过多"
+    },
+    {
+      "code": 6050,
+      "name": "InvalidTokenSymbol",
+      "msg": "无效的代币符号"
+    },
+    {
+      "code": 6051,
+      "name": "InvalidTokenDecimals",
+      "msg": "无效的代币精度"
+    },
+    {
+      "code": 6052,
+      "name": "InvalidOrderStatus",
+      "msg": "无效的订单状态"
+    },
+    {
+      "code": 6053,
+      "name": "InvalidPaymentMethod",
+      "msg": "无效的支付方式"
+    },
+    {
+      "code": 6054,
+      "name": "OrderNotFound",
+      "msg": "订单不存在"
+    },
+    {
+      "code": 6055,
+      "name": "InvalidOrderQuantity",
+      "msg": "无效的订单数量"
+    },
+    {
+      "code": 6056,
+      "name": "InvalidOrderPrice",
+      "msg": "无效的订单价格"
+    },
+    {
+      "code": 6057,
+      "name": "InvalidOrderTotalAmount",
+      "msg": "无效的订单总金额"
+    },
+    {
+      "code": 6058,
+      "name": "InvalidOrderTokenPrice",
+      "msg": "无效的订单代币价格"
+    },
+    {
+      "code": 6059,
+      "name": "InvalidOrderTokenTotalAmount",
+      "msg": "无效的订单代币总金额"
+    },
+    {
+      "code": 6060,
+      "name": "InvalidShippingAddressLength",
+      "msg": "无效的收货地址长度"
+    },
+    {
+      "code": 6061,
+      "name": "InvalidOrderNotesLength",
+      "msg": "无效的订单备注长度"
+    },
+    {
+      "code": 6062,
+      "name": "InvalidTransactionSignature",
+      "msg": "无效的交易签名"
+    },
+    {
+      "code": 6063,
+      "name": "InvalidOrderStatusTransition",
+      "msg": "无效的订单状态转换"
+    },
+    {
+      "code": 6064,
+      "name": "OrderCannotBeModified",
+      "msg": "订单无法修改"
+    },
+    {
+      "code": 6065,
+      "name": "OrderCannotBeRefunded",
+      "msg": "订单无法退款"
+    },
+    {
+      "code": 6066,
+      "name": "OrderAlreadyExists",
+      "msg": "订单已存在"
+    },
+    {
+      "code": 6067,
+      "name": "Unauthorized",
+      "msg": "未授权操作"
+    },
+    {
+      "code": 6068,
+      "name": "InvalidTimestamp",
+      "msg": "无效的时间戳"
+    },
+    {
+      "code": 6069,
+      "name": "InvalidAccountOwner",
+      "msg": "无效的账户所有者"
+    },
+    {
+      "code": 6070,
+      "name": "InvalidAccountData",
+      "msg": "无效的账户数据"
+    },
+    {
+      "code": 6071,
+      "name": "InvalidAccountSize",
+      "msg": "无效的账户大小"
+    },
+    {
+      "code": 6072,
+      "name": "InvalidPda",
+      "msg": "无效的PDA"
+    },
+    {
+      "code": 6073,
+      "name": "InvalidAccountSeeds",
+      "msg": "无效的账户种子"
+    },
+    {
+      "code": 6074,
+      "name": "InvalidAccountBump",
+      "msg": "无效的账户bump"
+    },
+    {
+      "code": 6075,
+      "name": "InsufficientFunds",
+      "msg": "余额不足"
+    },
+    {
+      "code": 6076,
+      "name": "InvalidActiveChunk",
+      "msg": "无效的活跃块"
+    },
+    {
+      "code": 6077,
+      "name": "AccountDiscriminatorMismatch",
+      "msg": "账户判别器不匹配"
+    },
+    {
+      "code": 6078,
+      "name": "InsufficientAccounts",
+      "msg": "账户数量不足"
+    },
+    {
+      "code": 6079,
+      "name": "InsufficientDeposit",
+      "msg": "保证金不足"
+    },
+    {
+      "code": 6080,
+      "name": "InsufficientLockedDeposit",
+      "msg": "锁定保证金不足"
+    },
+    {
+      "code": 6081,
+      "name": "InvalidDepositToken",
+      "msg": "无效的保证金代币"
+    },
+    {
+      "code": 6082,
+      "name": "InvalidDepositAmount",
+      "msg": "保证金金额无效"
+    },
+    {
+      "code": 6083,
+      "name": "MerchantDepositInsufficient",
+      "msg": "商户保证金不足，无法进行交易"
+    },
+    {
+      "code": 6084,
+      "name": "DepositAlreadyLocked",
+      "msg": "保证金已锁定"
+    },
+    {
+      "code": 6085,
+      "name": "DepositNotLocked",
+      "msg": "保证金未锁定"
+    },
+    {
+      "code": 6086,
+      "name": "ArithmeticOverflow",
+      "msg": "算术溢出"
+    },
+    {
+      "code": 6087,
+      "name": "ArithmeticUnderflow",
+      "msg": "算术下溢"
+    }
+  ],
+  "types": [
+    {
+      "name": "EscrowAccount",
+      "docs": [
+        "托管账户结构"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "order_id",
+            "type": "u64"
+          },
+          {
+            "name": "buyer",
+            "type": "pubkey"
+          },
+          {
+            "name": "merchant",
+            "type": "pubkey"
+          },
+          {
+            "name": "product_id",
+            "type": "u64"
+          },
+          {
+            "name": "payment_token",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "total_price",
+            "type": "u64"
+          },
+          {
+            "name": "fee_amount",
+            "type": "u64"
+          },
+          {
+            "name": "merchant_amount",
+            "type": "u64"
+          },
+          {
+            "name": "status",
+            "type": {
+              "defined": {
+                "name": "OrderStatus"
+              }
+            }
+          },
+          {
+            "name": "created_at",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "GlobalIdRoot",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "last_merchant_id",
+            "type": "u32"
+          },
+          {
+            "name": "last_global_id",
+            "type": "u64"
+          },
+          {
+            "name": "chunk_size",
+            "type": "u32"
+          },
+          {
+            "name": "merchants",
+            "type": {
+              "vec": "pubkey"
+            }
+          },
+          {
+            "name": "max_products_per_shard",
+            "type": "u16"
+          },
+          {
+            "name": "max_keywords_per_product",
+            "type": "u8"
+          },
+          {
+            "name": "bloom_filter_size",
+            "type": "u16"
+          },
+          {
+            "name": "cache_ttl",
+            "type": "u32"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "IdChunk",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "merchant_id",
+            "type": "u32"
+          },
+          {
+            "name": "chunk_index",
+            "type": "u32"
+          },
+          {
+            "name": "start_id",
+            "type": "u64"
+          },
+          {
+            "name": "end_id",
+            "type": "u64"
+          },
+          {
+            "name": "next_available",
+            "type": "u32"
+          },
+          {
+            "name": "bitmap",
+            "type": "bytes"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "KeywordRoot",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "keyword",
+            "type": "string"
+          },
+          {
+            "name": "total_shards",
+            "type": "u8"
+          },
+          {
+            "name": "first_shard",
+            "type": "pubkey"
+          },
+          {
+            "name": "last_shard",
+            "type": "pubkey"
+          },
+          {
+            "name": "total_products",
+            "type": "u32"
+          },
+          {
+            "name": "bloom_filter",
+            "type": {
+              "array": [
+                "u8",
+                256
+              ]
+            }
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "KeywordShard",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "keyword",
+            "type": "string"
+          },
+          {
+            "name": "shard_index",
+            "type": "u32"
+          },
+          {
+            "name": "prev_shard",
+            "type": "pubkey"
+          },
+          {
+            "name": "next_shard",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "product_ids",
+            "type": {
+              "vec": "u64"
+            }
+          },
+          {
+            "name": "min_id",
+            "type": "u64"
+          },
+          {
+            "name": "max_id",
+            "type": "u64"
+          },
+          {
+            "name": "bloom_summary",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Merchant",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "description",
+            "type": "string"
+          },
+          {
+            "name": "product_count",
+            "type": "u64"
+          },
+          {
+            "name": "total_sales",
+            "type": "u64"
+          },
+          {
+            "name": "is_active",
+            "type": "bool"
+          },
+          {
+            "name": "created_at",
+            "type": "i64"
+          },
+          {
+            "name": "updated_at",
+            "type": "i64"
+          },
+          {
+            "name": "deposit_amount",
+            "type": "u64"
+          },
+          {
+            "name": "deposit_token_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "deposit_locked",
+            "type": "u64"
+          },
+          {
+            "name": "deposit_updated_at",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MerchantDepositInfo",
+      "docs": [
+        "商户保证金信息结构"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "total_deposit",
+            "type": "u64"
+          },
+          {
+            "name": "locked_deposit",
+            "type": "u64"
+          },
+          {
+            "name": "available_deposit",
+            "type": "u64"
+          },
+          {
+            "name": "required_deposit",
+            "type": "u64"
+          },
+          {
+            "name": "is_sufficient",
+            "type": "bool"
+          },
+          {
+            "name": "deposit_token_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "last_updated",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MerchantIdAccount",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "merchant_id",
+            "type": "u32"
+          },
+          {
+            "name": "last_chunk_index",
+            "type": "u32"
+          },
+          {
+            "name": "last_local_id",
+            "type": "u32"
+          },
+          {
+            "name": "active_chunk",
+            "type": "pubkey"
+          },
+          {
+            "name": "unused_chunks",
+            "type": {
+              "vec": "pubkey"
+            }
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MerchantRegisteredAtomic",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "merchant",
+            "type": "pubkey"
+          },
+          {
+            "name": "merchant_id",
+            "type": "u32"
+          },
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "initial_id_range_start",
+            "type": "u64"
+          },
+          {
+            "name": "initial_id_range_end",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MerchantStats",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "product_count",
+            "type": "u64"
+          },
+          {
+            "name": "total_sales",
+            "type": "u64"
+          },
+          {
+            "name": "active_products",
+            "type": "u64"
+          },
+          {
+            "name": "total_keywords",
+            "type": "u64"
+          },
+          {
+            "name": "avg_product_price",
+            "type": "u64"
+          },
+          {
+            "name": "last_updated",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Order",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "id",
+            "type": "u64"
+          },
+          {
+            "name": "buyer",
+            "type": "pubkey"
+          },
+          {
+            "name": "merchant",
+            "type": "pubkey"
+          },
+          {
+            "name": "product_id",
+            "type": "u64"
+          },
+          {
+            "name": "quantity",
+            "type": "u32"
+          },
+          {
+            "name": "unit_price",
+            "type": "u64"
+          },
+          {
+            "name": "total_amount",
+            "type": "u64"
+          },
+          {
+            "name": "payment_token",
+            "type": "pubkey"
+          },
+          {
+            "name": "token_decimals",
+            "type": "u8"
+          },
+          {
+            "name": "token_unit_price",
+            "type": "u64"
+          },
+          {
+            "name": "token_total_amount",
+            "type": "u64"
+          },
+          {
+            "name": "status",
+            "type": {
+              "defined": {
+                "name": "OrderManagementStatus"
+              }
+            }
+          },
+          {
+            "name": "shipping_address",
+            "type": "string"
+          },
+          {
+            "name": "notes",
+            "type": "string"
+          },
+          {
+            "name": "created_at",
+            "type": "i64"
+          },
+          {
+            "name": "updated_at",
+            "type": "i64"
+          },
+          {
+            "name": "confirmed_at",
+            "type": {
+              "option": "i64"
+            }
+          },
+          {
+            "name": "shipped_at",
+            "type": {
+              "option": "i64"
+            }
+          },
+          {
+            "name": "delivered_at",
+            "type": {
+              "option": "i64"
+            }
+          },
+          {
+            "name": "refunded_at",
+            "type": {
+              "option": "i64"
+            }
+          },
+          {
+            "name": "transaction_signature",
+            "type": "string"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "OrderManagementStatus",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Pending"
+          },
+          {
+            "name": "Confirmed"
+          },
+          {
+            "name": "Shipped"
+          },
+          {
+            "name": "Delivered"
+          },
+          {
+            "name": "Refunded"
+          }
+        ]
+      }
+    },
+    {
+      "name": "OrderStats",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "total_orders",
+            "type": "u64"
+          },
+          {
+            "name": "pending_orders",
+            "type": "u64"
+          },
+          {
+            "name": "confirmed_orders",
+            "type": "u64"
+          },
+          {
+            "name": "shipped_orders",
+            "type": "u64"
+          },
+          {
+            "name": "delivered_orders",
+            "type": "u64"
+          },
+          {
+            "name": "refunded_orders",
+            "type": "u64"
+          },
+          {
+            "name": "total_revenue",
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "OrderStatus",
+      "docs": [
+        "订单状态枚举"
+      ],
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Pending"
+          },
+          {
+            "name": "PendingConfirmation"
+          },
+          {
+            "name": "Completed"
+          },
+          {
+            "name": "Cancelled"
+          },
+          {
+            "name": "Failed"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PaymentConfig",
+      "docs": [
+        "系统级支付配置账户"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "supported_tokens",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "SupportedToken"
+                }
+              }
+            }
+          },
+          {
+            "name": "fee_rate",
+            "type": "u16"
+          },
+          {
+            "name": "fee_recipient",
+            "type": "pubkey"
+          },
+          {
+            "name": "created_at",
+            "type": "i64"
+          },
+          {
+            "name": "updated_at",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PriceIndexNode",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "price_range_start",
+            "type": "u64"
+          },
+          {
+            "name": "price_range_end",
+            "type": "u64"
+          },
+          {
+            "name": "product_ids",
+            "type": {
+              "vec": "u64"
+            }
+          },
+          {
+            "name": "left_child",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "right_child",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "parent",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "height",
+            "type": "u8"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Product",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "id",
+            "type": "u64"
+          },
+          {
+            "name": "merchant",
+            "type": "pubkey"
+          },
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "description",
+            "type": "string"
+          },
+          {
+            "name": "price",
+            "type": "u64"
+          },
+          {
+            "name": "keywords",
+            "type": {
+              "vec": "string"
+            }
+          },
+          {
+            "name": "inventory",
+            "type": "u64"
+          },
+          {
+            "name": "sales",
+            "type": "u32"
+          },
+          {
+            "name": "is_active",
+            "type": "bool"
+          },
+          {
+            "name": "created_at",
+            "type": "i64"
+          },
+          {
+            "name": "updated_at",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "payment_token",
+            "type": "pubkey"
+          },
+          {
+            "name": "token_decimals",
+            "type": "u8"
+          },
+          {
+            "name": "token_price",
+            "type": "u64"
+          },
+          {
+            "name": "image_video_urls",
+            "type": {
+              "vec": "string"
+            }
+          },
+          {
+            "name": "shipping_location",
+            "type": "string"
+          },
+          {
+            "name": "sales_regions",
+            "type": {
+              "vec": "string"
+            }
+          },
+          {
+            "name": "logistics_methods",
+            "type": {
+              "vec": "string"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "ProductEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "product_id",
+            "type": "u64"
+          },
+          {
+            "name": "merchant",
+            "type": "pubkey"
+          },
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "description",
+            "type": "string"
+          },
+          {
+            "name": "price",
+            "type": "u64"
+          },
+          {
+            "name": "keywords",
+            "type": {
+              "vec": "string"
+            }
+          },
+          {
+            "name": "sales_count",
+            "type": "u32"
+          },
+          {
+            "name": "is_active",
+            "type": "bool"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          },
+          {
+            "name": "event_type",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ProductSales",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "product_id",
+            "type": "u64"
+          },
+          {
+            "name": "sales",
+            "type": "u32"
+          },
+          {
+            "name": "last_update",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SalesIndexNode",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "sales_range_start",
+            "type": "u32"
+          },
+          {
+            "name": "sales_range_end",
+            "type": "u32"
+          },
+          {
+            "name": "product_ids",
+            "type": {
+              "vec": "u64"
+            }
+          },
+          {
+            "name": "top_items",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "ProductSales"
+                }
+              }
+            }
+          },
+          {
+            "name": "left_child",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "right_child",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "parent",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "height",
+            "type": "u8"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SupportedToken",
+      "docs": [
+        "支持的代币信息"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "symbol",
+            "type": "string"
+          },
+          {
+            "name": "decimals",
+            "type": "u8"
+          },
+          {
+            "name": "is_active",
+            "type": "bool"
+          },
+          {
+            "name": "min_amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SystemConfig",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "max_products_per_shard",
+            "type": "u16"
+          },
+          {
+            "name": "max_keywords_per_product",
+            "type": "u8"
+          },
+          {
+            "name": "chunk_size",
+            "type": "u32"
+          },
+          {
+            "name": "bloom_filter_size",
+            "type": "u16"
+          },
+          {
+            "name": "cache_ttl",
+            "type": "u32"
+          },
+          {
+            "name": "merchant_deposit_required",
+            "type": "u64"
+          },
+          {
+            "name": "deposit_token_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "deposit_token_decimals",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "UserPurchaseCount",
+      "docs": [
+        "用户购买计数账户"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "buyer",
+            "type": "pubkey"
+          },
+          {
+            "name": "purchase_count",
+            "type": "u64"
+          },
+          {
+            "name": "created_at",
+            "type": "i64"
+          },
+          {
+            "name": "updated_at",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    }
+  ]
+}

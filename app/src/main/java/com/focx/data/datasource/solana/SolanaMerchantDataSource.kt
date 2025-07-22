@@ -12,23 +12,35 @@ import com.focx.domain.usecase.RecentBlockhashUseCase
 import com.focx.utils.Log
 import com.focx.utils.SolanaTokenUtils
 import com.funkatronics.encoders.Base58
+import com.funkatronics.kborsh.Borsh
 import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
 import com.solana.mobilewalletadapter.clientlib.MobileWalletAdapter
 import com.solana.mobilewalletadapter.clientlib.TransactionResult
 import com.solana.mobilewalletadapter.clientlib.successPayload
+import com.solana.programs.SystemProgram
+import com.solana.publickey.ProgramDerivedAddress
 import com.solana.publickey.SolanaPublicKey
 import com.solana.rpc.AccountInfo
 import com.solana.rpc.SolanaRpcClient
+import com.solana.serialization.AnchorInstructionSerializer
 import com.solana.transaction.AccountMeta
 import com.solana.transaction.Message
 import com.solana.transaction.Transaction
 import com.solana.transaction.TransactionInstruction
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.serialization.Serializable
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import javax.inject.Inject
 import javax.inject.Singleton
+
+// TODO anchor: 这是根据 solana_e_commerce.json 为 register_merchant_atomic 指令定义的参数结构。
+@Serializable
+private data class RegisterMerchantAtomicArgs(
+    val name: String,
+    val description: String
+)
 
 @Singleton
 class SolanaMerchantDataSource @Inject constructor(
@@ -42,7 +54,7 @@ class SolanaMerchantDataSource @Inject constructor(
         private const val TAG = "SMDS"
     }
 
-    override suspend fun registerMerchantAtomic(
+     suspend fun registerMerchantAtomic1(
         merchantRegistration: MerchantRegistration, activityResultSender: ActivityResultSender
     ): MerchantRegistrationResult {
         return try {
@@ -176,6 +188,140 @@ class SolanaMerchantDataSource @Inject constructor(
                 success = false,
                 transactionSignature = null,
                 merchantAccount = null,
+                errorMessage = "Registration failed: ${e.message}"
+            )
+        }
+    }
+
+    /**
+     * 使用 Anchor 和 Borsh 序列化方式注册商户。
+     * 此方法遵循 Anchor 合约接口定义 (`solana_e_commerce.json`)。
+     */
+    override suspend fun registerMerchantAtomic(
+        merchantRegistration: MerchantRegistration, activityResultSender: ActivityResultSender
+    ): MerchantRegistrationResult {
+        return try {
+            Log.d(TAG, "Starting registerMerchantWithAnchor, walletAdapter authToken: ${walletAdapter.authToken}")
+
+            val result = walletAdapter.transact(activityResultSender) { authResult ->
+                Log.d(TAG, "registerMerchantWithAnchor authResult.authToken:${authResult.authToken}")
+
+                // TODO anchor: 确认 programId 是从 merchantRegistration 动态获取还是使用常量。
+                // 合约地址来自 solana_e_commerce.json
+                val programId = SolanaPublicKey.from("5y3FcQs2Ar6kTqpsJpJdHRJih3G9WDtsmkiNX54UtPiq")
+                val merchantPublicKey = SolanaPublicKey.from(merchantRegistration.merchantPublicKey)
+
+                // 计算 PDAs (与 registerMerchantAtomic 相同)
+                val globalRootPda = ProgramDerivedAddress.find(
+                    listOf("global_id_root".toByteArray()), programId
+                )
+                val merchantInfoPda = ProgramDerivedAddress.find(
+                    listOf("merchant_info".toByteArray(), merchantPublicKey.bytes), programId
+                )
+                val systemConfigPda = ProgramDerivedAddress.find(
+                    listOf("system_config".toByteArray()), programId
+                )
+                val merchantIdAccountPda = ProgramDerivedAddress.find(
+                    listOf("merchant".toByteArray(), merchantPublicKey.bytes), programId
+                )
+                val initialChunkPda = ProgramDerivedAddress.find(
+                    listOf(
+                        "id_chunk".toByteArray(),
+                        merchantPublicKey.bytes,
+                        ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(0).array()
+                    ), programId
+                )
+
+                Log.d(TAG, "Calculated PDAs for Anchor:")
+                Log.d(TAG, "  globalRootPda: ${globalRootPda.getOrNull()!!.base58()}")
+                Log.d(TAG, "  merchantInfoPda: ${merchantInfoPda.getOrNull()!!.base58()}")
+                Log.d(TAG, "  merchantIdAccountPda: ${merchantIdAccountPda.getOrNull()!!.base58()}")
+                Log.d(TAG, "  initialChunkPda: ${initialChunkPda.getOrNull()!!.base58()}")
+
+                // 1. 构造 Anchor 指令的参数
+                val args = RegisterMerchantAtomicArgs(
+                    name = merchantRegistration.name,
+                    description = merchantRegistration.description
+                )
+
+                // 2. 使用 AnchorInstructionSerializer 和 Borsh 对指令数据进行序列化
+                //    指令名称 "register_merchant_atomic" 必须与 Anchor 合约中的方法名完全匹配。
+                val instructionData = Borsh.encodeToByteArray(
+                    AnchorInstructionSerializer("register_merchant_atomic"),
+                    args
+                )
+
+                // 3. 创建账户列表 (AccountMeta)，顺序和属性必须与 solana_e_commerce.json 中的定义一致
+                val accountMetas = listOf(
+                    AccountMeta(merchantPublicKey, true, true),                // merchant (signer, writable)
+                    AccountMeta(merchantPublicKey, true, true),                // payer (signer, writable)
+                    AccountMeta(globalRootPda.getOrNull()!!, false, true),             // global_root (writable)
+                    AccountMeta(merchantInfoPda.getOrNull()!!, false, true),           // merchant_info (writable)
+                    AccountMeta(systemConfigPda.getOrNull()!!, false, false),          // system_config (readonly)
+                    AccountMeta(merchantIdAccountPda.getOrNull()!!, false, true),      // merchant_id_account (writable)
+                    AccountMeta(initialChunkPda.getOrNull()!!, false, true),           // initial_chunk (writable)
+                    AccountMeta(SystemProgram.PROGRAM_ID, false, false) // system_program
+                )
+
+                // 4. 创建指令
+                val instruction = TransactionInstruction(programId, accountMetas, instructionData)
+
+                // 5. 获取最新区块哈希并构建交易
+                val recentBlockhash = try {
+                    kotlinx.coroutines.withTimeout(NetworkConfig.READ_TIMEOUT_MS) {
+                        recentBlockhashUseCase()
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to get recent blockhash: ${e.message}", e)
+                    throw Exception("Failed to get recent blockhash: ${e.message}", e)
+                }
+
+                val message = Message.Builder().addInstruction(instruction).setRecentBlockhash(recentBlockhash).build()
+                val transaction = Transaction(message)
+
+                Log.d(TAG, "signAndSendTransactions (Anchor): before")
+                val signResult = signAndSendTransactions(arrayOf(transaction.serialize()))
+                Log.d(TAG, "signAndSendTransactions (Anchor): $signResult")
+                signResult
+            }
+
+            // 处理交易结果 (与 registerMerchantAtomic 相同)
+            when (result) {
+                is TransactionResult.Success -> {
+                    val signature = result.successPayload?.signatures?.first()
+                    if (signature != null) {
+                        Log.d(TAG, "Anchor registration successful: ${Base58.encodeToString(signature)}")
+                        MerchantRegistrationResult(
+                            success = true,
+                            transactionSignature = Base58.encodeToString(signature),
+                            merchantAccount = merchantRegistration.merchantPublicKey
+                        )
+                    } else {
+                        MerchantRegistrationResult(
+                            success = false,
+                            errorMessage = "No signature returned from transaction"
+                        )
+                    }
+                }
+                is TransactionResult.NoWalletFound -> {
+                    MerchantRegistrationResult(
+                        success = false,
+                        errorMessage = "No wallet found"
+                    )
+                }
+                is TransactionResult.Failure -> {
+                    Log.e(TAG, "Anchor registration failed: ${result.e.message}")
+                    MerchantRegistrationResult(
+                        success = false,
+                        errorMessage = "Transaction failed: ${result.e.message}"
+                    )
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Log.e(TAG, "Anchor registration exception:", e)
+            MerchantRegistrationResult(
+                success = false,
                 errorMessage = "Registration failed: ${e.message}"
             )
         }
@@ -550,5 +696,12 @@ class SolanaMerchantDataSource @Inject constructor(
 
         // Combine all data
         return discriminator + nameLength + nameBytes + descriptionLength + descriptionBytes
+    }
+
+    private fun registerWithAnchor() {
+        // TODO anchor: 此函数是您请求创建的占位符。
+        // 上面的 `registerMerchantWithAnchor` 方法是完整的实现，您可以直接调用它。
+        // 如果您希望在此处编写独立的调用逻辑，请参考 `registerMerchantWithAnchor` 的实现。
+        val programId = SolanaPublicKey.from("ADraQ2ENAbVoVZhvH5SPxWPsF2hH5YmFcgx61TafHuwu")
     }
 }
