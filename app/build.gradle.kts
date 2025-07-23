@@ -8,6 +8,8 @@ plugins {
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
     alias(libs.plugins.kotlinx.serialization)
+    id("org.jetbrains.kotlin.plugin.compose") version "2.0.21"
+    id("kotlin-kapt")
 }
 
 android {
@@ -111,7 +113,7 @@ dependencies {
     // Hilt
     implementation(libs.hilt.android)
     implementation(libs.hilt.navigation.compose)
-    ksp(libs.hilt.compiler)
+    kapt(libs.hilt.compiler)
 
     // Network
     implementation(libs.retrofit)
@@ -152,7 +154,13 @@ dependencies {
     implementation(libs.solanamobile.rpc.ktordriver)
     implementation(libs.solanamobile.rpc.okiodriver)
     implementation(libs.bcprov.jdk15on)
-    implementation("io.github.funkatronics:kborsh:0.1.0")
+    implementation("io.github.funkatronics:kborsh:0.1.1") {
+        exclude(group = "com.ditchoom", module = "buffer")
+    }
+    implementation("com.ditchoom:buffer-android:1.4.2@aar") {
+        isTransitive = true
+    }
+    implementation("com.syntifi.near:borshj:0.1.0")
 
     // Testing
     testImplementation(libs.junit)
