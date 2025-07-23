@@ -48,7 +48,7 @@ lottie = "6.2.0"
 
 # Solana
 web3Solana = "0.2.5"
-mobileWalletAdapter = "2.0.0"
+mobileWalletAdapter = "2.0.8"
 multimult = "0.2.4"
 rpcSolana = "0.2.8"
 

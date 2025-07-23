@@ -14,7 +14,7 @@ plugins {
 
 android {
     namespace = "com.focx"
-    compileSdk = 34
+    compileSdk = 35
     val day = SimpleDateFormat("yyMMdd").format(Date())
     val time = SimpleDateFormat("HHmm").format(Date())
     defaultConfig {

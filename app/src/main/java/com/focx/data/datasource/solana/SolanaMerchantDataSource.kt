@@ -15,6 +15,7 @@ import com.funkatronics.encoders.Base58
 import com.syntifi.near.borshj.Borsh
 import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
 import com.solana.mobilewalletadapter.clientlib.MobileWalletAdapter
+import com.solana.mobilewalletadapter.clientlib.Solana
 import com.solana.mobilewalletadapter.clientlib.TransactionResult
 import com.solana.mobilewalletadapter.clientlib.successPayload
 import com.solana.programs.SystemProgram
@@ -225,89 +226,7 @@ class SolanaMerchantDataSource @Inject constructor(
             val result = walletAdapter.transact(activityResultSender) { authResult ->
                 Log.d(TAG, "registerMerchantWithAnchor authResult.authToken:${authResult.authToken}")
 
-                // TODO anchor: 确认 programId 是从 merchantRegistration 动态获取还是使用常量。
-                // 合约地址来自 solana_e_commerce.json
-                val programId = SolanaPublicKey.from("mo5xPstZDm27CAkcyoTJnEovMYcW45tViAU6PZikv5q")
-                val merchantPublicKey = SolanaPublicKey.from(merchantRegistration.merchantPublicKey)
-
-                // 计算 PDAs (与 registerMerchantAtomic 相同)
-                val globalRootPda = ProgramDerivedAddress.find(
-                    listOf("global_id_root".toByteArray()), programId
-                )
-                val merchantInfoPda = ProgramDerivedAddress.find(
-                    listOf("merchant_info".toByteArray(), merchantPublicKey.bytes), programId
-                )
-                val systemConfigPda = ProgramDerivedAddress.find(
-                    listOf("system_config".toByteArray()), programId
-                )
-                val merchantIdAccountPda = ProgramDerivedAddress.find(
-                    listOf("merchant_id".toByteArray(), merchantPublicKey.bytes), programId
-                )
-                val initialChunkPda = ProgramDerivedAddress.find(
-                    listOf(
-                        "id_chunk".toByteArray(),
-                        merchantPublicKey.bytes,
-                        ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(0).array()
-                    ), programId
-                )
-
-                Log.d(TAG, "Calculated PDAs for Anchor:")
-                Log.d(TAG, "  globalRootPda: ${globalRootPda.getOrNull()!!.base58()}")
-                Log.d(TAG, "  systemConfigPda: ${systemConfigPda.getOrNull()!!.base58()}")
-                Log.d(TAG, "  merchantInfoPda: ${merchantInfoPda.getOrNull()!!.base58()}")
-                Log.d(TAG, "  merchantIdAccountPda: ${merchantIdAccountPda.getOrNull()!!.base58()}")
-                Log.d(TAG, "  initialChunkPda: ${initialChunkPda.getOrNull()!!.base58()}")
-
-                // 1. 构造 Anchor 指令的参数
-                val args = RegisterMerchantAtomicArgs(
-                    name = merchantRegistration.name,
-                    description = merchantRegistration.description
-                )
-
-                // 2. 使用 AnchorInstructionSerializer 和 Borsh 对指令数据进行序列化
-                //    指令名称 "register_merchant_atomic" 必须与 Anchor 合约中的方法名完全匹配。
-                // 使用 borshj 进行序列化
-                val argsBytes = Borsh.serialize(args)
-                val discriminator = createInstructionDiscriminator("register_merchant_atomic")
-                val instructionData = discriminator + argsBytes
-                
-                Log.d(TAG, "Instruction data details:")
-                Log.d(TAG, "  args: name='${args.name}', description='${args.description}'")
-                Log.d(TAG, "  argsBytes: ${argsBytes.contentToString()}")
-                Log.d(TAG, "  argsBytes hex: ${argsBytes.joinToString("") { "%02x".format(it) }}")
-                Log.d(TAG, "  discriminator: ${discriminator.contentToString()}")
-                Log.d(TAG, "  discriminator hex: ${discriminator.joinToString("") { "%02x".format(it) }}")
-                Log.d(TAG, "  instructionData: ${instructionData.contentToString()}")
-                Log.d(TAG, "  instructionData hex: ${instructionData.joinToString("") { "%02x".format(it) }}")
-                Log.d(TAG, "  instructionData length: ${instructionData.size}")
-
-                // 3. 创建账户列表 (AccountMeta)，顺序和属性必须与 solana_e_commerce.json 中的定义一致
-                val accountMetas = listOf(
-                    AccountMeta(merchantPublicKey, true, true),                // merchant (signer, writable)
-                    AccountMeta(merchantPublicKey, true, true),                // payer (signer, writable)
-                    AccountMeta(globalRootPda.getOrNull()!!, false, true),             // global_root (writable)
-                    AccountMeta(merchantInfoPda.getOrNull()!!, false, true),           // merchant_info (writable)
-                    AccountMeta(systemConfigPda.getOrNull()!!, false, false),          // system_config (readonly)
-                    AccountMeta(merchantIdAccountPda.getOrNull()!!, false, true),      // merchant_id_account (writable)
-                    AccountMeta(initialChunkPda.getOrNull()!!, false, true),           // initial_chunk (writable)
-                    AccountMeta(SystemProgram.PROGRAM_ID, false, false) // system_program
-                )
-
-                // 4. 创建指令
-                val instruction = TransactionInstruction(programId, accountMetas, instructionData)
-
-                // 5. 获取最新区块哈希并构建交易
-                val recentBlockhash = try {
-                    kotlinx.coroutines.withTimeout(NetworkConfig.READ_TIMEOUT_MS) {
-                        recentBlockhashUseCase()
-                    }
-                } catch (e: Exception) {
-                    Log.e(TAG, "Failed to get recent blockhash: ${e.message}", e)
-                    throw Exception("Failed to get recent blockhash: ${e.message}", e)
-                }
-                Log.d(TAG, "recentBlockhash: $recentBlockhash")
-                val message = Message.Builder().addInstruction(instruction).setRecentBlockhash(recentBlockhash).build()
-                val transaction = Transaction(message)
+                val transaction = simpleTestTransaction(merchantRegistration, activityResultSender)
 
                 Log.d(TAG, "signAndSendTransactions (Anchor): before")
                 val signResult = signAndSendTransactions(arrayOf(transaction.serialize()))
@@ -355,6 +274,143 @@ class SolanaMerchantDataSource @Inject constructor(
                 errorMessage = "Registration failed: ${e.message}"
             )
         }
+    }
+
+    private suspend fun genRegisterTransaction(
+        merchantRegistration: MerchantRegistration, activityResultSender: ActivityResultSender
+    ): Transaction {
+        // TODO anchor: 确认 programId 是从 merchantRegistration 动态获取还是使用常量。
+        // 合约地址来自 solana_e_commerce.json
+        val programId = SolanaPublicKey.from("mo5xPstZDm27CAkcyoTJnEovMYcW45tViAU6PZikv5q")
+        val merchantPublicKey = SolanaPublicKey.from(merchantRegistration.merchantPublicKey)
+
+        // 计算 PDAs (与 registerMerchantAtomic 相同)
+        val globalRootPda = ProgramDerivedAddress.find(
+            listOf("global_id_root".toByteArray()), programId
+        )
+        val merchantInfoPda = ProgramDerivedAddress.find(
+            listOf("merchant_info".toByteArray(), merchantPublicKey.bytes), programId
+        )
+        val systemConfigPda = ProgramDerivedAddress.find(
+            listOf("system_config".toByteArray()), programId
+        )
+        val merchantIdAccountPda = ProgramDerivedAddress.find(
+            listOf("merchant_id".toByteArray(), merchantPublicKey.bytes), programId
+        )
+        val initialChunkPda = ProgramDerivedAddress.find(
+            listOf(
+                "id_chunk".toByteArray(),
+                merchantPublicKey.bytes,
+                ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(0).array()
+            ), programId
+        )
+
+        Log.d(TAG, "Calculated PDAs for Anchor:")
+        Log.d(TAG, "  globalRootPda: ${globalRootPda.getOrNull()!!.base58()}")
+        Log.d(TAG, "  systemConfigPda: ${systemConfigPda.getOrNull()!!.base58()}")
+        Log.d(TAG, "  merchantInfoPda: ${merchantInfoPda.getOrNull()!!.base58()}")
+        Log.d(TAG, "  merchantIdAccountPda: ${merchantIdAccountPda.getOrNull()!!.base58()}")
+        Log.d(TAG, "  initialChunkPda: ${initialChunkPda.getOrNull()!!.base58()}")
+
+        // 1. 构造 Anchor 指令的参数
+        val args = RegisterMerchantAtomicArgs(
+            name = merchantRegistration.name,
+            description = merchantRegistration.description
+        )
+
+        // 2. 使用 AnchorInstructionSerializer 和 Borsh 对指令数据进行序列化
+        //    指令名称 "register_merchant_atomic" 必须与 Anchor 合约中的方法名完全匹配。
+        // 使用 borshj 进行序列化
+        val argsBytes = Borsh.serialize(args)
+        val discriminator = createInstructionDiscriminator("register_merchant_atomic")
+        val instructionData = discriminator + argsBytes
+
+        Log.d(TAG, "Instruction data details:")
+        Log.d(TAG, "  args: name='${args.name}', description='${args.description}'")
+        Log.d(TAG, "  argsBytes: ${argsBytes.contentToString()}")
+        Log.d(TAG, "  argsBytes hex: ${argsBytes.joinToString("") { "%02x".format(it) }}")
+        Log.d(TAG, "  discriminator: ${discriminator.contentToString()}")
+        Log.d(TAG, "  discriminator hex: ${discriminator.joinToString("") { "%02x".format(it) }}")
+        Log.d(TAG, "  instructionData: ${instructionData.contentToString()}")
+        Log.d(TAG, "  instructionData hex: ${instructionData.joinToString("") { "%02x".format(it) }}")
+        Log.d(TAG, "  instructionData length: ${instructionData.size}")
+
+        // 3. 创建账户列表 (AccountMeta)，顺序和属性必须与 solana_e_commerce.json 中的定义一致
+        val accountMetas = listOf(
+            AccountMeta(merchantPublicKey, true, true),                // merchant (signer, writable)
+            AccountMeta(merchantPublicKey, true, true),                // payer (signer, writable)
+            AccountMeta(globalRootPda.getOrNull()!!, false, true),             // global_root (writable)
+            AccountMeta(merchantInfoPda.getOrNull()!!, false, true),           // merchant_info (writable)
+            AccountMeta(systemConfigPda.getOrNull()!!, false, false),          // system_config (readonly)
+            AccountMeta(merchantIdAccountPda.getOrNull()!!, false, true),      // merchant_id_account (writable)
+            AccountMeta(initialChunkPda.getOrNull()!!, false, true),           // initial_chunk (writable)
+            AccountMeta(SystemProgram.PROGRAM_ID, false, false) // system_program
+        )
+
+        // 4. 创建指令
+        val instruction = TransactionInstruction(programId, accountMetas, instructionData)
+
+        // 5. 获取最新区块哈希并构建交易
+        val recentBlockhash = try {
+            kotlinx.coroutines.withTimeout(NetworkConfig.READ_TIMEOUT_MS) {
+                recentBlockhashUseCase()
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to get recent blockhash: ${e.message}", e)
+            throw Exception("Failed to get recent blockhash: ${e.message}", e)
+        }
+        Log.d(TAG, "recentBlockhash: $recentBlockhash")
+        val message = Message.Builder().addInstruction(instruction).setRecentBlockhash(recentBlockhash).build()
+        return Transaction(message)
+    }
+
+    private suspend fun simpleTestTransaction(merchantRegistration: MerchantRegistration, activityResultSender: ActivityResultSender):Transaction {
+        val programId = SolanaPublicKey.from("96TkDXeRq7xGjmP1bzWn1kAVxukzpL1MsyajKX15fXyg")
+        val merchantPublicKey = SolanaPublicKey.from(merchantRegistration.merchantPublicKey)
+        val newAccount = SolanaPublicKey.from("CFbCBgv9NPZjcFao4zj8Dwkbhkv75Pw6djFaBmSibSR1")
+
+        // 2. 使用 AnchorInstructionSerializer 和 Borsh 对指令数据进行序列化
+        //    指令名称 "register_merchant_atomic" 必须与 Anchor 合约中的方法名完全匹配。
+        // 使用 borshj 进行序列化
+        val argsBytes = Borsh.serialize(42L)
+        val discriminator = createInstructionDiscriminator("initialize")
+        val instructionData = discriminator + argsBytes
+
+        Log.d(TAG, "Instruction data details:")
+        Log.d(TAG, "  argsBytes: ${argsBytes.contentToString()}")
+        Log.d(TAG, "  argsBytes hex: ${argsBytes.joinToString("") { "%02x".format(it) }}")
+        Log.d(TAG, "  discriminator: ${discriminator.contentToString()}")
+        Log.d(TAG, "  discriminator hex: ${discriminator.joinToString("") { "%02x".format(it) }}")
+        Log.d(TAG, "  instructionData: ${instructionData.contentToString()}")
+        Log.d(TAG, "  instructionData hex: ${instructionData.joinToString("") { "%02x".format(it) }}")
+        Log.d(TAG, "  instructionData length: ${instructionData.size}")
+
+        // 3. 创建账户列表 (AccountMeta)，顺序和属性必须与 solana_e_commerce.json 中的定义一致
+        val accountMetas = listOf(
+            AccountMeta(newAccount, true, true),
+            AccountMeta(merchantPublicKey, true, true),
+            AccountMeta(SystemProgram.PROGRAM_ID, false, false)
+        )
+        Log.d(TAG, "programId: ${programId.base58()}")
+        accountMetas.forEachIndexed { index, meta ->
+            Log.d(TAG, "accountMetas[$index]: pubkey=${meta.publicKey.base58()}, isSigner=${meta.isSigner}, isWritable=${meta.isWritable}")
+        }
+        // 4. 创建指令
+        val instruction = TransactionInstruction(programId, accountMetas, instructionData)
+
+        // 5. 获取最新区块哈希并构建交易
+        val recentBlockhash = try {
+            kotlinx.coroutines.withTimeout(NetworkConfig.READ_TIMEOUT_MS) {
+                recentBlockhashUseCase()
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to get recent blockhash: ${e.message}", e)
+            throw Exception("Failed to get recent blockhash: ${e.message}", e)
+        }
+        Log.d(TAG, "recentBlockhash: $recentBlockhash")
+        val message = Message.Builder().addInstruction(instruction).setRecentBlockhash(recentBlockhash).build()
+        val transaction = Transaction(message)
+        return transaction
     }
 
     /**
@@ -416,7 +472,8 @@ class SolanaMerchantDataSource @Inject constructor(
 
                 // 3. 创建账户列表
                 val accountMetas = listOf(
-                    AccountMeta(counterAccountPDA!!, false, true) // counter account (writable)
+                    AccountMeta(counterAccountPDA!!, false, true), // counter account (writable)
+                    AccountMeta(SystemProgram.PROGRAM_ID, false, false)
                 )
 
                 // 4. 创建指令
