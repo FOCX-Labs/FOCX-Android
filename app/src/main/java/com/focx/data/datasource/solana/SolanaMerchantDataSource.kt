@@ -241,7 +241,7 @@ class SolanaMerchantDataSource @Inject constructor(
                     listOf("system_config".toByteArray()), programId
                 )
                 val merchantIdAccountPda = ProgramDerivedAddress.find(
-                    listOf("merchant".toByteArray(), merchantPublicKey.bytes), programId
+                    listOf("merchant_id".toByteArray(), merchantPublicKey.bytes), programId
                 )
                 val initialChunkPda = ProgramDerivedAddress.find(
                     listOf(
@@ -253,6 +253,7 @@ class SolanaMerchantDataSource @Inject constructor(
 
                 Log.d(TAG, "Calculated PDAs for Anchor:")
                 Log.d(TAG, "  globalRootPda: ${globalRootPda.getOrNull()!!.base58()}")
+                Log.d(TAG, "  systemConfigPda: ${systemConfigPda.getOrNull()!!.base58()}")
                 Log.d(TAG, "  merchantInfoPda: ${merchantInfoPda.getOrNull()!!.base58()}")
                 Log.d(TAG, "  merchantIdAccountPda: ${merchantIdAccountPda.getOrNull()!!.base58()}")
                 Log.d(TAG, "  initialChunkPda: ${initialChunkPda.getOrNull()!!.base58()}")
@@ -378,7 +379,7 @@ class SolanaMerchantDataSource @Inject constructor(
         return Transaction(memoTxMessage)
     }
 
-     suspend fun registerMerchantAtomic3 (
+     suspend fun registerMerchantAtomic5 (
         merchantRegistration: MerchantRegistration, activityResultSender: ActivityResultSender
     ): MerchantRegistrationResult  {
         return try {
