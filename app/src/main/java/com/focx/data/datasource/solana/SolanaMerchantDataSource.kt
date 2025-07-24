@@ -3,6 +3,7 @@ package com.focx.data.datasource.solana
 import android.content.Context
 import android.net.Uri
 import com.focx.core.constants.AppConstants
+import com.focx.core.constants.AppConstants.App.SPL_TOKEN_PROGRAM_ID
 import com.focx.core.network.NetworkConfig
 import com.focx.domain.entity.MerchantRegistration
 import com.focx.domain.entity.MerchantRegistrationResult
@@ -10,12 +11,16 @@ import com.focx.domain.entity.MerchantStatus
 import com.focx.domain.repository.IMerchantRepository
 import com.focx.domain.usecase.RecentBlockhashUseCase
 import com.focx.utils.Log
+import com.focx.utils.ShopUtils.getDepositEscrowPda
+import com.focx.utils.ShopUtils.getGlobalRootPda
+import com.focx.utils.ShopUtils.getInitialChunkPda
+import com.focx.utils.ShopUtils.getMerchantIdPda
+import com.focx.utils.ShopUtils.getMerchantInfoPda
+import com.focx.utils.ShopUtils.getSystemConfigPDA
 import com.focx.utils.SolanaTokenUtils
 import com.funkatronics.encoders.Base58
-import com.syntifi.near.borshj.Borsh
 import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
 import com.solana.mobilewalletadapter.clientlib.MobileWalletAdapter
-import com.solana.mobilewalletadapter.clientlib.Solana
 import com.solana.mobilewalletadapter.clientlib.TransactionResult
 import com.solana.mobilewalletadapter.clientlib.successPayload
 import com.solana.programs.SystemProgram
@@ -23,11 +28,11 @@ import com.solana.publickey.ProgramDerivedAddress
 import com.solana.publickey.SolanaPublicKey
 import com.solana.rpc.AccountInfo
 import com.solana.rpc.SolanaRpcClient
-import com.solana.serialization.AnchorInstructionSerializer
 import com.solana.transaction.AccountMeta
 import com.solana.transaction.Message
 import com.solana.transaction.Transaction
 import com.solana.transaction.TransactionInstruction
+import com.syntifi.near.borshj.Borsh
 import com.syntifi.near.borshj.annotation.BorshField
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -51,7 +56,7 @@ private data class RegisterMerchantAtomicArgs(
 private data class Args_increment(
     @BorshField(order = 1)
     val amount: UInt
-): com.syntifi.near.borshj.Borsh
+) : com.syntifi.near.borshj.Borsh
 
 @Singleton
 class SolanaMerchantDataSource @Inject constructor(
@@ -63,7 +68,7 @@ class SolanaMerchantDataSource @Inject constructor(
 
     companion object {
         private const val TAG = "SMDS"
-        
+
         /**
          * Create instruction discriminator from method name using Anchor's algorithm
          */
@@ -74,11 +79,14 @@ class SolanaMerchantDataSource @Inject constructor(
         }
     }
 
-     suspend fun registerMerchantAtomic1(
+    suspend fun registerMerchantAtomic1(
         merchantRegistration: MerchantRegistration, activityResultSender: ActivityResultSender
     ): MerchantRegistrationResult {
         return try {
-            Log.d(TAG, "Starting registerMerchantAtomic walletAdapter authToken: ${walletAdapter.authToken}")
+            Log.d(
+                TAG,
+                "Starting registerMerchantAtomic walletAdapter authToken: ${walletAdapter.authToken}"
+            )
 
             val result = walletAdapter.transact(activityResultSender) { authResult ->
                 Log.d(TAG, "registerMerchantAtomic authResult.authToken:${authResult.authToken}")
@@ -128,7 +136,11 @@ class SolanaMerchantDataSource @Inject constructor(
                     AccountMeta(globalRootPda.first, false, true), // globalRoot (writable)
                     AccountMeta(systemConfigPda.first, false, true),
                     AccountMeta(merchantInfoPda.first, false, true), // merchantInfo (writable)
-                    AccountMeta(merchantIdAccountPda.first, false, true), // merchantIdAccount (writable)
+                    AccountMeta(
+                        merchantIdAccountPda.first,
+                        false,
+                        true
+                    ), // merchantIdAccount (writable)
                     AccountMeta(initialChunkPda.first, false, true), // initialChunk (writable)
                     AccountMeta(SolanaTokenUtils.ProgramIds.SYSTEM_PROGRAM, false, false)
                 )
@@ -149,7 +161,8 @@ class SolanaMerchantDataSource @Inject constructor(
                     throw Exception("Failed to get recent blockhash: ${e.message}", e)
                 }
 
-                val message = Message.Builder().addInstruction(instruction).setRecentBlockhash(recentBlockhash).build()
+                val message = Message.Builder().addInstruction(instruction)
+                    .setRecentBlockhash(recentBlockhash).build()
                 val transaction = Transaction(message)
 
                 Log.d(TAG, "  signAndSendTransactions: before}")
@@ -221,16 +234,29 @@ class SolanaMerchantDataSource @Inject constructor(
         merchantRegistration: MerchantRegistration, activityResultSender: ActivityResultSender
     ): MerchantRegistrationResult {
         return try {
-            Log.d(TAG, "Starting registerMerchantWithAnchor, walletAdapter authToken: ${walletAdapter.authToken}")
+            Log.d(
+                TAG,
+                "Starting registerMerchantWithAnchor, walletAdapter authToken: ${walletAdapter.authToken}"
+            )
 
             val result = walletAdapter.transact(activityResultSender) { authResult ->
-                Log.d(TAG, "registerMerchantWithAnchor authResult.authToken:${authResult.authToken}")
+                Log.d(
+                    TAG,
+                    "registerMerchantWithAnchor authResult.authToken:${authResult.authToken}"
+                )
 
-//                val transaction = simpleTestTransaction(merchantRegistration, activityResultSender)
-                val transaction = genRegisterTransaction(merchantRegistration, activityResultSender)
+                val registerTransaction =
+                    genRegisterTransaction(merchantRegistration, activityResultSender)
+                val depositTransaction =
+                    genDepositMerchantDepositTransaction(merchantRegistration, activityResultSender)
 
                 Log.d(TAG, "signAndSendTransactions (Anchor): before")
-                val signResult = signAndSendTransactions(arrayOf(transaction.serialize()))
+                val signResult = signAndSendTransactions(
+                    arrayOf(
+                        registerTransaction.serialize(),
+                        depositTransaction.serialize()
+                    )
+                )
                 Log.d(TAG, "signAndSendTransactions (Anchor): $signResult")
                 signResult
             }
@@ -240,7 +266,10 @@ class SolanaMerchantDataSource @Inject constructor(
                 is TransactionResult.Success -> {
                     val signature = result.successPayload?.signatures?.first()
                     if (signature != null) {
-                        Log.d(TAG, "Anchor registration successful: ${Base58.encodeToString(signature)}")
+                        Log.d(
+                            TAG,
+                            "Anchor registration successful: ${Base58.encodeToString(signature)}"
+                        )
                         MerchantRegistrationResult(
                             success = true,
                             transactionSignature = Base58.encodeToString(signature),
@@ -253,12 +282,14 @@ class SolanaMerchantDataSource @Inject constructor(
                         )
                     }
                 }
+
                 is TransactionResult.NoWalletFound -> {
                     MerchantRegistrationResult(
                         success = false,
                         errorMessage = "No wallet found"
                     )
                 }
+
                 is TransactionResult.Failure -> {
                     Log.e(TAG, "Anchor registration failed: ${result.e}")
                     MerchantRegistrationResult(
@@ -282,36 +313,16 @@ class SolanaMerchantDataSource @Inject constructor(
     ): Transaction {
         Log.d(TAG, "genRegisterTransaction start")
         // 合约地址来自 solana_e_commerce.json
-        val programId = SolanaPublicKey.from("mo5xPstZDm27CAkcyoTJnEovMYcW45tViAU6PZikv5q")
+        val programId = SolanaPublicKey.from(AppConstants.App.PROGRAM_ID)
         val merchantPublicKey = SolanaPublicKey.from(merchantRegistration.merchantPublicKey)
 
         // 计算 PDAs (与 registerMerchantAtomic 相同)
-        val globalRootPda = ProgramDerivedAddress.find(
-            listOf("global_id_root".toByteArray()), programId
-        )
-        val merchantInfoPda = ProgramDerivedAddress.find(
-            listOf("merchant_info".toByteArray(), merchantPublicKey.bytes), programId
-        )
-        val systemConfigPda = ProgramDerivedAddress.find(
-            listOf("system_config".toByteArray()), programId
-        )
-        val merchantIdAccountPda = ProgramDerivedAddress.find(
-            listOf("merchant_id".toByteArray(), merchantPublicKey.bytes), programId
-        )
-        val initialChunkPda = ProgramDerivedAddress.find(
-            listOf(
-                "id_chunk".toByteArray(),
-                merchantPublicKey.bytes,
-                byteArrayOf(0),
-            ), programId
-        )
+        val globalRootPda = getGlobalRootPda(programId)
+        val merchantInfoPda = getMerchantInfoPda(merchantPublicKey, programId)
+        val systemConfigPda = getSystemConfigPDA(programId)
+        val merchantIdAccountPda = getMerchantIdPda(merchantPublicKey, programId)
+        val initialChunkPda = getInitialChunkPda(merchantPublicKey, programId)
 
-        Log.d(TAG, "Calculated PDAs for Anchor:")
-        Log.d(TAG, "  globalRootPda: ${globalRootPda.getOrNull()!!.base58()}")
-        Log.d(TAG, "  systemConfigPda: ${systemConfigPda.getOrNull()!!.base58()}")
-        Log.d(TAG, "  merchantInfoPda: ${merchantInfoPda.getOrNull()!!.base58()}")
-        Log.d(TAG, "  merchantIdAccountPda: ${merchantIdAccountPda.getOrNull()!!.base58()}")
-        Log.d(TAG, "  initialChunkPda: ${initialChunkPda.getOrNull()!!.base58()}")
 
         // 1. 构造 Anchor 指令的参数
         val args = RegisterMerchantAtomicArgs(
@@ -326,25 +337,39 @@ class SolanaMerchantDataSource @Inject constructor(
         val discriminator = createInstructionDiscriminator("register_merchant_atomic")
         val instructionData = discriminator + argsBytes
 
-        Log.d(TAG, "Instruction data details:")
-        Log.d(TAG, "  args: name='${args.name}', description='${args.description}'")
-        Log.d(TAG, "  argsBytes: ${argsBytes.contentToString()}")
-        Log.d(TAG, "  argsBytes hex: ${argsBytes.joinToString("") { "%02x".format(it) }}")
-        Log.d(TAG, "  discriminator: ${discriminator.contentToString()}")
-        Log.d(TAG, "  discriminator hex: ${discriminator.joinToString("") { "%02x".format(it) }}")
-        Log.d(TAG, "  instructionData: ${instructionData.contentToString()}")
-        Log.d(TAG, "  instructionData hex: ${instructionData.joinToString("") { "%02x".format(it) }}")
-        Log.d(TAG, "  instructionData length: ${instructionData.size}")
-
         // 3. 创建账户列表 (AccountMeta)，顺序和属性必须与 solana_e_commerce.json 中的定义一致
         val accountMetas = listOf(
-            AccountMeta(merchantPublicKey, true, true),                // merchant (signer, writable)
+            AccountMeta(
+                merchantPublicKey,
+                true,
+                true
+            ),                // merchant (signer, writable)
             AccountMeta(merchantPublicKey, true, true),                // payer (signer, writable)
-            AccountMeta(globalRootPda.getOrNull()!!, false, true),             // global_root (writable)
-            AccountMeta(merchantInfoPda.getOrNull()!!, false, true),           // merchant_info (writable)
-            AccountMeta(systemConfigPda.getOrNull()!!, false, false),          // system_config (readonly)
-            AccountMeta(merchantIdAccountPda.getOrNull()!!, false, true),      // merchant_id_account (writable)
-            AccountMeta(initialChunkPda.getOrNull()!!, false, true),           // initial_chunk (writable)
+            AccountMeta(
+                globalRootPda.getOrNull()!!,
+                false,
+                true
+            ),             // global_root (writable)
+            AccountMeta(
+                merchantInfoPda.getOrNull()!!,
+                false,
+                true
+            ),           // merchant_info (writable)
+            AccountMeta(
+                systemConfigPda.getOrNull()!!,
+                false,
+                false
+            ),          // system_config (readonly)
+            AccountMeta(
+                merchantIdAccountPda.getOrNull()!!,
+                false,
+                true
+            ),      // merchant_id_account (writable)
+            AccountMeta(
+                initialChunkPda.getOrNull()!!,
+                false,
+                true
+            ),           // initial_chunk (writable)
             AccountMeta(SystemProgram.PROGRAM_ID, false, false) // system_program
         )
 
@@ -361,14 +386,77 @@ class SolanaMerchantDataSource @Inject constructor(
             throw Exception("Failed to get recent blockhash: ${e.message}", e)
         }
         Log.d(TAG, "recentBlockhash: $recentBlockhash")
-        val message = Message.Builder().addInstruction(instruction).setRecentBlockhash(recentBlockhash).build()
+        val message =
+            Message.Builder().addInstruction(instruction).setRecentBlockhash(recentBlockhash)
+                .build()
+        return Transaction(message)
+    }
+
+    private suspend fun genDepositMerchantDepositTransaction(
+        merchantRegistration: MerchantRegistration, activityResultSender: ActivityResultSender
+    ): Transaction {
+        Log.d(TAG, "genDepositMerchantDepositTransaction start")
+        // 合约地址来自 solana_e_commerce.json
+        val programId = SolanaPublicKey.from(AppConstants.App.PROGRAM_ID)
+        val merchantPublicKey = SolanaPublicKey.from(merchantRegistration.merchantPublicKey)
+
+        // 1. 构造 Anchor 指令的参数
+        val args = RegisterMerchantAtomicArgs(
+            name = merchantRegistration.name,
+            description = merchantRegistration.description
+        )
+
+        // 2. 使用 AnchorInstructionSerializer 和 Borsh 对指令数据进行序列化
+        //    指令名称 "register_merchant_atomic" 必须与 Anchor 合约中的方法名完全匹配。
+        // 使用 borshj 进行序列化
+        val argsBytes = Borsh.serialize(1L)
+        val discriminator = createInstructionDiscriminator("deposit_merchant_deposit")
+        val instructionData = discriminator + argsBytes
+
+        // 3. 创建账户列表 (AccountMeta)，顺序和属性必须与 solana_e_commerce.json 中的定义一致
+        val merchantInfoPda = getMerchantInfoPda(merchantPublicKey, programId)
+        val systemConfigPda = getSystemConfigPDA(programId)
+        val depositEscrowPda = getDepositEscrowPda(programId)
+
+        val merchantTokenAccount = SolanaTokenUtils.getAssociatedTokenAddress(
+            SolanaPublicKey.from(AppConstants.App.USDC_FOCX_MINT),
+            merchantPublicKey
+        )
+
+        val accountMetas = listOf(
+            AccountMeta(merchantPublicKey, true, true),
+            AccountMeta(merchantInfoPda.getOrNull()!!, false, true),
+            AccountMeta(systemConfigPda.getOrNull()!!, false, false),
+            AccountMeta(merchantTokenAccount, false, true),
+            AccountMeta(SolanaPublicKey.from(AppConstants.App.USDC_FOCX_MINT), false, false),
+            AccountMeta(depositEscrowPda.getOrNull()!!, false, true),
+            AccountMeta(SolanaPublicKey.from(SPL_TOKEN_PROGRAM_ID), false, false),
+            AccountMeta(SystemProgram.PROGRAM_ID, false, false) // system_program
+        )
+
+        // 4. 创建指令
+        val instruction = genTransactionInstruction(programId, accountMetas, instructionData)
+
+        // 5. 获取最新区块哈希并构建交易
+        val recentBlockhash = try {
+            kotlinx.coroutines.withTimeout(NetworkConfig.READ_TIMEOUT_MS) {
+                recentBlockhashUseCase()
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to get recent blockhash: ${e.message}", e)
+            throw Exception("Failed to get recent blockhash: ${e.message}", e)
+        }
+        Log.d(TAG, "recentBlockhash: $recentBlockhash")
+        val message =
+            Message.Builder().addInstruction(instruction).setRecentBlockhash(recentBlockhash)
+                .build()
         return Transaction(message)
     }
 
 
     private suspend fun initializeDepositorTransaction(
         merchantRegistration: MerchantRegistration, activityResultSender: ActivityResultSender
-    ):Transaction {
+    ): Transaction {
         Log.d(TAG, "initializeDepositorTransaction start")
         val programId = SolanaPublicKey.from("EHiKn3J5wywNG2rHV2Qt74AfNqtJajhPerkVzYXudEwn")
         val merchantPublicKey = SolanaPublicKey.from(merchantRegistration.merchantPublicKey)
@@ -406,13 +494,23 @@ class SolanaMerchantDataSource @Inject constructor(
             AccountMeta(vaultDepositor.getOrNull()!!, false, true),
             AccountMeta(merchantPublicKey, true, true),
             AccountMeta(SystemProgram.PROGRAM_ID, false, false),
-            AccountMeta(SolanaPublicKey.from("SysvarRent111111111111111111111111111111111"), false, false)
+            AccountMeta(
+                SolanaPublicKey.from("SysvarRent111111111111111111111111111111111"),
+                false,
+                false
+            )
         )
         Log.d(TAG, "programId: ${programId.base58()}")
         accountMetas.forEachIndexed { index, meta ->
-            Log.d(TAG, "accountMetas[$index]: pubkey=${meta.publicKey.base58()}, isSigner=${meta.isSigner}, isWritable=${meta.isWritable}")
+            Log.d(
+                TAG,
+                "accountMetas[$index]: pubkey=${meta.publicKey.base58()}, isSigner=${meta.isSigner}, isWritable=${meta.isWritable}"
+            )
         }
-        Log.d(TAG, "  instructionData hex: ${instructionData.joinToString("") { "%02x".format(it) }}")
+        Log.d(
+            TAG,
+            "  instructionData hex: ${instructionData.joinToString("") { "%02x".format(it) }}"
+        )
 
         // 4. 创建指令
         val instruction = genTransactionInstruction(programId, accountMetas, instructionData)
@@ -427,18 +525,23 @@ class SolanaMerchantDataSource @Inject constructor(
             throw Exception("Failed to get recent blockhash: ${e.message}", e)
         }
         Log.d(TAG, "recentBlockhash: $recentBlockhash")
-        val message = Message.Builder().addInstruction(instruction).setRecentBlockhash(recentBlockhash).build()
+        val message =
+            Message.Builder().addInstruction(instruction).setRecentBlockhash(recentBlockhash)
+                .build()
         val transaction = Transaction(message)
         return transaction
     }
 
     private suspend fun simpleInitialTransaction(
         merchantRegistration: MerchantRegistration, activityResultSender: ActivityResultSender
-    ):Transaction {
+    ): Transaction {
         val programId = SolanaPublicKey.from("96TkDXeRq7xGjmP1bzWn1kAVxukzpL1MsyajKX15fXyg")
         val merchantPublicKey = SolanaPublicKey.from(merchantRegistration.merchantPublicKey)
         // 随机生成一个 Ed25519 密钥对，并取公钥
-        val keyGen = java.security.KeyPairGenerator.getInstance("Ed25519", org.bouncycastle.jce.provider.BouncyCastleProvider())
+        val keyGen = java.security.KeyPairGenerator.getInstance(
+            "Ed25519",
+            org.bouncycastle.jce.provider.BouncyCastleProvider()
+        )
         val keyPair = keyGen.generateKeyPair()
         val publicKeyBytes = keyPair.public.encoded.takeLast(32).toByteArray()
         val newAccount = SolanaPublicKey(publicKeyBytes)
@@ -456,7 +559,10 @@ class SolanaMerchantDataSource @Inject constructor(
         Log.d(TAG, "  discriminator: ${discriminator.contentToString()}")
         Log.d(TAG, "  discriminator hex: ${discriminator.joinToString("") { "%02x".format(it) }}")
         Log.d(TAG, "  instructionData: ${instructionData.contentToString()}")
-        Log.d(TAG, "  instructionData hex: ${instructionData.joinToString("") { "%02x".format(it) }}")
+        Log.d(
+            TAG,
+            "  instructionData hex: ${instructionData.joinToString("") { "%02x".format(it) }}"
+        )
         Log.d(TAG, "  instructionData length: ${instructionData.size}")
 
         // 3. 创建账户列表 (AccountMeta)，顺序和属性必须与 solana_e_commerce.json 中的定义一致
@@ -468,7 +574,10 @@ class SolanaMerchantDataSource @Inject constructor(
         )
         Log.d(TAG, "programId: ${programId.base58()}")
         accountMetas.forEachIndexed { index, meta ->
-            Log.d(TAG, "accountMetas[$index]: pubkey=${meta.publicKey.base58()}, isSigner=${meta.isSigner}, isWritable=${meta.isWritable}")
+            Log.d(
+                TAG,
+                "accountMetas[$index]: pubkey=${meta.publicKey.base58()}, isSigner=${meta.isSigner}, isWritable=${meta.isWritable}"
+            )
         }
         // 4. 创建指令
         val instruction = genTransactionInstruction(programId, accountMetas, instructionData)
@@ -483,17 +592,24 @@ class SolanaMerchantDataSource @Inject constructor(
             throw Exception("Failed to get recent blockhash: ${e.message}", e)
         }
         Log.d(TAG, "recentBlockhash: $recentBlockhash")
-        val message = Message.Builder().addInstruction(instruction).setRecentBlockhash(recentBlockhash).build()
+        val message =
+            Message.Builder().addInstruction(instruction).setRecentBlockhash(recentBlockhash)
+                .build()
         val transaction = Transaction(message)
         return transaction
     }
 
-    private fun genTransactionInstruction( programId: SolanaPublicKey,
-                                        accounts: List<AccountMeta>,
-                                        data: ByteArray): TransactionInstruction {
-        Log.d(TAG, "============genTransactionInstruction : $programId" )
+    private fun genTransactionInstruction(
+        programId: SolanaPublicKey,
+        accounts: List<AccountMeta>,
+        data: ByteArray
+    ): TransactionInstruction {
+        Log.d(TAG, "============genTransactionInstruction : $programId")
         accounts.forEachIndexed { index, meta ->
-            Log.d(TAG, "accountMetas[$index]: pubkey=${meta.publicKey.base58()}, isSigner=${meta.isSigner}, isWritable=${meta.isWritable}")
+            Log.d(
+                TAG,
+                "accountMetas[$index]: pubkey=${meta.publicKey.base58()}, isSigner=${meta.isSigner}, isWritable=${meta.isWritable}"
+            )
         }
         Log.d(TAG, "  instructionData: ${data.contentToString()}")
         Log.d(TAG, "  instructionData hex: ${data.joinToString("") { "%02x".format(it) }}")
@@ -502,11 +618,14 @@ class SolanaMerchantDataSource @Inject constructor(
 
     private suspend fun simpleTestTransaction(
         merchantRegistration: MerchantRegistration, activityResultSender: ActivityResultSender
-    ):Transaction {
+    ): Transaction {
         val programId = SolanaPublicKey.from("96TkDXeRq7xGjmP1bzWn1kAVxukzpL1MsyajKX15fXyg")
         val merchantPublicKey = SolanaPublicKey.from(merchantRegistration.merchantPublicKey)
         // 随机生成一个 Ed25519 密钥对，并取公钥
-        val keyGen = java.security.KeyPairGenerator.getInstance("Ed25519", org.bouncycastle.jce.provider.BouncyCastleProvider())
+        val keyGen = java.security.KeyPairGenerator.getInstance(
+            "Ed25519",
+            org.bouncycastle.jce.provider.BouncyCastleProvider()
+        )
         val keyPair = keyGen.generateKeyPair()
         val publicKeyBytes = keyPair.public.encoded.takeLast(32).toByteArray()
         val newAccount = SolanaPublicKey(publicKeyBytes)
@@ -524,7 +643,10 @@ class SolanaMerchantDataSource @Inject constructor(
         Log.d(TAG, "  discriminator: ${discriminator.contentToString()}")
         Log.d(TAG, "  discriminator hex: ${discriminator.joinToString("") { "%02x".format(it) }}")
         Log.d(TAG, "  instructionData: ${instructionData.contentToString()}")
-        Log.d(TAG, "  instructionData hex: ${instructionData.joinToString("") { "%02x".format(it) }}")
+        Log.d(
+            TAG,
+            "  instructionData hex: ${instructionData.joinToString("") { "%02x".format(it) }}"
+        )
         Log.d(TAG, "  instructionData length: ${instructionData.size}")
 
         // 3. 创建账户列表 (AccountMeta)，顺序和属性必须与 solana_e_commerce.json 中的定义一致
@@ -547,7 +669,9 @@ class SolanaMerchantDataSource @Inject constructor(
             throw Exception("Failed to get recent blockhash: ${e.message}", e)
         }
         Log.d(TAG, "recentBlockhash: $recentBlockhash")
-        val message = Message.Builder().addInstruction(instruction).setRecentBlockhash(recentBlockhash).build()
+        val message =
+            Message.Builder().addInstruction(instruction).setRecentBlockhash(recentBlockhash)
+                .build()
         val transaction = Transaction(message)
         return transaction
     }
@@ -574,11 +698,14 @@ class SolanaMerchantDataSource @Inject constructor(
         return Transaction(memoTxMessage)
     }
 
-     suspend fun registerMerchantAtomic5 (
+    suspend fun registerMerchantAtomic5(
         merchantRegistration: MerchantRegistration, activityResultSender: ActivityResultSender
-    ): MerchantRegistrationResult  {
+    ): MerchantRegistrationResult {
         return try {
-            Log.d(TAG, "Starting transactionDemo, walletAdapter authToken: ${walletAdapter.authToken}")
+            Log.d(
+                TAG,
+                "Starting transactionDemo, walletAdapter authToken: ${walletAdapter.authToken}"
+            )
 
             val result = walletAdapter.transact(activityResultSender) { authResult ->
                 Log.d(TAG, "transactionDemo authResult.authToken:${authResult.authToken}")
@@ -604,9 +731,15 @@ class SolanaMerchantDataSource @Inject constructor(
                 Log.d(TAG, "  argsBytes: ${argsBytes.contentToString()}")
                 Log.d(TAG, "  argsBytes hex: ${argsBytes.joinToString("") { "%02x".format(it) }}")
                 Log.d(TAG, "  discriminator: ${discriminator.contentToString()}")
-                Log.d(TAG, "  discriminator hex: ${discriminator.joinToString("") { "%02x".format(it) }}")
+                Log.d(
+                    TAG,
+                    "  discriminator hex: ${discriminator.joinToString("") { "%02x".format(it) }}"
+                )
                 Log.d(TAG, "  instructionData: ${instructionData.contentToString()}")
-                Log.d(TAG, "  instructionData hex: ${instructionData.joinToString("") { "%02x".format(it) }}")
+                Log.d(
+                    TAG,
+                    "  instructionData hex: ${instructionData.joinToString("") { "%02x".format(it) }}"
+                )
                 Log.d(TAG, "  instructionData length: ${instructionData.size}")
 
                 // 3. 创建账户列表
@@ -616,7 +749,8 @@ class SolanaMerchantDataSource @Inject constructor(
                 )
 
                 // 4. 创建指令
-                val instruction = genTransactionInstruction(programId, accountMetas, instructionData)
+                val instruction =
+                    genTransactionInstruction(programId, accountMetas, instructionData)
 
                 // 5. 获取最新区块哈希并构建交易
                 val recentBlockhash = try {
@@ -629,7 +763,8 @@ class SolanaMerchantDataSource @Inject constructor(
                 }
 
                 Log.d(TAG, "recentBlockhash: $recentBlockhash")
-                val message = Message.Builder().addInstruction(instruction).setRecentBlockhash(recentBlockhash).build()
+                val message = Message.Builder().addInstruction(instruction)
+                    .setRecentBlockhash(recentBlockhash).build()
                 val transaction = Transaction(message)
 
                 Log.d(TAG, "signAndSendTransactions (Demo): before")
@@ -643,7 +778,10 @@ class SolanaMerchantDataSource @Inject constructor(
                 is TransactionResult.Success -> {
                     val signature = result.successPayload?.signatures?.first()
                     if (signature != null) {
-                        Log.d(TAG, "Demo transaction successful: ${Base58.encodeToString(signature)}")
+                        Log.d(
+                            TAG,
+                            "Demo transaction successful: ${Base58.encodeToString(signature)}"
+                        )
                         MerchantRegistrationResult(
                             success = true,
                             transactionSignature = Base58.encodeToString(signature),
@@ -659,6 +797,7 @@ class SolanaMerchantDataSource @Inject constructor(
                         )
                     }
                 }
+
                 is TransactionResult.NoWalletFound -> {
                     MerchantRegistrationResult(
                         success = false,
@@ -667,6 +806,7 @@ class SolanaMerchantDataSource @Inject constructor(
                         errorMessage = "No wallet found for demo"
                     )
                 }
+
                 is TransactionResult.Failure -> {
                     Log.e(TAG, "Demo transaction failed: ${result.e}")
                     MerchantRegistrationResult(
@@ -689,11 +829,14 @@ class SolanaMerchantDataSource @Inject constructor(
         }
     }
 
-    suspend fun registerMerchantAtomic4 (
+    suspend fun registerMerchantAtomic4(
         merchantRegistration: MerchantRegistration, activityResultSender: ActivityResultSender
-    ): MerchantRegistrationResult  {
+    ): MerchantRegistrationResult {
         return try {
-            Log.d(TAG, "Starting transactionDemo, walletAdapter authToken: ${walletAdapter.authToken}")
+            Log.d(
+                TAG,
+                "Starting transactionDemo, walletAdapter authToken: ${walletAdapter.authToken}"
+            )
 
             val result = walletAdapter.transact(activityResultSender) { authResult ->
                 Log.d(TAG, "transactionDemo authResult.authToken:${authResult.authToken}")
@@ -705,7 +848,13 @@ class SolanaMerchantDataSource @Inject constructor(
                 val memoInstruction = genTransactionInstruction(
                     memoProgramIdKey,
                     // Define the accounts in instruction
-                    listOf(AccountMeta(SolanaPublicKey.from(merchantRegistration.merchantPublicKey), true, true)),
+                    listOf(
+                        AccountMeta(
+                            SolanaPublicKey.from(merchantRegistration.merchantPublicKey),
+                            true,
+                            true
+                        )
+                    ),
                     // Pass in the instruction data as ByteArray
                     "Hello Solana!".encodeToByteArray()
                 )
@@ -721,7 +870,8 @@ class SolanaMerchantDataSource @Inject constructor(
                 }
 
                 Log.d(TAG, "recentBlockhash: $recentBlockhash")
-                val message = Message.Builder().addInstruction(memoInstruction).setRecentBlockhash(recentBlockhash).build()
+                val message = Message.Builder().addInstruction(memoInstruction)
+                    .setRecentBlockhash(recentBlockhash).build()
                 val transaction = Transaction(message)
 
                 Log.d(TAG, "signAndSendTransactions (Demo): before")
@@ -735,7 +885,10 @@ class SolanaMerchantDataSource @Inject constructor(
                 is TransactionResult.Success -> {
                     val signature = result.successPayload?.signatures?.first()
                     if (signature != null) {
-                        Log.d(TAG, "Demo transaction successful: ${Base58.encodeToString(signature)}")
+                        Log.d(
+                            TAG,
+                            "Demo transaction successful: ${Base58.encodeToString(signature)}"
+                        )
                         MerchantRegistrationResult(
                             success = true,
                             transactionSignature = Base58.encodeToString(signature),
@@ -751,6 +904,7 @@ class SolanaMerchantDataSource @Inject constructor(
                         )
                     }
                 }
+
                 is TransactionResult.NoWalletFound -> {
                     MerchantRegistrationResult(
                         success = false,
@@ -759,6 +913,7 @@ class SolanaMerchantDataSource @Inject constructor(
                         errorMessage = "No wallet found for demo"
                     )
                 }
+
                 is TransactionResult.Failure -> {
                     Log.e(TAG, "Demo transaction failed: ${result.e}")
                     MerchantRegistrationResult(
@@ -810,44 +965,60 @@ class SolanaMerchantDataSource @Inject constructor(
         }
     }
 
-    override suspend fun getMerchantAccountData(merchantAccount: String): Flow<MerchantStatus> = flow {
-        try {
-            Log.d(TAG, "Querying merchant account data for: $merchantAccount")
+    override suspend fun getMerchantAccountData(merchantAccount: String): Flow<MerchantStatus> =
+        flow {
+            try {
+                Log.d(TAG, "Querying merchant account data for: $merchantAccount")
 
-            val merchantPublicKey = SolanaPublicKey.from(merchantAccount)
-            val programId = SolanaPublicKey.from(AppConstants.App.PROGRAM_ID)
+                val merchantPublicKey = SolanaPublicKey.from(merchantAccount)
+                val programId = SolanaPublicKey.from(AppConstants.App.PROGRAM_ID)
 
-            // Calculate merchant info PDA
-            val merchantInfoPda = SolanaTokenUtils.findProgramAddress(
-                listOf("merchant_info".toByteArray(), merchantPublicKey.bytes), programId.bytes
-            )
-
-            // Calculate merchant ID account PDA
-            val merchantIdAccountPda = SolanaTokenUtils.findProgramAddress(
-                listOf("merchant".toByteArray(), merchantPublicKey.bytes), programId.bytes
-            )
-
-            Log.d(TAG, "Calculated PDAs:")
-            Log.d(TAG, "  merchantInfoPda: ${merchantInfoPda.first.base58()}")
-            Log.d(TAG, "  merchantIdAccountPda: ${merchantIdAccountPda.first.base58()}")
-
-            // Query account info from Solana network using SolanaRpcClient
-            val rpcUri = Uri.parse(NetworkConfig.getRpcUrl())
-
-            // Check if merchant info account exists
-            val merchantInfoAccountInfo = queryAccountInfo(rpcUri, merchantInfoPda.first.base58())
-            val merchantIdAccountInfo = queryAccountInfo(rpcUri, merchantIdAccountPda.first.base58())
-
-            if (merchantInfoAccountInfo != null && merchantIdAccountInfo != null) {
-                // Parse account data to extract merchant information
-                val merchantStatus = parseMerchantAccountData(
-                    merchantInfoAccountInfo, merchantIdAccountInfo, merchantAccount
+                // Calculate merchant info PDA
+                val merchantInfoPda = SolanaTokenUtils.findProgramAddress(
+                    listOf("merchant_info".toByteArray(), merchantPublicKey.bytes), programId.bytes
                 )
 
-                Log.d(TAG, "Merchant account found and parsed successfully")
-                emit(merchantStatus)
-            } else {
-                Log.d(TAG, "Merchant account not found or not initialized")
+                // Calculate merchant ID account PDA
+                val merchantIdAccountPda = SolanaTokenUtils.findProgramAddress(
+                    listOf("merchant".toByteArray(), merchantPublicKey.bytes), programId.bytes
+                )
+
+                Log.d(TAG, "Calculated PDAs:")
+                Log.d(TAG, "  merchantInfoPda: ${merchantInfoPda.first.base58()}")
+                Log.d(TAG, "  merchantIdAccountPda: ${merchantIdAccountPda.first.base58()}")
+
+                // Query account info from Solana network using SolanaRpcClient
+                val rpcUri = Uri.parse(NetworkConfig.getRpcUrl())
+
+                // Check if merchant info account exists
+                val merchantInfoAccountInfo =
+                    queryAccountInfo(rpcUri, merchantInfoPda.first.base58())
+                val merchantIdAccountInfo =
+                    queryAccountInfo(rpcUri, merchantIdAccountPda.first.base58())
+
+                if (merchantInfoAccountInfo != null && merchantIdAccountInfo != null) {
+                    // Parse account data to extract merchant information
+                    val merchantStatus = parseMerchantAccountData(
+                        merchantInfoAccountInfo, merchantIdAccountInfo, merchantAccount
+                    )
+
+                    Log.d(TAG, "Merchant account found and parsed successfully")
+                    emit(merchantStatus)
+                } else {
+                    Log.d(TAG, "Merchant account not found or not initialized")
+                    emit(
+                        MerchantStatus(
+                            isRegistered = false,
+                            merchantAccount = null,
+                            registrationDate = null,
+                            securityDeposit = null,
+                            status = AppConstants.Merchant.DEFAULT_STATUS
+                        )
+                    )
+                }
+
+            } catch (e: Exception) {
+                Log.e(TAG, "Error querying merchant account data: ${e.message}", e)
                 emit(
                     MerchantStatus(
                         isRegistered = false,
@@ -858,26 +1029,16 @@ class SolanaMerchantDataSource @Inject constructor(
                     )
                 )
             }
-
-        } catch (e: Exception) {
-            Log.e(TAG, "Error querying merchant account data: ${e.message}", e)
-            emit(
-                MerchantStatus(
-                    isRegistered = false,
-                    merchantAccount = null,
-                    registrationDate = null,
-                    securityDeposit = null,
-                    status = AppConstants.Merchant.DEFAULT_STATUS
-                )
-            )
         }
-    }
 
 
     /**
      * Query account info from Solana RPC using SolanaRpcClient
      */
-    private suspend fun queryAccountInfo(rpcUri: Uri, accountAddress: String): AccountInfo<ByteArray>? {
+    private suspend fun queryAccountInfo(
+        rpcUri: Uri,
+        accountAddress: String
+    ): AccountInfo<ByteArray>? {
         return try {
             val publicKey = SolanaPublicKey.from(accountAddress)
             val rpcResponse = solanaRpcClient.getAccountInfo(publicKey)
@@ -911,7 +1072,8 @@ class SolanaMerchantDataSource @Inject constructor(
                 return MerchantStatus(
                     isRegistered = true,
                     merchantAccount = merchantAccount,
-                    registrationDate = System.currentTimeMillis().toString(), // You should parse this from account data
+                    registrationDate = System.currentTimeMillis()
+                        .toString(), // You should parse this from account data
                     securityDeposit = merchantInfoAccountInfo.lamports?.toString(), // Use lamports as security deposit
                     status = "active" // You should parse this from account data
                 )
@@ -943,7 +1105,10 @@ class SolanaMerchantDataSource @Inject constructor(
         activityResultSender: ActivityResultSender
     ): MerchantRegistrationResult {
         return try {
-            Log.d(TAG, "Starting depositMerchantFunds for merchant: $merchantAccount, amount: $depositAmount")
+            Log.d(
+                TAG,
+                "Starting depositMerchantFunds for merchant: $merchantAccount, amount: $depositAmount"
+            )
 
             val result = walletAdapter.transact(activityResultSender) { authResult ->
                 val merchantPublicKey = SolanaPublicKey.from(merchantAccount)
@@ -966,7 +1131,8 @@ class SolanaMerchantDataSource @Inject constructor(
                 val tokenProgramId = SolanaTokenUtils.ProgramIds.TOKEN_PROGRAM
 
                 // Calculate merchant's USDC Associated Token Account
-                val merchantUsdcAccount = SolanaTokenUtils.getUsdcAssociatedTokenAccount(merchantPublicKey)
+                val merchantUsdcAccount =
+                    SolanaTokenUtils.getUsdcAssociatedTokenAccount(merchantPublicKey)
 
                 // Calculate program's USDC Associated Token Account
                 val programUsdcAccount = SolanaTokenUtils.getUsdcAssociatedTokenAccount(programId)
@@ -1091,7 +1257,8 @@ class SolanaMerchantDataSource @Inject constructor(
         )
 
         // Serialize deposit amount as u64 (8 bytes, little endian)
-        val amountBytes = ByteBuffer.allocate(8).order(ByteOrder.LITTLE_ENDIAN).putLong(depositAmount).array()
+        val amountBytes =
+            ByteBuffer.allocate(8).order(ByteOrder.LITTLE_ENDIAN).putLong(depositAmount).array()
 
         // Combine discriminator and amount
         return discriminator + amountBytes
@@ -1119,12 +1286,14 @@ class SolanaMerchantDataSource @Inject constructor(
 
         // Serialize merchant name
         val nameBytes = merchantName.toByteArray(Charsets.UTF_8)
-        val nameLength = ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(nameBytes.size).array()
+        val nameLength =
+            ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(nameBytes.size).array()
 
         // Serialize merchant description
         val descriptionBytes = merchantDescription.toByteArray(Charsets.UTF_8)
         val descriptionLength =
-            ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(descriptionBytes.size).array()
+            ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(descriptionBytes.size)
+                .array()
 
         // Combine all data
         return discriminator + nameLength + nameBytes + descriptionLength + descriptionBytes
