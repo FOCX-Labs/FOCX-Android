@@ -10,6 +10,7 @@ import com.focx.domain.usecase.RegisterMerchantUseCase
 import com.focx.utils.Log
 import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
 import dagger.hilt.android.lifecycle.HiltViewModel
+import io.ktor.http.cio.internals.parseDecLong
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -30,7 +31,8 @@ data class SellerRegistrationUiState(
     val walletAddress: String? = null,
     val merchantAccount: String? = null,
     val estimatedCost: RegistrationCost? = null,
-    val accountsCreated: List<CreatedAccount> = emptyList()
+    val accountsCreated: List<CreatedAccount> = emptyList(),
+    val securityDeposit: String = AppConstants.Wallet.DEFAULT_SECURITY_DEPOSIT.toString()
 )
 
 data class RegistrationCost(
@@ -104,6 +106,11 @@ class SellerRegistrationViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(storeName = name)
     }
 
+    fun updateDeposit(name: String) {
+        val digitsOnly = name.filter { it.isDigit() }
+        _uiState.value = _uiState.value.copy(securityDeposit = digitsOnly)
+    }
+
     fun updateStoreDescription(description: String) {
         _uiState.value = _uiState.value.copy(storeDescription = description)
     }
@@ -119,6 +126,15 @@ class SellerRegistrationViewModel @Inject constructor(
             // Check wallet connection first
             val walletAddress = getCurrentWalletAddressUseCase.execute()
             val isWalletConnected = getCurrentWalletAddressUseCase.isWalletConnected()
+
+            val securityDeposit = currentState.securityDeposit.parseDecLong()
+
+            if (securityDeposit < AppConstants.Wallet.DEFAULT_SECURITY_DEPOSIT) {
+                _uiState.value = currentState.copy(
+                    errorMessage = "The minimum deposit is 1,000 USDC"
+                )
+                return@launch
+            }
 
             if (!isWalletConnected || walletAddress == null) {
                 _uiState.value = currentState.copy(
@@ -153,7 +169,7 @@ class SellerRegistrationViewModel @Inject constructor(
                     description = currentState.storeDescription,
                     merchantPublicKey = merchantPublicKey,
                     payerPublicKey = payerPublicKey,
-                    securityDeposit = "1000", // 1,000 USDC as mentioned in UI
+                    securityDeposit = securityDeposit, // 1,000 USDC as mentioned in UI
                     programId = AppConstants.App.PROGRAM_ID
                 )
 

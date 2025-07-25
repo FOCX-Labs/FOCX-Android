@@ -91,13 +91,13 @@ class MockMerchantDataSource @Inject constructor() : IMerchantRepository {
             // Update merchant status with new deposit (if merchant exists)
             val existingMerchant = registeredMerchants.values.find { it.merchantAccount == merchantAccount }
             if (existingMerchant != null) {
-                val currentDeposit = existingMerchant.securityDeposit?.toLongOrNull() ?: 0L
+                val currentDeposit = existingMerchant.securityDeposit ?: 0L
                 val updatedDeposit = currentDeposit + depositAmount
                 val walletAddress =
                     registeredMerchants.entries.find { it.value.merchantAccount == merchantAccount }?.key
                 if (walletAddress != null) {
                     registeredMerchants[walletAddress] = existingMerchant.copy(
-                        securityDeposit = updatedDeposit.toString()
+                        securityDeposit = updatedDeposit
                     )
                 }
             }

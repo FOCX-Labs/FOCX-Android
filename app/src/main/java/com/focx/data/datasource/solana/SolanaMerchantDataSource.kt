@@ -410,7 +410,7 @@ class SolanaMerchantDataSource @Inject constructor(
         // 2. 使用 AnchorInstructionSerializer 和 Borsh 对指令数据进行序列化
         //    指令名称 "register_merchant_atomic" 必须与 Anchor 合约中的方法名完全匹配。
         // 使用 borshj 进行序列化
-        val argsBytes = Borsh.serialize(1L)
+        val argsBytes = Borsh.serialize(merchantRegistration.securityDeposit)
         val discriminator = createInstructionDiscriminator("deposit_merchant_deposit")
         val instructionData = discriminator + argsBytes
 
@@ -938,8 +938,8 @@ class SolanaMerchantDataSource @Inject constructor(
             val pda = getMerchantInfoPda(SolanaPublicKey.from(walletAddress),
                 SolanaPublicKey.from(AppConstants.App.PROGRAM_ID) )
             Log.d(TAG, "merchant pad: ${pda.getOrNull()!!.base58()}")
-            val merchant = solanaRpcClient.getAccountInfo<Merchant>(pda.getOrNull()!!)
-            Log.d(TAG, "getMerchantStatus : ${merchant.result?.data}")
+//            val merchant = solanaRpcClient.getAccountInfo<Merchant>(pda.getOrNull()!!)
+//            Log.d(TAG, "getMerchantStatus : ${merchant.result?.data}")
             // TODO: Implement real Solana network query
             // This should query the merchant account data from the Solana blockchain
             throw RuntimeException("getMerchantStatus requires real Solana network implementation")
@@ -1066,7 +1066,7 @@ class SolanaMerchantDataSource @Inject constructor(
                     merchantAccount = merchantAccount,
                     registrationDate = System.currentTimeMillis()
                         .toString(), // You should parse this from account data
-                    securityDeposit = merchantInfoAccountInfo.lamports?.toString(), // Use lamports as security deposit
+                    securityDeposit = 1000L, // Use lamports as security deposit
                     status = "active" // You should parse this from account data
                 )
             }

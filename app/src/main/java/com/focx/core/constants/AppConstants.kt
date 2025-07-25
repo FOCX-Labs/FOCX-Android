@@ -31,7 +31,7 @@ object AppConstants {
      * Wallet and Blockchain Configuration
      */
     object Wallet {
-        const val DEFAULT_SECURITY_DEPOSIT = "1000" // USDC amount
+        const val DEFAULT_SECURITY_DEPOSIT = 1000L // USDC amount
     }
 
 

@@ -10,7 +10,7 @@ data class MerchantRegistration(
     val description: String,
     val merchantPublicKey: String,
     val payerPublicKey: String,
-    val securityDeposit: String = AppConstants.Wallet.DEFAULT_SECURITY_DEPOSIT,
+    val securityDeposit: Long = AppConstants.Wallet.DEFAULT_SECURITY_DEPOSIT,
     val programId: String = AppConstants.App.PROGRAM_ID
 )
 
@@ -25,7 +25,7 @@ data class MerchantStatus(
     val isRegistered: Boolean,
     val merchantAccount: String? = null,
     val registrationDate: String? = null,
-    val securityDeposit: String? = null,
+    val securityDeposit: Long? = null,
     val status: String = AppConstants.Merchant.DEFAULT_STATUS
 )
 

@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -31,6 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -117,6 +119,39 @@ fun SellerRegistrationScreen(
                 color = Color.White.copy(alpha = 0.7f),
                 textAlign = TextAlign.Center,
                 lineHeight = 20.sp
+            )
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // Security Deposit Input
+        Column {
+            Text(
+                text = "Security Deposit",
+                style = MaterialTheme.typography.titleMedium,
+                color = Color.White,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+
+            OutlinedTextField(
+                value = uiState.securityDeposit,
+                onValueChange = viewModel::updateDeposit,
+                placeholder = {
+                    Text(
+                        text = "At least 1,000 USDC",
+                        color = Color.White.copy(alpha = 0.5f)
+                    )
+                },
+                modifier = Modifier.fillMaxWidth(),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White,
+                    focusedBorderColor = Color(0xFF4A90E2),
+                    unfocusedBorderColor = Color.White.copy(alpha = 0.3f),
+                    cursorColor = Color(0xFF4A90E2)
+                ),
+                shape = RoundedCornerShape(12.dp),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             )
         }
 
