@@ -89,6 +89,21 @@ android {
     }
 }
 
+configurations.all {
+    resolutionStrategy {
+        eachDependency {
+            if (requested.group == "com.ditchoom" && requested.name == "buffer") {
+                useTarget("com.ditchoom:buffer-jvm:${requested.version}")
+            }
+            if (requested.group == "com.ditchoom" && requested.name == "buffer-android") {
+                useTarget("com.ditchoom:buffer-jvm:${requested.version}")
+            }
+        }
+        exclude(group = "com.ditchoom", module = "buffer-android")
+        exclude(group = "com.ditchoom", module = "buffer")
+    }
+}
+
 dependencies {
     // Core Android
     implementation(libs.androidx.core.ktx)
@@ -154,12 +169,8 @@ dependencies {
     implementation(libs.solanamobile.rpc.ktordriver)
     implementation(libs.solanamobile.rpc.okiodriver)
     implementation(libs.bcprov.jdk15on)
-    implementation("io.github.funkatronics:kborsh:0.1.1") {
-        exclude(group = "com.ditchoom", module = "buffer")
-    }
-    implementation("com.ditchoom:buffer-android:1.4.2@aar") {
-        isTransitive = true
-    }
+    implementation("io.github.funkatronics:kborsh:0.1.1")
+    implementation("com.ditchoom:buffer-jvm:1.4.2")
     implementation("com.syntifi.near:borshj:0.1.0")
 
     // Testing

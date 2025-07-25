@@ -5,6 +5,7 @@ import android.net.Uri
 import com.focx.core.constants.AppConstants
 import com.focx.core.constants.AppConstants.App.SPL_TOKEN_PROGRAM_ID
 import com.focx.core.network.NetworkConfig
+import com.focx.domain.entity.Merchant
 import com.focx.domain.entity.MerchantRegistration
 import com.focx.domain.entity.MerchantRegistrationResult
 import com.focx.domain.entity.MerchantStatus
@@ -28,6 +29,7 @@ import com.solana.publickey.ProgramDerivedAddress
 import com.solana.publickey.SolanaPublicKey
 import com.solana.rpc.AccountInfo
 import com.solana.rpc.SolanaRpcClient
+import com.solana.rpc.getAccountInfo
 import com.solana.transaction.AccountMeta
 import com.solana.transaction.Message
 import com.solana.transaction.Transaction
@@ -245,17 +247,31 @@ class SolanaMerchantDataSource @Inject constructor(
                     "registerMerchantWithAnchor authResult.authToken:${authResult.authToken}"
                 )
 
-                val registerTransaction =
-                    genRegisterTransaction(merchantRegistration, activityResultSender)
-                val depositTransaction =
-                    genDepositMerchantDepositTransaction(merchantRegistration, activityResultSender)
+                val registerInstruction =
+                    genRegisterInstruction(merchantRegistration, activityResultSender)
+                val depositInstruction =
+                    genDepositMerchantDepositInstruction(merchantRegistration, activityResultSender)
+
+                val recentBlockhash = try {
+                    kotlinx.coroutines.withTimeout(NetworkConfig.READ_TIMEOUT_MS) {
+                        recentBlockhashUseCase()
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to get recent blockhash: ${e.message}", e)
+                    throw Exception("Failed to get recent blockhash: ${e.message}", e)
+                }
+                Log.d(TAG, "recentBlockhash: $recentBlockhash")
+                val message =
+                    Message.Builder()
+                        .addInstruction(registerInstruction)
+                        .addInstruction(depositInstruction)
+                        .setRecentBlockhash(recentBlockhash)
+                        .build()
+                val transaction = Transaction(message)
 
                 Log.d(TAG, "signAndSendTransactions (Anchor): before")
                 val signResult = signAndSendTransactions(
-                    arrayOf(
-                        registerTransaction.serialize(),
-                        depositTransaction.serialize()
-                    )
+                    arrayOf(transaction.serialize())
                 )
                 Log.d(TAG, "signAndSendTransactions (Anchor): $signResult")
                 signResult
@@ -308,9 +324,9 @@ class SolanaMerchantDataSource @Inject constructor(
         }
     }
 
-    private suspend fun genRegisterTransaction(
+    private suspend fun genRegisterInstruction(
         merchantRegistration: MerchantRegistration, activityResultSender: ActivityResultSender
-    ): Transaction {
+    ): TransactionInstruction {
         Log.d(TAG, "genRegisterTransaction start")
         // 合约地址来自 solana_e_commerce.json
         val programId = SolanaPublicKey.from(AppConstants.App.PROGRAM_ID)
@@ -374,27 +390,12 @@ class SolanaMerchantDataSource @Inject constructor(
         )
 
         // 4. 创建指令
-        val instruction = genTransactionInstruction(programId, accountMetas, instructionData)
-
-        // 5. 获取最新区块哈希并构建交易
-        val recentBlockhash = try {
-            kotlinx.coroutines.withTimeout(NetworkConfig.READ_TIMEOUT_MS) {
-                recentBlockhashUseCase()
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to get recent blockhash: ${e.message}", e)
-            throw Exception("Failed to get recent blockhash: ${e.message}", e)
-        }
-        Log.d(TAG, "recentBlockhash: $recentBlockhash")
-        val message =
-            Message.Builder().addInstruction(instruction).setRecentBlockhash(recentBlockhash)
-                .build()
-        return Transaction(message)
+        return genTransactionInstruction(programId, accountMetas, instructionData)
     }
 
-    private suspend fun genDepositMerchantDepositTransaction(
+    private suspend fun genDepositMerchantDepositInstruction(
         merchantRegistration: MerchantRegistration, activityResultSender: ActivityResultSender
-    ): Transaction {
+    ): TransactionInstruction {
         Log.d(TAG, "genDepositMerchantDepositTransaction start")
         // 合约地址来自 solana_e_commerce.json
         val programId = SolanaPublicKey.from(AppConstants.App.PROGRAM_ID)
@@ -435,22 +436,7 @@ class SolanaMerchantDataSource @Inject constructor(
         )
 
         // 4. 创建指令
-        val instruction = genTransactionInstruction(programId, accountMetas, instructionData)
-
-        // 5. 获取最新区块哈希并构建交易
-        val recentBlockhash = try {
-            kotlinx.coroutines.withTimeout(NetworkConfig.READ_TIMEOUT_MS) {
-                recentBlockhashUseCase()
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to get recent blockhash: ${e.message}", e)
-            throw Exception("Failed to get recent blockhash: ${e.message}", e)
-        }
-        Log.d(TAG, "recentBlockhash: $recentBlockhash")
-        val message =
-            Message.Builder().addInstruction(instruction).setRecentBlockhash(recentBlockhash)
-                .build()
-        return Transaction(message)
+        return genTransactionInstruction(programId, accountMetas, instructionData)
     }
 
 
@@ -949,10 +935,16 @@ class SolanaMerchantDataSource @Inject constructor(
 
     override suspend fun getMerchantStatus(walletAddress: String): Flow<MerchantStatus> = flow {
         try {
+            val pda = getMerchantInfoPda(SolanaPublicKey.from(walletAddress),
+                SolanaPublicKey.from(AppConstants.App.PROGRAM_ID) )
+            Log.d(TAG, "merchant pad: ${pda.getOrNull()!!.base58()}")
+            val merchant = solanaRpcClient.getAccountInfo<Merchant>(pda.getOrNull()!!)
+            Log.d(TAG, "getMerchantStatus : ${merchant.result?.data}")
             // TODO: Implement real Solana network query
             // This should query the merchant account data from the Solana blockchain
             throw RuntimeException("getMerchantStatus requires real Solana network implementation")
         } catch (e: Exception) {
+            Log.e(TAG, "getMerchantStatus" ,e)
             emit(
                 MerchantStatus(
                     isRegistered = false,
