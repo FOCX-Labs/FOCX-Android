@@ -19,6 +19,6 @@ class GetMerchantStatusUseCase @Inject constructor(
             throw IllegalArgumentException("Wallet address cannot be empty")
         }
 
-        return merchantRepository.getMerchantStatus(walletAddress)
+        return merchantRepository.getMerchantAccountData(walletAddress)
     }
 }

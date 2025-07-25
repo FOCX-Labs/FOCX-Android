@@ -26,18 +26,11 @@ interface IMerchantRepository {
     ): MerchantRegistrationResult
 
     /**
-     * Check if current wallet is registered as merchant
-     * @param walletAddress Wallet public key
-     * @return Flow of merchant status
-     */
-    suspend fun getMerchantStatus(walletAddress: String): Flow<MerchantStatus>
-
-    /**
      * Get merchant account data from Solana program
      * @param merchantAccount Merchant account address
      * @return Flow of merchant status
      */
-    suspend fun getMerchantAccountData(merchantAccount: String): Flow<MerchantStatus>
+    suspend fun getMerchantAccountData(walletAddress: String): Flow<MerchantStatus>
 
     /**
      * Deposit merchant funds (security deposit) using Solana program deposit_merchant_funds instruction

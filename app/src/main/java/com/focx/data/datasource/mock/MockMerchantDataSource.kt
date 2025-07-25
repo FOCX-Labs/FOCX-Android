@@ -56,16 +56,6 @@ class MockMerchantDataSource @Inject constructor() : IMerchantRepository {
         return registerMerchantAtomic(merchantRegistration)
     }
 
-    override suspend fun getMerchantStatus(walletAddress: String): Flow<MerchantStatus> = flow {
-        delay(500) // Simulate network delay
-
-        val status = registeredMerchants[walletAddress] ?: MerchantStatus(
-            isRegistered = false
-        )
-
-        emit(status)
-    }
-
     override suspend fun getMerchantAccountData(merchantAccount: String): Flow<MerchantStatus> = flow {
         delay(500) // Simulate network delay
 
