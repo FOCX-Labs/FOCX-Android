@@ -171,7 +171,6 @@ dependencies {
     implementation(libs.bcprov.jdk15on)
     implementation("io.github.funkatronics:kborsh:0.1.1")
     implementation("com.ditchoom:buffer-jvm:1.4.2")
-    implementation("com.syntifi.near:borshj:0.1.0")
 
     // Testing
     testImplementation(libs.junit)
