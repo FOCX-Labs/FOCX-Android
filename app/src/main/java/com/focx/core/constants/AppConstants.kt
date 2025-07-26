@@ -6,7 +6,7 @@ package com.focx.core.constants
 object AppConstants {
 
     object App {
-        const val PROGRAM_ID = "mo5xPstZDm27CAkcyoTJnEovMYcW45tViAU6PZikv5q"
+        const val PROGRAM_ID = "5XZ74thixMBX2tQN9P3yLTugUK4YMdRLznDNa2mRdGNT"
 
         //SPL Token Program
         const val SPL_TOKEN_PROGRAM_ID = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
@@ -31,7 +31,7 @@ object AppConstants {
      * Wallet and Blockchain Configuration
      */
     object Wallet {
-        const val DEFAULT_SECURITY_DEPOSIT = 1000L // USDC amount
+        const val DEFAULT_SECURITY_DEPOSIT = 1000UL // USDC amount
     }
 
 

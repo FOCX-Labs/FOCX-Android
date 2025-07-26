@@ -127,7 +127,7 @@ class SellerRegistrationViewModel @Inject constructor(
             val walletAddress = getCurrentWalletAddressUseCase.execute()
             val isWalletConnected = getCurrentWalletAddressUseCase.isWalletConnected()
 
-            val securityDeposit = currentState.securityDeposit.parseDecLong()
+            val securityDeposit = currentState.securityDeposit.parseDecLong().toULong()
 
             if (securityDeposit < AppConstants.Wallet.DEFAULT_SECURITY_DEPOSIT) {
                 _uiState.value = currentState.copy(

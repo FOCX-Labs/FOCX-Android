@@ -13,6 +13,7 @@ import com.focx.domain.entity.MerchantStatus
 import com.focx.domain.repository.IMerchantRepository
 import com.focx.domain.usecase.RecentBlockhashUseCase
 import com.focx.utils.Log
+import com.focx.utils.ShopUtils.getAssociatedTokenAddress
 import com.focx.utils.ShopUtils.getDepositEscrowPda
 import com.focx.utils.ShopUtils.getGlobalRootPda
 import com.focx.utils.ShopUtils.getInitialChunkPda
@@ -31,6 +32,7 @@ import com.solana.publickey.SolanaPublicKey
 import com.solana.rpc.AccountInfo
 import com.solana.rpc.SolanaRpcClient
 import com.solana.rpc.getAccountInfo
+import com.solana.serialization.AnchorInstructionSerializer
 import com.solana.transaction.AccountMeta
 import com.solana.transaction.Message
 import com.solana.transaction.Transaction
@@ -40,6 +42,7 @@ import com.syntifi.near.borshj.annotation.BorshField
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.decodeFromHexString
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import javax.inject.Inject
@@ -247,8 +250,11 @@ class SolanaMerchantDataSource @Inject constructor(
                     throw Exception("Failed to get recent blockhash: ${e.message}", e)
                 }
                 Log.d(TAG, "recentBlockhash: $recentBlockhash")
-                val message = Message.Builder().addInstruction(registerInstruction)
-                    .addInstruction(depositInstruction).setRecentBlockhash(recentBlockhash).build()
+                val message = Message.Builder()
+                    .addInstruction(registerInstruction)
+                    .addInstruction(depositInstruction)
+                    .setRecentBlockhash(recentBlockhash)
+                    .build()
                 val transaction = Transaction(message)
 
                 Log.d(TAG, "signAndSendTransactions (Anchor): before")
@@ -359,16 +365,21 @@ class SolanaMerchantDataSource @Inject constructor(
         )
 
 
-        val argsBytes = Borsh.serialize(merchantRegistration.securityDeposit)
-        val discriminator = createInstructionDiscriminator("deposit_merchant_deposit")
-        val instructionData = discriminator + argsBytes
+//        val argsBytes = Borsh.serialize(merchantRegistration.securityDeposit)
+//        val discriminator = createInstructionDiscriminator("deposit_merchant_deposit")
+//        val instructionData = discriminator + argsBytes
 
+
+
+        val instructionData = com.funkatronics.kborsh.Borsh.encodeToByteArray(
+            AnchorInstructionSerializer("deposit_merchant_deposit"),
+            merchantRegistration.securityDeposit)
 
         val merchantInfoPda = getMerchantInfoPda(merchantPublicKey, programId)
         val systemConfigPda = getSystemConfigPDA(programId)
         val depositEscrowPda = getDepositEscrowPda(programId)
 
-        val merchantTokenAccount = SolanaTokenUtils.getAssociatedTokenAddress(
+        val merchantTokenAccount = getAssociatedTokenAddress(
             SolanaPublicKey.from(AppConstants.App.USDC_FOCX_MINT), merchantPublicKey
         )
 
@@ -376,7 +387,7 @@ class SolanaMerchantDataSource @Inject constructor(
             AccountMeta(merchantPublicKey, true, true),
             AccountMeta(merchantInfoPda.getOrNull()!!, false, true),
             AccountMeta(systemConfigPda.getOrNull()!!, false, false),
-            AccountMeta(merchantTokenAccount, false, true),
+            AccountMeta(merchantTokenAccount.getOrNull()!!, false, true),
             AccountMeta(SolanaPublicKey.from(AppConstants.App.USDC_FOCX_MINT), false, false),
             AccountMeta(depositEscrowPda.getOrNull()!!, false, true),
             AccountMeta(SolanaPublicKey.from(SPL_TOKEN_PROGRAM_ID), false, false),
@@ -869,12 +880,13 @@ class SolanaMerchantDataSource @Inject constructor(
                 val merchant = solanaRpcClient.getAccountInfo<Merchant>(pda.getOrNull()!!).result
 
                 if (!(merchant == null || merchant.data == null)) {
+                    Log.d(TAG, "merchant info: ${merchant.data!!.name}, ${merchant.data!!.description}, ${merchant.data!!.depositAmount},")
 
                     val merchantStatus = MerchantStatus(
                         isRegistered = true,
                         merchantAccount = "aaa",
                         registrationDate = merchant.data!!.createdAt.toString(),
-                        securityDeposit = merchant.data!!.depositAmount.toLong(),
+                        securityDeposit = merchant.data!!.depositAmount,
                         status = DEFAULT_STATUS
                     )
                     Log.d(TAG, "Merchant account found and parsed successfully")
@@ -924,7 +936,7 @@ class SolanaMerchantDataSource @Inject constructor(
     }
 
     override suspend fun depositMerchantFunds(
-        merchantAccount: String, depositAmount: Long, activityResultSender: ActivityResultSender
+        merchantAccount: String, depositAmount: ULong, activityResultSender: ActivityResultSender
     ): MerchantRegistrationResult {
         return try {
             Log.d(
@@ -1055,7 +1067,7 @@ class SolanaMerchantDataSource @Inject constructor(
      * Create instruction data for depositMerchantFunds method
      * Based on the Anchor program method signature
      */
-    private fun createDepositMerchantFundsInstructionData(depositAmount: Long): ByteArray {
+    private fun createDepositMerchantFundsInstructionData(depositAmount: ULong): ByteArray {
         val discriminator = byteArrayOf(
             0x2E.toByte(),
             0x8A.toByte(),
@@ -1068,7 +1080,7 @@ class SolanaMerchantDataSource @Inject constructor(
         )
 
         val amountBytes =
-            ByteBuffer.allocate(8).order(ByteOrder.LITTLE_ENDIAN).putLong(depositAmount).array()
+            ByteBuffer.allocate(8).order(ByteOrder.LITTLE_ENDIAN).putLong(depositAmount.toLong()).array()
         return discriminator + amountBytes
     }
 

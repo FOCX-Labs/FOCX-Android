@@ -41,7 +41,7 @@ interface IMerchantRepository {
      */
     suspend fun depositMerchantFunds(
         merchantAccount: String,
-        depositAmount: Long,
+        depositAmount: ULong,
         activityResultSender: ActivityResultSender
     ): MerchantRegistrationResult
 }

@@ -68,7 +68,7 @@ class MockMerchantDataSource @Inject constructor() : IMerchantRepository {
 
     override suspend fun depositMerchantFunds(
         merchantAccount: String,
-        depositAmount: Long,
+        depositAmount: ULong,
         activityResultSender: ActivityResultSender
     ): MerchantRegistrationResult {
         return try {
@@ -81,7 +81,7 @@ class MockMerchantDataSource @Inject constructor() : IMerchantRepository {
             // Update merchant status with new deposit (if merchant exists)
             val existingMerchant = registeredMerchants.values.find { it.merchantAccount == merchantAccount }
             if (existingMerchant != null) {
-                val currentDeposit = existingMerchant.securityDeposit ?: 0L
+                val currentDeposit = existingMerchant.securityDeposit ?: 0UL
                 val updatedDeposit = currentDeposit + depositAmount
                 val walletAddress =
                     registeredMerchants.entries.find { it.value.merchantAccount == merchantAccount }?.key

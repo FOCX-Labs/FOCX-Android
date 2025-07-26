@@ -1,10 +1,15 @@
 package com.focx.utils
 
+import com.focx.core.constants.AppConstants
 import com.solana.publickey.ProgramDerivedAddress
 import com.solana.publickey.PublicKey
+import com.solana.publickey.SolanaPublicKey
 
 object ShopUtils {
-    suspend fun getMerchantInfoPda(merchantPublicKey: PublicKey, programId: PublicKey): Result<ProgramDerivedAddress> {
+    suspend fun getMerchantInfoPda(
+        merchantPublicKey: PublicKey,
+        programId: PublicKey
+    ): Result<ProgramDerivedAddress> {
         return ProgramDerivedAddress.find(
             listOf("merchant_info".toByteArray(), merchantPublicKey.bytes), programId
         )
@@ -16,13 +21,19 @@ object ShopUtils {
         )
     }
 
-    suspend fun getMerchantIdPda(merchantPublicKey: PublicKey, programId: PublicKey): Result<ProgramDerivedAddress> {
+    suspend fun getMerchantIdPda(
+        merchantPublicKey: PublicKey,
+        programId: PublicKey
+    ): Result<ProgramDerivedAddress> {
         return ProgramDerivedAddress.find(
             listOf("merchant_id".toByteArray(), merchantPublicKey.bytes), programId
         )
     }
 
-    suspend fun getInitialChunkPda(merchantPublicKey: PublicKey, programId: PublicKey): Result<ProgramDerivedAddress> {
+    suspend fun getInitialChunkPda(
+        merchantPublicKey: PublicKey,
+        programId: PublicKey
+    ): Result<ProgramDerivedAddress> {
         return ProgramDerivedAddress.find(
             listOf(
                 "id_chunk".toByteArray(),
@@ -41,6 +52,21 @@ object ShopUtils {
     suspend fun getDepositEscrowPda(programId: PublicKey): Result<ProgramDerivedAddress> {
         return ProgramDerivedAddress.find(
             listOf("deposit_escrow".toByteArray()), programId
+        )
+    }
+
+    suspend fun getAssociatedTokenAddress(
+        mint: SolanaPublicKey,
+        owner: SolanaPublicKey,
+        tokenProgramId: SolanaPublicKey = SolanaPublicKey.from(AppConstants.App.SPL_TOKEN_PROGRAM_ID)
+    ): Result<ProgramDerivedAddress> {
+        return ProgramDerivedAddress.find(
+            listOf(
+                owner.bytes,
+                tokenProgramId.bytes,
+                mint.bytes
+            ),
+            SolanaPublicKey.from(AppConstants.App.ASSOCIATED_TOKEN_PROGRAM_ID)
         )
     }
 }
