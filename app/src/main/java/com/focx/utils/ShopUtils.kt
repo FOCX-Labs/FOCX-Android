@@ -7,39 +7,40 @@ import com.solana.publickey.SolanaPublicKey
 
 object ShopUtils {
     suspend fun getMerchantInfoPda(
-        merchantPublicKey: PublicKey,
-        programId: PublicKey
+        merchantPublicKey: PublicKey
     ): Result<ProgramDerivedAddress> {
         return ProgramDerivedAddress.find(
-            listOf("merchant_info".toByteArray(), merchantPublicKey.bytes), programId
+            listOf("merchant_info".toByteArray(), merchantPublicKey.bytes),
+            AppConstants.App.getProgramId()
         )
     }
 
-    suspend fun getSystemConfigPDA(programId: PublicKey): Result<ProgramDerivedAddress> {
+    suspend fun getSystemConfigPDA(): Result<ProgramDerivedAddress> {
         return ProgramDerivedAddress.find(
-            listOf("system_config".toByteArray()), programId
+            listOf("system_config".toByteArray()),
+            AppConstants.App.getProgramId()
         )
     }
 
     suspend fun getMerchantIdPda(
-        merchantPublicKey: PublicKey,
-        programId: PublicKey
+        merchantPublicKey: PublicKey
     ): Result<ProgramDerivedAddress> {
         return ProgramDerivedAddress.find(
-            listOf("merchant_id".toByteArray(), merchantPublicKey.bytes), programId
+            listOf("merchant_id".toByteArray(), merchantPublicKey.bytes),
+            AppConstants.App.getProgramId()
         )
     }
 
     suspend fun getInitialChunkPda(
         merchantPublicKey: PublicKey,
-        programId: PublicKey
     ): Result<ProgramDerivedAddress> {
         return ProgramDerivedAddress.find(
             listOf(
                 "id_chunk".toByteArray(),
                 merchantPublicKey.bytes,
                 byteArrayOf(0),
-            ), programId
+            ),
+            AppConstants.App.getProgramId()
         )
     }
 
@@ -56,8 +57,8 @@ object ShopUtils {
     }
 
     suspend fun getAssociatedTokenAddress(
-        mint: SolanaPublicKey,
         owner: SolanaPublicKey,
+        mint: SolanaPublicKey = AppConstants.App.getMint(),
         tokenProgramId: SolanaPublicKey = SolanaPublicKey.from(AppConstants.App.SPL_TOKEN_PROGRAM_ID)
     ): Result<ProgramDerivedAddress> {
         return ProgramDerivedAddress.find(
