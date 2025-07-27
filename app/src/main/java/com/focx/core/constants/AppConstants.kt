@@ -10,39 +10,30 @@ import com.solana.publickey.SolanaPublicKey
 object AppConstants {
 
     object App {
-        const val PROGRAM_ID = "5XZ74thixMBX2tQN9P3yLTugUK4YMdRLznDNa2mRdGNT"
-
         //SPL Token Program
         const val SPL_TOKEN_PROGRAM_ID = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
 
         //Associated Token Program
         const val ASSOCIATED_TOKEN_PROGRAM_ID = "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
 
-        //mainKeypair, Galahad wallet address
-        const val AUTHORITY_PUBLIC_KEY = "AyrDj67STAAt9UHc28S694scrq955vbH54rAMtmuQBME"
-        const val APP_NAME = "FOCX"
-        const val APP_VERSION = "1.0.0"
-        const val APP_IDENTITY_URI = "https://focx.app"
-        const val APP_IDENTITY_ICON = "favicon.ico"
+        const val MAINNET_SHOP_PROGRAM_ID = "5XZ74thixMBX2tQN9P3yLTugUK4YMdRLznDNa2mRdGNT"
+        const val DEVNET_SHOP_PROGRAM_ID = "5XZ74thixMBX2tQN9P3yLTugUK4YMdRLznDNa2mRdGNT"
 
-        const val MAINNET_PROGRAM_ID = "5XZ74thixMBX2tQN9P3yLTugUK4YMdRLznDNa2mRdGNT"
-        const val DEVNET_PROGRAM_ID = "5XZ74thixMBX2tQN9P3yLTugUK4YMdRLznDNa2mRdGNT"
-
-        fun getProgramId(): SolanaPublicKey {
+        fun getShopProgramId(): SolanaPublicKey {
             val programId =  when (NetworkConfig.getCurrentNetwork()) {
-                MAINNET -> MAINNET_PROGRAM_ID
-                else -> DEVNET_PROGRAM_ID
+                MAINNET -> MAINNET_SHOP_PROGRAM_ID
+                else -> DEVNET_SHOP_PROGRAM_ID
             }
 
             return SolanaPublicKey.from(programId)
         }
 
-        const val MAINNET_MINT = "DXDVt289yXEcqXDd9Ub3HqSBTWwrmNB8DzQEagv9Svtu"
-        const val DEVNET_MINT = "DXDVt289yXEcqXDd9Ub3HqSBTWwrmNB8DzQEagv9Svtu"
+        const val MAINNET_USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
+        const val DEVNET_USDC_FOCX_MINT = "DXDVt289yXEcqXDd9Ub3HqSBTWwrmNB8DzQEagv9Svtu"
         fun getMint(): SolanaPublicKey {
             val mint = when (NetworkConfig.getCurrentNetwork()) {
-                MAINNET -> MAINNET_MINT
-                else -> DEVNET_MINT
+                MAINNET -> MAINNET_USDC_MINT
+                else -> DEVNET_USDC_FOCX_MINT
             }
 
             return SolanaPublicKey.from(mint)

@@ -156,11 +156,10 @@ class SolanaMerchantDataSource @Inject constructor(
     ): TransactionInstruction {
         Log.d(TAG, "genRegisterTransaction start")
 
-        val programId = SolanaPublicKey.from(AppConstants.App.PROGRAM_ID)
         val merchantPublicKey = SolanaPublicKey.from(merchantRegistration.merchantPublicKey)
 
 
-        val globalRootPda = getGlobalRootPda(programId)
+        val globalRootPda = getGlobalRootPda()
         val merchantInfoPda = getMerchantInfoPda(merchantPublicKey)
         val systemConfigPda = getSystemConfigPDA()
         val merchantIdAccountPda = getMerchantIdPda(merchantPublicKey)
@@ -189,7 +188,7 @@ class SolanaMerchantDataSource @Inject constructor(
         )
 
 
-        return genTransactionInstruction(programId, accountMetas, instructionData)
+        return genTransactionInstruction( accountMetas, instructionData)
     }
 
     private suspend fun genDepositMerchantDepositInstruction(
@@ -198,7 +197,6 @@ class SolanaMerchantDataSource @Inject constructor(
     ): TransactionInstruction {
         Log.d(TAG, "genDepositMerchantDepositTransaction start")
 
-        val programId = SolanaPublicKey.from(AppConstants.App.PROGRAM_ID)
         val merchantPublicKey = SolanaPublicKey.from(merchantAccount)
 
 
@@ -208,7 +206,7 @@ class SolanaMerchantDataSource @Inject constructor(
 
         val merchantInfoPda = getMerchantInfoPda(merchantPublicKey)
         val systemConfigPda = getSystemConfigPDA()
-        val depositEscrowPda = getDepositEscrowPda(programId)
+        val depositEscrowPda = getDepositEscrowPda()
 
         val merchantTokenAccount = getAssociatedTokenAddress( merchantPublicKey)
 
@@ -223,11 +221,13 @@ class SolanaMerchantDataSource @Inject constructor(
             AccountMeta(SystemProgram.PROGRAM_ID, false, false)
         )
 
-        return genTransactionInstruction(programId, accountMetas, instructionData)
+        return genTransactionInstruction(accountMetas, instructionData)
     }
 
     private fun genTransactionInstruction(
-        programId: SolanaPublicKey, accounts: List<AccountMeta>, data: ByteArray
+        accounts: List<AccountMeta>,
+        data: ByteArray,
+        programId: SolanaPublicKey = AppConstants.App.getShopProgramId()
     ): TransactionInstruction {
         Log.d(TAG, "============genTransactionInstruction : $programId")
         accounts.forEachIndexed { index, meta ->
@@ -239,26 +239,6 @@ class SolanaMerchantDataSource @Inject constructor(
         Log.d(TAG, "  instructionData: ${data.contentToString()}")
         Log.d(TAG, "  instructionData hex: ${data.joinToString("") { "%02x".format(it) }}")
         return TransactionInstruction(programId, accounts, data)
-    }
-
-    /**
-     * mock Solana Memo Program
-     */
-    private fun mockMemoTransaction(
-        merchantPublicKey: SolanaPublicKey, recentBlockHash: SolanaPublicKey
-    ): Transaction {
-        val memoProgramId = SolanaPublicKey.from("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr")
-        val memoInstruction = genTransactionInstruction(
-            memoProgramId,
-            listOf(AccountMeta(merchantPublicKey, true, true)),
-            "HelloFocxMemo".encodeToByteArray()
-        )
-
-
-        val memoTxMessage =
-            Message.Builder().addInstruction(memoInstruction).setRecentBlockhash(recentBlockHash)
-                .build()
-        return Transaction(memoTxMessage)
     }
 
     override suspend fun registerMerchantAtomic(
@@ -283,7 +263,7 @@ class SolanaMerchantDataSource @Inject constructor(
                     Log.d(TAG, "merchant info: ${merchant.data!!.name}, ${merchant.data!!.description}, ${merchant.data!!.depositAmount},")
 
                     val merchantStatus = MerchantStatus(
-                        isRegistered = false,
+                        isRegistered = true,
                         merchantAccount = "aaa",
                         registrationDate = merchant.data!!.createdAt.toString(),
                         securityDeposit = merchant.data!!.depositAmount,

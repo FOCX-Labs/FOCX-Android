@@ -10,7 +10,6 @@ data class MerchantRegistration(
     val merchantPublicKey: String,
     val payerPublicKey: String,
     val securityDeposit: ULong = AppConstants.Wallet.DEFAULT_SECURITY_DEPOSIT,
-    val programId: String = AppConstants.App.PROGRAM_ID
 )
 
 data class MerchantRegistrationResult(

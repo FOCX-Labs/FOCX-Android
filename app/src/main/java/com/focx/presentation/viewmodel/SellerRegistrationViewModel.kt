@@ -170,7 +170,6 @@ class SellerRegistrationViewModel @Inject constructor(
                     merchantPublicKey = merchantPublicKey,
                     payerPublicKey = payerPublicKey,
                     securityDeposit = securityDeposit, // 1,000 USDC as mentioned in UI
-                    programId = AppConstants.App.PROGRAM_ID
                 )
 
                 val result = registerMerchantUseCase(merchantRegistration, activityResultSender)

@@ -11,14 +11,14 @@ object ShopUtils {
     ): Result<ProgramDerivedAddress> {
         return ProgramDerivedAddress.find(
             listOf("merchant_info".toByteArray(), merchantPublicKey.bytes),
-            AppConstants.App.getProgramId()
+            AppConstants.App.getShopProgramId()
         )
     }
 
     suspend fun getSystemConfigPDA(): Result<ProgramDerivedAddress> {
         return ProgramDerivedAddress.find(
             listOf("system_config".toByteArray()),
-            AppConstants.App.getProgramId()
+            AppConstants.App.getShopProgramId()
         )
     }
 
@@ -27,7 +27,7 @@ object ShopUtils {
     ): Result<ProgramDerivedAddress> {
         return ProgramDerivedAddress.find(
             listOf("merchant_id".toByteArray(), merchantPublicKey.bytes),
-            AppConstants.App.getProgramId()
+            AppConstants.App.getShopProgramId()
         )
     }
 
@@ -40,19 +40,21 @@ object ShopUtils {
                 merchantPublicKey.bytes,
                 byteArrayOf(0),
             ),
-            AppConstants.App.getProgramId()
+            AppConstants.App.getShopProgramId()
         )
     }
 
-    suspend fun getGlobalRootPda(programId: PublicKey): Result<ProgramDerivedAddress> {
+    suspend fun getGlobalRootPda(): Result<ProgramDerivedAddress> {
         return ProgramDerivedAddress.find(
-            listOf("global_id_root".toByteArray()), programId
+            listOf("global_id_root".toByteArray()),
+            AppConstants.App.getShopProgramId()
         )
     }
 
-    suspend fun getDepositEscrowPda(programId: PublicKey): Result<ProgramDerivedAddress> {
+    suspend fun getDepositEscrowPda(): Result<ProgramDerivedAddress> {
         return ProgramDerivedAddress.find(
-            listOf("deposit_escrow".toByteArray()), programId
+            listOf("deposit_escrow".toByteArray()),
+            AppConstants.App.getShopProgramId()
         )
     }
 
