@@ -30,6 +30,8 @@ import com.focx.presentation.ui.screens.SellerManagementScreen
 import com.focx.presentation.ui.screens.SellerRegistrationScreen
 import com.focx.presentation.ui.screens.SoldOrderDetailScreen
 import com.focx.presentation.viewmodel.ProfileViewModel
+import com.focx.presentation.viewmodel.AddEditProductViewModel
+import com.focx.presentation.intent.AddEditProductIntent
 import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
 
 // Full screen routes configuration
@@ -159,23 +161,41 @@ fun FocxNavigation(activityResultSender: ActivityResultSender) {
 
             // Add Product
             composable("add_product") {
-                AddEditProductScreen(productId = null, onBackClick = {
-                    navController.popBackStack()
-                }, onSaveClick = { productData ->
-                    // TODO: Implement save product functionality
-                    navController.popBackStack()
-                })
+                val viewModel: AddEditProductViewModel = hiltViewModel()
+                AddEditProductScreen(
+                    productId = null, 
+                    onBackClick = {
+                        navController.popBackStack()
+                    }, 
+                    onSaveClick = { productData, activityResultSender ->
+                        // Update form data in ViewModel first
+                        viewModel.handleIntent(AddEditProductIntent.UpdateFormData(productData))
+                        // Then save with ActivityResultSender
+                        viewModel.handleIntent(AddEditProductIntent.SaveProduct(activityResultSender))
+                        navController.popBackStack()
+                    },
+                    activityResultSender = activityResultSender
+                )
             }
 
             // Edit Product
             composable("edit_product/{productId}") { backStackEntry ->
                 val productId = backStackEntry.arguments?.getString("productId") ?: ""
-                AddEditProductScreen(productId = productId, onBackClick = {
-                    navController.popBackStack()
-                }, onSaveClick = { productData ->
-                    // TODO: Implement update product functionality
-                    navController.popBackStack()
-                })
+                val viewModel: AddEditProductViewModel = hiltViewModel()
+                AddEditProductScreen(
+                    productId = productId, 
+                    onBackClick = {
+                        navController.popBackStack()
+                    }, 
+                    onSaveClick = { productData, activityResultSender ->
+                        // Update form data in ViewModel first
+                        viewModel.handleIntent(AddEditProductIntent.UpdateFormData(productData))
+                        // Then save with ActivityResultSender
+                        viewModel.handleIntent(AddEditProductIntent.SaveProduct(activityResultSender))
+                        navController.popBackStack()
+                    },
+                    activityResultSender = activityResultSender
+                )
             }
 
             // Address List

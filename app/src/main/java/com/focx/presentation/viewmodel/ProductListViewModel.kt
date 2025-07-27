@@ -224,7 +224,9 @@ class ProductListViewModel @Inject constructor(
 
         // Apply price filter
         filteredProducts = filteredProducts.filter { product ->
-            product.price >= minPrice && product.price <= maxPrice
+            val minPriceMicros = (minPrice * 1_000_000).toULong()
+            val maxPriceMicros = (maxPrice * 1_000_000).toULong()
+            product.price >= minPriceMicros && product.price <= maxPriceMicros
         }
 
         // Apply category filter
@@ -238,7 +240,7 @@ class ProductListViewModel @Inject constructor(
         filteredProducts = when (sortBy) {
             SortOption.PRICE_LOW_TO_HIGH -> filteredProducts.sortedBy { it.price }
             SortOption.PRICE_HIGH_TO_LOW -> filteredProducts.sortedByDescending { it.price }
-            SortOption.NEWEST -> filteredProducts.sortedByDescending { it.createdAt }
+            SortOption.NEWEST -> filteredProducts.sortedByDescending { it.id }
             SortOption.BEST_SELLING -> filteredProducts.sortedByDescending { it.salesCount }
             SortOption.LEAST_SELLING -> filteredProducts.sortedBy { it.salesCount }
             SortOption.HIGHEST_RATED -> filteredProducts.sortedByDescending { it.rating }
@@ -284,7 +286,9 @@ class ProductListViewModel @Inject constructor(
         // Apply price filter
         priceRange?.let { (minPrice, maxPrice) ->
             filteredProducts = filteredProducts.filter { product ->
-                product.price >= minPrice && product.price <= maxPrice
+                val minPriceMicros = (minPrice * 1_000_000).toULong()
+                val maxPriceMicros = (maxPrice * 1_000_000).toULong()
+                product.price >= minPriceMicros && product.price <= maxPriceMicros
             }
         }
 
@@ -293,7 +297,7 @@ class ProductListViewModel @Inject constructor(
             filteredProducts = when (sort) {
                 SortOption.PRICE_LOW_TO_HIGH -> filteredProducts.sortedBy { it.price }
                 SortOption.PRICE_HIGH_TO_LOW -> filteredProducts.sortedByDescending { it.price }
-                SortOption.NEWEST -> filteredProducts.sortedByDescending { it.createdAt }
+                SortOption.NEWEST -> filteredProducts.sortedByDescending { it.id }
                 SortOption.BEST_SELLING -> filteredProducts.sortedByDescending { it.salesCount }
                 SortOption.LEAST_SELLING -> filteredProducts.sortedBy { it.salesCount }
                 SortOption.HIGHEST_RATED -> filteredProducts.sortedByDescending { it.rating }

@@ -13,6 +13,7 @@ import com.focx.data.datasource.mock.MockSellerDataSource
 import com.focx.data.datasource.mock.MockUserDataSource
 import com.focx.data.datasource.mock.MockWalletDataSource
 import com.focx.data.datasource.solana.SolanaMerchantDataSource
+import com.focx.data.datasource.solana.SolanaProductDataSource
 import com.focx.data.networking.KtorHttpDriver
 import com.focx.domain.repository.IGovernanceRepository
 import com.focx.domain.repository.IMerchantRepository
@@ -30,6 +31,8 @@ import com.focx.domain.usecase.GetMerchantStatusUseCase
 import com.focx.domain.usecase.GetOrdersBySellerUseCase
 import com.focx.domain.usecase.GetProductByIdUseCase
 import com.focx.domain.usecase.GetProductsUseCase
+import com.focx.domain.usecase.SaveProductUseCase
+import com.focx.domain.usecase.UpdateProductUseCase
 
 import com.focx.domain.usecase.GetSellerStatsUseCase
 import com.focx.domain.usecase.GetStakingInfoUseCase
@@ -60,8 +63,13 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideProductRepository(): IProductRepository {
-        return MockProductDataSource()
+    fun provideProductRepository(
+        @ApplicationContext context: Context,
+        walletAdapter: MobileWalletAdapter,
+        recentBlockhashUseCase: RecentBlockhashUseCase,
+        solanaRpcClient: SolanaRpcClient
+    ): IProductRepository {
+        return SolanaProductDataSource(context, walletAdapter, recentBlockhashUseCase, solanaRpcClient)
     }
 
     @Provides
@@ -83,6 +91,20 @@ object AppModule {
         productRepository: IProductRepository
     ): SearchProductsUseCase {
         return SearchProductsUseCase(productRepository)
+    }
+
+    @Provides
+    fun provideSaveProductUseCase(
+        productRepository: IProductRepository
+    ): SaveProductUseCase {
+        return SaveProductUseCase(productRepository)
+    }
+
+    @Provides
+    fun provideUpdateProductUseCase(
+        productRepository: IProductRepository
+    ): UpdateProductUseCase {
+        return UpdateProductUseCase(productRepository)
     }
 
     @Provides

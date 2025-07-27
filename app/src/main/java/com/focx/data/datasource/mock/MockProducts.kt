@@ -4,10 +4,10 @@ import com.focx.domain.entity.Product
 
 val mockProducts = listOf(
     Product(
-        id = "1",
+        id = 1UL,
         name = "Apple Vision Pro",
         description = "Apple Vision Pro is a spatial computer that blends digital content and apps with your physical space, and lets you navigate using your eyes, hands, and voice.",
-        price = 3499.00,
+        price = 3499000000UL,
         currency = "USDC",
         imageUrls = listOf(
             "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&h=400&fit=crop",
@@ -27,10 +27,10 @@ val mockProducts = listOf(
         reviewCount = 85
     ),
     Product(
-        id = "2",
+        id = 2UL,
         name = "Tesla CyberTruck",
         description = "A rugged and futuristic electric pickup truck with a stainless steel exoskeleton and armored glass.",
-        price = 79990.00,
+        price = 79990000000UL,
         currency = "USDC",
         imageUrls = listOf(
             "https://images.unsplash.com/photo-1606144042614-b2417e99c4e3?w=400&h=400&fit=crop"
@@ -48,10 +48,10 @@ val mockProducts = listOf(
         reviewCount = 3
     ),
     Product(
-        id = "3",
+        id = 3UL,
         name = "Anker 737 Power Bank",
         description = "A high-capacity power bank with 140W output, perfect for charging laptops, tablets, and phones on the go.",
-        price = 149.99,
+        price = 149990000UL,
         currency = "USDC",
         imageUrls = listOf(
             "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400&h=400&fit=crop"
@@ -69,10 +69,10 @@ val mockProducts = listOf(
         reviewCount = 450
     ),
     Product(
-        id = "4",
+        id = 4UL,
         name = "LEGO Star Wars Millennium Falcon",
         description = "The ultimate LEGO Star Wars Millennium Falcon model, featuring intricate details and a host of characters.",
-        price = 849.99,
+        price = 849990000UL,
         currency = "USDC",
         imageUrls = listOf(
             "https://images.unsplash.com/photo-1606400082777-ef05f3c5cde2?w=400&h=400&fit=crop"
@@ -90,10 +90,10 @@ val mockProducts = listOf(
         reviewCount = 25
     ),
     Product(
-        id = "5",
+        id = 5UL,
         name = "The Lord of the Rings Trilogy",
         description = "A special edition hardcover box set of J.R.R. Tolkien's epic fantasy trilogy.",
-        price = 120.00,
+        price = 120000000UL,
         currency = "USDC",
         imageUrls = listOf(
             "https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=400&h=400&fit=crop"
@@ -111,10 +111,10 @@ val mockProducts = listOf(
         reviewCount = 150
     ),
     Product(
-        id = "6",
+        id = 6UL,
         name = "Lululemon Align High-Rise Pant",
         description = "Buttery-soft and weightless, the Align collection is designed for ultimate comfort during yoga or everyday wear.",
-        price = 98.00,
+        price = 98000000UL,
         currency = "USDC",
         imageUrls = listOf(
             "https://images.unsplash.com/photo-1434493789847-2f02dc6ca35d?w=400&h=400&fit=crop"
@@ -136,10 +136,10 @@ val mockProducts = listOf(
         reviewCount = 800
     ),
     Product(
-        id = "7",
+        id = 7UL,
         name = "Dyson V15 Detect Absolute",
         description = "A cordless vacuum with laser illumination to reveal microscopic dust and a sensor that adapts power to the debris detected.",
-        price = 749.99,
+        price = 749990000UL,
         currency = "USDC",
         imageUrls = listOf(
             "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&h=400&fit=crop"
@@ -157,10 +157,10 @@ val mockProducts = listOf(
         reviewCount = 60
     ),
     Product(
-        id = "8",
+        id = 8UL,
         name = "Sony WH-1000XM5 Wireless Headphones",
         description = "Industry-leading noise canceling headphones with a new design and even better sound quality.",
-        price = 399.99,
+        price = 399990000UL,
         currency = "USDC",
         imageUrls = listOf(
             "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&h=400&fit=crop"
@@ -182,10 +182,10 @@ val mockProducts = listOf(
         reviewCount = 400
     ),
     Product(
-        id = "9",
+        id = 9UL,
         name = "DJI Mini 3 Pro",
         description = "A lightweight and powerful drone with tri-directional obstacle sensing and 4K HDR video capabilities.",
-        price = 759.00,
+        price = 759000000UL,
         currency = "USDC",
         imageUrls = listOf(
             "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400&h=400&fit=crop"
@@ -203,10 +203,10 @@ val mockProducts = listOf(
         reviewCount = 180
     ),
     Product(
-        id = "10",
+        id = 10UL,
         name = "Herman Miller Aeron Chair",
         description = "An iconic ergonomic office chair that provides total spinal support and adjusts to your body's posture.",
-        price = 1645.00,
+        price = 1645000000UL,
         currency = "USDC",
         imageUrls = listOf(
             "https://images.unsplash.com/photo-1606400082777-ef05f3c5cde2?w=400&h=400&fit=crop"
@@ -223,10 +223,10 @@ val mockProducts = listOf(
         reviewCount = 30
     ),
     Product(
-        id = "11",
+        id = 11UL,
         name = "The North Face 1996 Retro Nuptse Jacket",
         description = "A boxy, down-filled jacket with a stowable hood and the original shiny ripstop fabric.",
-        price = 320.00,
+        price = 320000000UL,
         currency = "USDC",
         imageUrls = listOf(
             "https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=400&h=400&fit=crop"
@@ -243,10 +243,10 @@ val mockProducts = listOf(
         reviewCount = 700
     ),
     Product(
-        id = "12",
+        id = 12UL,
         name = "Samsung Odyssey G9 Gaming Monitor",
         description = "A 49-inch super ultra-wide curved gaming monitor with a 1000R curvature for immersive gameplay.",
-        price = 1599.99,
+        price = 1599990000UL,
         currency = "USDC",
         imageUrls = listOf(
             "https://images.unsplash.com/photo-1434493789847-2f02dc6ca35d?w=400&h=400&fit=crop"
@@ -263,10 +263,10 @@ val mockProducts = listOf(
         reviewCount = 45
     ),
     Product(
-        id = "13",
+        id = 13UL,
         name = "Instant Pot Duo Plus 9-in-1 Electric Pressure Cooker",
         description = "A versatile kitchen appliance that functions as a pressure cooker, slow cooker, rice cooker, steamer, and more.",
-        price = 129.99,
+        price = 129990000UL,
         currency = "USDC",
         imageUrls = listOf(
             "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&h=400&fit=crop"
@@ -283,10 +283,10 @@ val mockProducts = listOf(
         reviewCount = 1100
     ),
     Product(
-        id = "14",
+        id = 14UL,
         name = "Canon EOS R5 Mirrorless Camera",
         description = "A full-frame mirrorless camera with 8K video, 45MP photos, and advanced autofocus capabilities.",
-        price = 3899.00,
+        price = 3899000000UL,
         currency = "USDC",
         imageUrls = listOf(
             "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&h=400&fit=crop"
@@ -303,10 +303,10 @@ val mockProducts = listOf(
         reviewCount = 65
     ),
     Product(
-        id = "15",
+        id = 15UL,
         name = "All-Clad D3 Stainless Steel Cookware Set",
         description = "A 10-piece set of high-performance stainless steel cookware, handcrafted in the USA.",
-        price = 699.95,
+        price = 699950000UL,
         currency = "USDC",
         imageUrls = listOf(
             "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400&h=400&fit=crop"
@@ -323,10 +323,10 @@ val mockProducts = listOf(
         reviewCount = 150
     ),
     Product(
-        id = "16",
+        id = 16UL,
         name = "Nike Air Force 1 '07",
         description = "The classic basketball shoe that redefined sneaker culture, with crisp leather and a timeless design.",
-        price = 100.00,
+        price = 100000000UL,
         currency = "USDC",
         imageUrls = listOf(
             "https://images.unsplash.com/photo-1606400082777-ef05f3c5cde2?w=400&h=400&fit=crop"
@@ -343,10 +343,10 @@ val mockProducts = listOf(
         reviewCount = 1800
     ),
     Product(
-        id = "17",
+        id = 17UL,
         name = "Rimowa Classic Cabin Suitcase",
         description = "A timeless aluminum suitcase with high-end functionality, featuring a durable design and smooth-rolling wheels.",
-        price = 1280.00,
+        price = 1280000000UL,
         currency = "USDC",
         imageUrls = listOf(
             "https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=400&h=400&fit=crop"
@@ -363,10 +363,10 @@ val mockProducts = listOf(
         reviewCount = 40
     ),
     Product(
-        id = "18",
+        id = 18UL,
         name = "Logitech MX Master 3S Wireless Mouse",
         description = "An advanced wireless mouse with an 8K DPI sensor, quiet clicks, and MagSpeed electromagnetic scrolling.",
-        price = 99.99,
+        price = 99990000UL,
         currency = "USDC",
         imageUrls = listOf(
             "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&h=400&fit=crop"
@@ -383,10 +383,10 @@ val mockProducts = listOf(
         reviewCount = 1000
     ),
     Product(
-        id = "19",
+        id = 19UL,
         name = "Adidas Ultraboost 22 Running Shoes",
         description = "Running shoes with incredible energy return and a supportive fit, designed for high-performance running.",
-        price = 180.00,
+        price = 180000000UL,
         currency = "USDC",
         imageUrls = listOf(
             "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&h=400&fit=crop"
@@ -403,10 +403,10 @@ val mockProducts = listOf(
         reviewCount = 700
     ),
     Product(
-        id = "20",
+        id = 20UL,
         name = "Nintendo Switch - OLED Model",
         description = "7-inch OLED screen, a wide adjustable stand, a dock with a wired LAN port, 64 GB of internal storage, and enhanced audio.",
-        price = 349.99,
+        price = 349990000UL,
         currency = "USDC",
         imageUrls = listOf(
             "https://images.unsplash.com/photo-1434493789847-2f02dc6ca35d?w=400&h=400&fit=crop"
@@ -423,10 +423,10 @@ val mockProducts = listOf(
         reviewCount = 1800
     ),
     Product(
-        id = "21",
+        id = 21UL,
         name = "Anker PowerCore 26800 Portable Charger",
         description = "A massive 26800mAh capacity portable charger with dual Micro USB input and PowerIQ technology for high-speed charging.",
-        price = 65.99,
+        price = 65990000UL,
         currency = "USDC",
         imageUrls = listOf(
             "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&h=400&fit=crop"
@@ -443,10 +443,10 @@ val mockProducts = listOf(
         reviewCount = 3200
     ),
     Product(
-        id = "22",
+        id = 22UL,
         name = "Breville Barista Express Espresso Machine",
         description = "Create great-tasting espresso in less than a minute. The Barista Express allows you to grind the beans right before extraction.",
-        price = 699.95,
+        price = 699950000UL,
         currency = "USDC",
         imageUrls = listOf(
             "https://images.unsplash.com/photo-1606144042614-b2417e99c4e3?w=400&h=400&fit=crop"
@@ -463,10 +463,10 @@ val mockProducts = listOf(
         reviewCount = 250
     ),
     Product(
-        id = "23",
+        id = 23UL,
         name = "Garmin Fenix 7X Sapphire Solar Multisport GPS Watch",
         description = "Solar charging, scratch-resistant Power Sapphire lens, and a resilient titanium bezel. Advanced training features and health monitoring.",
-        price = 999.99,
+        price = 999990000UL,
         currency = "USDC",
         imageUrls = listOf(
             "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400&h=400&fit=crop"
@@ -483,10 +483,10 @@ val mockProducts = listOf(
         reviewCount = 180
     ),
     Product(
-        id = "24",
+        id = 24UL,
         name = "Patagonia Classic Retro-X Fleece Jacket",
         description = "Windproof, warm and with a soft, fleecy exterior. Made with 50% recycled polyester fleece. Fair Trade Certified™ sewn.",
-        price = 199.00,
+        price = 199000000UL,
         currency = "USDC",
         imageUrls = listOf(
             "https://images.unsplash.com/photo-1606400082777-ef05f3c5cde2?w=400&h=400&fit=crop"
@@ -503,10 +503,10 @@ val mockProducts = listOf(
         reviewCount = 500
     ),
     Product(
-        id = "25",
+        id = 25UL,
         name = "Kindle Paperwhite Signature Edition",
         description = "32 GB storage, a 6.8” display, wireless charging, and an auto-adjusting front light. Reads like real paper, even in bright sunlight.",
-        price = 189.99,
+        price = 189990000UL,
         currency = "USDC",
         imageUrls = listOf(
             "https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=400&h=400&fit=crop"
@@ -523,10 +523,10 @@ val mockProducts = listOf(
         reviewCount = 1500
     ),
     Product(
-        id = "26",
+        id = 26UL,
         name = "GoPro HERO11 Black Action Camera",
         description = "Waterproof action camera with 5.3K60 Ultra HD video, 27MP photos, HyperSmooth 5.0 stabilization, and dual LCD screens.",
-        price = 499.99,
+        price = 499990000UL,
         currency = "USDC",
         imageUrls = listOf(
             "https://images.unsplash.com/photo-1434493789847-2f02dc6ca35d?w=400&h=400&fit=crop",
@@ -544,10 +544,10 @@ val mockProducts = listOf(
         reviewCount = 600
     ),
     Product(
-        id = "27",
+        id = 27UL,
         name = "YETI Tundra 45 Cooler",
         description = "Indestructible cooler with extra-thick walls and PermaFrost™ Insulation for unmatched ice retention. Bear-resistant design.",
-        price = 299.99,
+        price = 299990000UL,
         currency = "USDC",
         imageUrls = listOf(
             "https://images.unsplash.com/photo-1606144042614-b2417e99c4e3?w=400&h=400&fit=crop"
@@ -564,10 +564,10 @@ val mockProducts = listOf(
         reviewCount = 350
     ),
     Product(
-        id = "28",
+        id = 28UL,
         name = "Apple Watch Series 8",
         description = "Advanced health sensors and apps, so you can take an ECG, measure heart rate and blood oxygen, and track temperature changes.",
-        price = 399.00,
+        price = 399000000UL,
         currency = "USDC",
         imageUrls = listOf(
             "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400&h=400&fit=crop"
@@ -584,10 +584,10 @@ val mockProducts = listOf(
         reviewCount = 900
     ),
     Product(
-        id = "29",
+        id = 29UL,
         name = "Bose QuietComfort 45 Headphones",
         description = "Wireless, Bluetooth, noise-cancelling headphones with high-fidelity audio. Aware Mode for transparency. Up to 24 hours of battery life.",
-        price = 329.00,
+        price = 329000000UL,
         currency = "USDC",
         imageUrls = listOf(
             "https://images.unsplash.com/photo-1606400082777-ef05f3c5cde2?w=400&h=400&fit=crop"
@@ -604,10 +604,10 @@ val mockProducts = listOf(
         reviewCount = 750
     ),
     Product(
-        id = "30",
+        id = 30UL,
         name = "Osprey Atmos AG 65 Men's Backpacking Backpack",
         description = "Anti-Gravity suspension system for outstanding fit and ventilation. Perfect for weekend or week-long trips. Integrated raincover.",
-        price = 270.00,
+        price = 270000000UL,
         currency = "USDC",
         imageUrls = listOf(
             "https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=400&h=400&fit=crop"

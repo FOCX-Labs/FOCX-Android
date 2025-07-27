@@ -68,7 +68,8 @@ data class ProductFormData(
 fun AddEditProductScreen(
     productId: String? = null, // null for add, non-null for edit
     onBackClick: () -> Unit,
-    onSaveClick: (ProductFormData) -> Unit
+    onSaveClick: (ProductFormData, com.solana.mobilewalletadapter.clientlib.ActivityResultSender) -> Unit,
+    activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender
 ) {
     val isEditMode = productId != null
     var formData by remember {
@@ -122,7 +123,7 @@ fun AddEditProductScreen(
                 },
                 actions = {
                     TextButton(
-                        onClick = { onSaveClick(formData) },
+                        onClick = { onSaveClick(formData, activityResultSender) },
                         enabled = isFormValid
                     ) {
                         Text(if (isEditMode) "Update" else "Save")
@@ -525,17 +526,19 @@ fun ShippingOptionCard(
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF1A1A1A)
-@Composable
-fun AddEditProductScreenPreview() {
-    FocxTheme {
-        AddEditProductScreen(
-            productId = null,
-            onBackClick = { },
-            onSaveClick = { }
-        )
-    }
-}
+// Note: Preview disabled due to ActivityResultSender dependency
+// @Preview(showBackground = true, backgroundColor = 0xFF1A1A1A)
+// @Composable
+// fun AddEditProductScreenPreview() {
+//     FocxTheme {
+//         AddEditProductScreen(
+//             productId = null,
+//             onBackClick = { },
+//             onSaveClick = { _, _ -> },
+//             activityResultSender = // Cannot mock in preview
+//         )
+//     }
+// }
 
 @Preview(showBackground = true, backgroundColor = 0xFF1A1A1A)
 @Composable

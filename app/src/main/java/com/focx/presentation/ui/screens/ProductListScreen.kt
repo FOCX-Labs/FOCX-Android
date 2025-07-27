@@ -238,7 +238,7 @@ fun ProductGrid(
         verticalArrangement = Arrangement.spacedBy(Spacing.medium)
     ) {
         items(
-            items = products, key = { it.id }) { product ->
+            items = products, key = { it.id.toString() }) { product ->
             ProductCard(
                 product = product, onClick = onProductClick, onFavoriteClick = onFavoriteClick
             )

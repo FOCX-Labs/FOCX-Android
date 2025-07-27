@@ -63,10 +63,10 @@ fun SellerManagementScreen(
     val allProducts = remember {
         listOf(
             Product(
-                id = "1",
+                id = 1UL,
                 name = "iPhone 15 Pro Max  Apple",
                 description = "Latest iPhone with titanium design",
-                price = 1199.99,
+                price = 1199999000UL,
                 currency = "USDC",
                 imageUrls = listOf(
                     "https://example.com/iphone1.jpg",
@@ -84,10 +84,10 @@ fun SellerManagementScreen(
                 reviewCount = 245
             ),
             Product(
-                id = "2",
+                id = 2UL,
                 name = "MacBook Pro 16\"",
                 description = "Professional laptop for creators",
-                price = 2499.99,
+                price = 2499999000UL,
                 currency = "USDC",
                 imageUrls = listOf(
                     "https://example.com/macbook1.jpg",
@@ -105,10 +105,10 @@ fun SellerManagementScreen(
                 reviewCount = 189
             ),
             Product(
-                id = "3",
+                id = 3UL,
                 name = "AirPods Pro 2",
                 description = "Active noise cancellation earbuds",
-                price = 249.99,
+                price = 249990000UL,
                 currency = "USDC",
                 imageUrls = listOf(
                     "https://example.com/airpods1.jpg",
@@ -126,10 +126,10 @@ fun SellerManagementScreen(
                 reviewCount = 567
             ),
             Product(
-                id = "4",
+                id = 4UL,
                 name = "iPad Air 5th Gen",
                 description = "Powerful tablet for work and creativity",
-                price = 599.99,
+                price = 599990000UL,
                 currency = "USDC",
                 imageUrls = listOf(
                     "https://example.com/ipad1.jpg",
@@ -250,8 +250,8 @@ fun SellerManagementScreen(
             items(filteredProducts) { product ->
                 ProductManagementCard(
                     product = product,
-                    onProductClick = { onProductClick(product.id) },
-                    onEditClick = { onEditProductClick(product.id) }
+                    onProductClick = { onProductClick(product.id.toString()) },
+                    onEditClick = { onEditProductClick(product.id.toString()) }
                 )
             }
 
@@ -325,7 +325,7 @@ fun ProductManagementCard(
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        text = "$${product.price}",
+                        text = "$${String.format("%.2f", product.price.toDouble() / 1_000_000)}",
                         style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.SemiBold

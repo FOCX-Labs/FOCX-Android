@@ -82,7 +82,7 @@ fun ProductDetailScreen(
     var selectedQuantity by remember { mutableStateOf(1) }
     var showBuyDialog by remember { mutableStateOf(false) }
 
-    val product = state.products.find { it.id == productId } ?: return
+    val product = state.products.find { it.id == productId.toULongOrNull() } ?: return
 
     val productImages = product.imageUrls
 
@@ -624,7 +624,7 @@ fun BottomBuyDialog(
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "$${String.format("%.2f", product.price * quantity)}",
+                            text = "$${String.format("%.2f", (product.price.toDouble() / 1_000_000) * quantity)}",
                             style = MaterialTheme.typography.titleLarge,
                             color = Primary,
                             fontWeight = FontWeight.Bold

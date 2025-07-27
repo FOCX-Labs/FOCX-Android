@@ -25,7 +25,7 @@ class GetProductByIdUseCase @Inject constructor(
     private val productRepository: IProductRepository
 ) {
     suspend operator fun invoke(productId: String): Flow<Result<Product?>> {
-        return productRepository.getProductById(productId)
+        return productRepository.getProductById(productId.toULongOrNull() ?: 0UL)
             .map { product ->
                 Result.success(product)
             }

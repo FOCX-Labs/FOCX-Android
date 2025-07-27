@@ -1,7 +1,6 @@
 package com.focx.data.datasource.solana
 
 import android.content.Context
-import android.net.Uri
 import com.focx.core.constants.AppConstants
 import com.focx.core.constants.AppConstants.App.SPL_TOKEN_PROGRAM_ID
 import com.focx.core.constants.AppConstants.Merchant.DEFAULT_STATUS
@@ -13,6 +12,7 @@ import com.focx.domain.entity.MerchantStatus
 import com.focx.domain.repository.IMerchantRepository
 import com.focx.domain.usecase.RecentBlockhashUseCase
 import com.focx.utils.Log
+import com.focx.utils.ShopUtils.genTransactionInstruction
 import com.focx.utils.ShopUtils.getAssociatedTokenAddress
 import com.focx.utils.ShopUtils.getDepositEscrowPda
 import com.focx.utils.ShopUtils.getGlobalRootPda
@@ -27,9 +27,7 @@ import com.solana.mobilewalletadapter.clientlib.MobileWalletAdapter
 import com.solana.mobilewalletadapter.clientlib.TransactionResult
 import com.solana.mobilewalletadapter.clientlib.successPayload
 import com.solana.programs.SystemProgram
-import com.solana.publickey.ProgramDerivedAddress
 import com.solana.publickey.SolanaPublicKey
-import com.solana.rpc.AccountInfo
 import com.solana.rpc.SolanaRpcClient
 import com.solana.rpc.getAccountInfo
 import com.solana.serialization.AnchorInstructionSerializer
@@ -40,8 +38,6 @@ import com.solana.transaction.TransactionInstruction
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.serialization.Serializable
-import java.nio.ByteBuffer
-import java.nio.ByteOrder
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -224,22 +220,6 @@ class SolanaMerchantDataSource @Inject constructor(
         return genTransactionInstruction(accountMetas, instructionData)
     }
 
-    private fun genTransactionInstruction(
-        accounts: List<AccountMeta>,
-        data: ByteArray,
-        programId: SolanaPublicKey = AppConstants.App.getShopProgramId()
-    ): TransactionInstruction {
-        Log.d(TAG, "============genTransactionInstruction : $programId")
-        accounts.forEachIndexed { index, meta ->
-            Log.d(
-                TAG,
-                "accountMetas[$index]: pubkey=${meta.publicKey.base58()}, isSigner=${meta.isSigner}, isWritable=${meta.isWritable}"
-            )
-        }
-        Log.d(TAG, "  instructionData: ${data.contentToString()}")
-        Log.d(TAG, "  instructionData hex: ${data.joinToString("") { "%02x".format(it) }}")
-        return TransactionInstruction(programId, accounts, data)
-    }
 
     override suspend fun registerMerchantAtomic(
         merchantRegistration: MerchantRegistration

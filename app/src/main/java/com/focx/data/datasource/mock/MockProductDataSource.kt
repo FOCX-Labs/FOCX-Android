@@ -9,12 +9,12 @@ import kotlinx.coroutines.flow.flow
 
 class MockProductDataSource : IProductRepository {
 
-    private var products: List<Product> = mockProducts
+    private var products: MutableList<Product> = mockProducts.toMutableList()
 
     override suspend fun getProducts(page: Int, pageSize: Int, refresh: Boolean): Flow<List<Product>> = flow {
         delay(500) // Simulate network delay
         if (refresh) {
-            products = mockProducts.shuffled()
+            products = mockProducts.shuffled().toMutableList()
         }
         val start = (page - 1) * pageSize
         val end = minOf(start + pageSize, products.size)
@@ -25,7 +25,7 @@ class MockProductDataSource : IProductRepository {
         }
     }
 
-    override suspend fun getProductById(productId: String): Flow<Product?> = flow {
+    override suspend fun getProductById(productId: ULong): Flow<Product?> = flow {
         delay(500)
         emit(mockProducts.find { it.id == productId })
     }
@@ -62,7 +62,7 @@ class MockProductDataSource : IProductRepository {
         }
     }
 
-    override suspend fun getRelatedProducts(productId: String, count: Int): Flow<List<Product>> = flow {
+    override suspend fun getRelatedProducts(productId: ULong, count: Int): Flow<List<Product>> = flow {
         delay(500)
         val product = mockProducts.find { it.id == productId }
         if (product != null) {
@@ -73,6 +73,27 @@ class MockProductDataSource : IProductRepository {
         } else {
             emit(emptyList())
         }
+    }
+
+    override suspend fun saveProduct(product: Product, accountPublicKey: String, activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender) {
+        delay(500)
+        // In mock implementation, we ignore the accountPublicKey and activityResultSender
+        products.add(product)
+    }
+
+    override suspend fun updateProduct(product: Product, accountPublicKey: String, activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender) {
+        delay(500)
+        // In mock implementation, we ignore the accountPublicKey and activityResultSender
+        val index = products.indexOfFirst { it.id == product.id }
+        if (index != -1) {
+            products[index] = product
+        }
+    }
+
+    override suspend fun deleteProduct(productId: ULong, accountPublicKey: String, activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender) {
+        delay(500)
+        // In mock implementation, we ignore the accountPublicKey and activityResultSender
+        products.removeAll { it.id == productId }
     }
 
 }
