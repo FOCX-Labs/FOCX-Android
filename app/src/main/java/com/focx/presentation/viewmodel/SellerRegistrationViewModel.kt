@@ -32,7 +32,7 @@ data class SellerRegistrationUiState(
     val merchantAccount: String? = null,
     val estimatedCost: RegistrationCost? = null,
     val accountsCreated: List<CreatedAccount> = emptyList(),
-    val securityDeposit: String = AppConstants.Wallet.DEFAULT_SECURITY_DEPOSIT.toString()
+    val securityDeposit: String = "1000"
 )
 
 data class RegistrationCost(

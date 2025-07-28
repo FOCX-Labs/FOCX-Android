@@ -103,6 +103,8 @@ object ShopUtils {
     }
 
     suspend fun getProductBasePDA(productId: ULong): Result<ProgramDerivedAddress> {
+        Log.d(TAG, "  getProductBasePDA productId: $productId")
+
         return ProgramDerivedAddress.find(
             listOf(
                 "product".toByteArray(),
@@ -113,6 +115,8 @@ object ShopUtils {
     }
 
     suspend fun getProductExtendedPDA(productId: ULong): Result<ProgramDerivedAddress> {
+        Log.d(TAG, "  getProductExtendedPDA productId: $productId")
+
         return ProgramDerivedAddress.find(
             listOf(
                 "product_extended".toByteArray(),

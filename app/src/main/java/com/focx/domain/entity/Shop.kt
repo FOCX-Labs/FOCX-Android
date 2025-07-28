@@ -23,7 +23,7 @@ data class IdChunk(
     val chunkIndex: UInt,
     val startId: ULong,
     val endId: ULong,
-    val nextAvailable: UInt,
+    val nextAvailable: ULong,
     val bitmap: ByteArray,
     val bump: UByte
 )
@@ -89,7 +89,7 @@ data class MerchantIdAccount(
     val discriminator: Long,
     val merchantId: UInt,
     val lastChunkIndex: UInt,
-    val lastLocalId: UInt,
+    val lastLocalId: ULong,
     val activeChunk: SolanaPublicKey,
     val unusedChunks: List<SolanaPublicKey>,
     val bump: UByte

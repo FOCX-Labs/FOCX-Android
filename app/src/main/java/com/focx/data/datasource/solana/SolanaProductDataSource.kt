@@ -204,6 +204,8 @@ class SolanaProductDataSource @Inject constructor(
         val productBasePDA = ShopUtils.getProductBasePDA(nextProductId).getOrNull()!!
         val productExtendedPDA = ShopUtils.getProductExtendedPDA(nextProductId).getOrNull()!!
 
+        val keywords = listOf("Digital Camera")
+
         val createProductBaseInstruction = genTransactionInstruction(
             listOf(
                 AccountMeta(accountPublicKey, true, true),
@@ -220,7 +222,7 @@ class SolanaProductDataSource @Inject constructor(
                     product.name,
                     product.description,
                     product.price,
-                    listOf("Digital Camera"),
+                    keywords,
                     product.stock.toULong(),
                     AppConstants.App.getMint(),
                     "Default Shipping Location"
@@ -240,8 +242,8 @@ class SolanaProductDataSource @Inject constructor(
                 CreateProductExtended(
                     nextProductId,
                     listOf(
-                        "https://placehold.co/400x500/e67e22/white?text=1",
-                        "https://placehold.co/400x500/e67e22/white?text=2"
+                        "https://node1.irys.xyz/3KFbO90QVBuVFPrSsqAeun-22HBR6UplCIZb2G8zkuQ",
+                        "https://node1.irys.xyz/3KFbO90QVBuVFPrSsqAeun-22HBR6UplCIZb2G8zkuQ"
                     ),
                     listOf("Mainland China", "Hong Kong, Macao, Taiwan"),
                     listOf("SF Express", "JD Logistics", "YTO Express")
@@ -251,15 +253,15 @@ class SolanaProductDataSource @Inject constructor(
 
         val keywordsIx: List<TransactionInstruction> = genKeywordIndexInstructions(
             nextProductId,
-            listOf("Digital Products"),
+            keywords,
             accountPublicKey
         )
 
         val priceIndexIx = genPriceInstruction(nextProductId, product.price, accountPublicKey)
         val salesIndexIx = genSalesInstruction(nextProductId, accountPublicKey)
 
-        return listOf(createProductBaseInstruction)//, createExtendedIx)
-//        + keywordsIx + listOf(
+        return listOf(createProductBaseInstruction, createExtendedIx, priceIndexIx) //+ keywordsIx
+//        + listOf(
 //            priceIndexIx,
 //            salesIndexIx
 //        )
@@ -307,10 +309,10 @@ class SolanaProductDataSource @Inject constructor(
             Borsh.encodeToByteArray(
                 AnchorInstructionSerializer("add_product_to_sales_index"),
                 AddProductToPriceIndex(
+                    productId,
+                    price,
                     priceRange.first,
                     priceRange.second,
-                    productId,
-                    price
                 )
             )
         )
@@ -363,7 +365,11 @@ class SolanaProductDataSource @Inject constructor(
             val activeChunkPda = getActiveChunkPDA(accountPublicKey, merchantIdAccountPDA)
             val activeChunk = solanaRpcClient.getAccountInfo<IdChunk>(activeChunkPda).result?.data
             if (activeChunk != null) {
-                return activeChunk.nextAvailable.toULong() + activeChunk.startId
+                Log.d(
+                    TAG,
+                    "getNextProductId : nextAvailable = ${activeChunk.nextAvailable}, startId = ${activeChunk.startId}"
+                )
+                return activeChunk.nextAvailable + activeChunk.startId
             } else {
                 return (System.currentTimeMillis() % 90000 + 10000).toULong()
             }
