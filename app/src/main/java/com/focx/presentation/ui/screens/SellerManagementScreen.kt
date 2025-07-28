@@ -247,7 +247,7 @@ fun SellerManagementScreen(
                 )
             }
 
-            items(filteredProducts) { product ->
+            items(filteredProducts, key = { it.id.toString() }) { product ->
                 ProductManagementCard(
                     product = product,
                     onProductClick = { onProductClick(product.id.toString()) },

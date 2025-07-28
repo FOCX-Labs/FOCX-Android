@@ -19,6 +19,8 @@ object AppConstants {
         const val MAINNET_SHOP_PROGRAM_ID = "5XZ74thixMBX2tQN9P3yLTugUK4YMdRLznDNa2mRdGNT"
         const val DEVNET_SHOP_PROGRAM_ID = "5XZ74thixMBX2tQN9P3yLTugUK4YMdRLznDNa2mRdGNT"
 
+        const val TOKEN_DECIMAL = 1_000_000_000L
+
         fun getShopProgramId(): SolanaPublicKey {
             val programId =  when (NetworkConfig.getCurrentNetwork()) {
                 MAINNET -> MAINNET_SHOP_PROGRAM_ID
@@ -46,7 +48,7 @@ object AppConstants {
      * Wallet and Blockchain Configuration
      */
     object Wallet {
-        const val DEFAULT_SECURITY_DEPOSIT = 1000UL // USDC amount
+        const val DEFAULT_SECURITY_DEPOSIT = 1_000_000_000_000UL // 1000 USDC amount
     }
 
 

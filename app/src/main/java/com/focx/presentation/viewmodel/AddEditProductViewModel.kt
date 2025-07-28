@@ -3,6 +3,7 @@ package com.focx.presentation.viewmodel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.focx.core.constants.AppConstants
 import com.focx.domain.entity.Product
 import com.focx.domain.usecase.GetCurrentWalletAddressUseCase
 import com.focx.domain.usecase.GetProductByIdUseCase
@@ -18,6 +19,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 sealed class AddEditProductEffect {
@@ -135,7 +141,7 @@ class AddEditProductViewModel @Inject constructor(
                     id = (productId?.toULongOrNull() ?: generateProductId()),
                     name = formData.name,
                     description = formData.description,
-                    price = (formData.price.toDoubleOrNull()?.times(1000000)?.toULong() ?: 0UL), // Convert to micro units
+                    price = (formData.price.toDoubleOrNull()?.times(AppConstants.App.TOKEN_DECIMAL)?.toULong() ?: 0UL), // Convert to micro units
                     imageUrls = formData.images,
                     sellerId = walletAddress,
                     sellerName = "Default Seller", // TODO: Get from user profile
@@ -148,15 +154,30 @@ class AddEditProductViewModel @Inject constructor(
                     reviewCount = _state.value.originalProduct?.reviewCount ?: 0
                 )
 
-                if (productId != null) {
-                    updateProductUseCase(product, walletAddress, activityResultSender)
-                    _effect.emit(AddEditProductEffect.ShowMessage("Product updated successfully"))
-                } else {
-                    saveProductUseCase(product, walletAddress, activityResultSender)
-                    _effect.emit(AddEditProductEffect.ShowMessage("Product saved successfully"))
+                // Use a separate context with SupervisorJob to survive app lifecycle changes
+                withContext(Dispatchers.IO + SupervisorJob()) {
+                    if (productId != null) {
+                        updateProductUseCase(product, walletAddress, activityResultSender)
+                    } else {
+                        saveProductUseCase(product, walletAddress, activityResultSender)
+                    }
                 }
                 
-                _effect.emit(AddEditProductEffect.NavigateBack)
+                // Only update UI if the coroutine is still active
+                if (isActive) {
+                    _state.value = _state.value.copy(isSaving = false)
+                    if (productId != null) {
+                        _effect.emit(AddEditProductEffect.ShowMessage("Product updated successfully"))
+                    } else {
+                        _effect.emit(AddEditProductEffect.ShowMessage("Product saved successfully"))
+                    }
+                    _effect.emit(AddEditProductEffect.NavigateBack)
+                }
+            } catch (e: CancellationException) {
+                // Don't treat cancellation as an error - user might return to app
+                com.focx.utils.Log.d("AddEditProductViewModel", "Product save cancelled due to lifecycle change: ${e.message}")
+                // Reset saving state even on cancellation
+                _state.value = _state.value.copy(isSaving = false)
             } catch (e: Exception) {
                 _state.value = _state.value.copy(isSaving = false)
                 _effect.emit(AddEditProductEffect.ShowMessage("Failed to save product: ${e.message}"))

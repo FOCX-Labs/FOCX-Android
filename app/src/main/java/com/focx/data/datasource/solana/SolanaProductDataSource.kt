@@ -123,16 +123,21 @@ class SolanaProductDataSource @Inject constructor(
             }
         }
 
-    override suspend fun saveProduct(product: Product, accountPublicKey: String, activityResultSender: ActivityResultSender) {
+    override suspend fun saveProduct(
+        product: Product,
+        accountPublicKey: String,
+        activityResultSender: ActivityResultSender
+    ) {
         try {
             Log.d(TAG, "Starting saveProduct for product: ${product.name}")
-            
-            val instructions = genAddProductInstructions(product, accountPublicKey)
             val result = walletAdapter.transact(activityResultSender) { authResult ->
                 Log.d(
                     TAG, "saveProduct authResult.authToken:${authResult.authToken}"
                 )
+
                 val builder = Message.Builder()
+                val instructions = genAddProductInstructions(product, accountPublicKey)
+
                 instructions.forEach { ix -> builder.addInstruction(ix) }
                 val recentBlockhash = try {
                     kotlinx.coroutines.withTimeout(NetworkConfig.READ_TIMEOUT_MS) {
@@ -158,7 +163,10 @@ class SolanaProductDataSource @Inject constructor(
                 is TransactionResult.Success -> {
                     val signature = result.successPayload?.signatures?.first()
                     if (signature != null) {
-                        Log.d(TAG, "Product saved successfully: ${Base58.encodeToString(signature)}")
+                        Log.d(
+                            TAG,
+                            "Product saved successfully: ${Base58.encodeToString(signature)}"
+                        )
                         // Add to local list only after successful blockchain transaction
                         products.add(product)
                     } else {
@@ -211,9 +219,9 @@ class SolanaProductDataSource @Inject constructor(
                 CreateProductBase(
                     product.name,
                     product.description,
-                    product.price.toULong(),
+                    product.price,
                     listOf("数码相机"),
-                    100UL,
+                    product.stock.toULong(),
                     AppConstants.App.getMint(),
                     "默认发货地"
                 )
@@ -241,7 +249,7 @@ class SolanaProductDataSource @Inject constructor(
             )
         )
 
-        val keywordsIx:List<TransactionInstruction> = genKeywordIndexInstructions(
+        val keywordsIx: List<TransactionInstruction> = genKeywordIndexInstructions(
             nextProductId,
             listOf("数码产品"),
             accountPublicKey
@@ -250,7 +258,11 @@ class SolanaProductDataSource @Inject constructor(
         val priceIndexIx = genPriceInstruction(nextProductId, product.price, accountPublicKey)
         val salesIndexIx = genSalesInstruction(nextProductId, accountPublicKey)
 
-        return listOf(createProductBaseInstruction, createExtendedIx) + keywordsIx + listOf(priceIndexIx, salesIndexIx)
+        return listOf(createProductBaseInstruction)//, createExtendedIx)
+//        + keywordsIx + listOf(
+//            priceIndexIx,
+//            salesIndexIx
+//        )
     }
 
     private suspend fun genKeywordIndexInstructions(
@@ -337,8 +349,7 @@ class SolanaProductDataSource @Inject constructor(
             solanaRpcClient.getAccountInfo<MerchantIdAccount>(merchantIdAccountPDA).result?.data
 
         if (idAccount != null) {
-            // TODO
-            return ShopUtils.getInitialChunkPda(accountPublicKey).getOrNull()!!
+            return idAccount.activeChunk
         } else {
             return ShopUtils.getInitialChunkPda(accountPublicKey).getOrNull()!!
         }
@@ -348,16 +359,25 @@ class SolanaProductDataSource @Inject constructor(
         accountPublicKey: SolanaPublicKey,
         merchantIdAccountPDA: SolanaPublicKey
     ): ULong {
-        val activeChunkPda = getActiveChunkPDA(accountPublicKey, merchantIdAccountPDA)
-        val activeChunk = solanaRpcClient.getAccountInfo<IdChunk>(activeChunkPda).result?.data
-        if (activeChunk != null) {
-            return activeChunk.nextAvailable.toULong()
-        } else {
+        try {
+            val activeChunkPda = getActiveChunkPDA(accountPublicKey, merchantIdAccountPDA)
+            val activeChunk = solanaRpcClient.getAccountInfo<IdChunk>(activeChunkPda).result?.data
+            if (activeChunk != null) {
+                return activeChunk.nextAvailable.toULong() + activeChunk.startId
+            } else {
+                return (System.currentTimeMillis() % 90000 + 10000).toULong()
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "getNextProductId", e)
             return (System.currentTimeMillis() % 90000 + 10000).toULong()
         }
     }
 
-    override suspend fun updateProduct(product: Product, accountPublicKey: String, activityResultSender: ActivityResultSender) {
+    override suspend fun updateProduct(
+        product: Product,
+        accountPublicKey: String,
+        activityResultSender: ActivityResultSender
+    ) {
         // TODO: Implement actual Solana transaction for updating product
         delay(500)
         val index = products.indexOfFirst { it.id == product.id }
@@ -366,7 +386,11 @@ class SolanaProductDataSource @Inject constructor(
         }
     }
 
-    override suspend fun deleteProduct(productId: ULong, accountPublicKey: String, activityResultSender: ActivityResultSender) {
+    override suspend fun deleteProduct(
+        productId: ULong,
+        accountPublicKey: String,
+        activityResultSender: ActivityResultSender
+    ) {
         // TODO: Implement actual Solana transaction for deleting product
         delay(500)
         products.removeAll { it.id == productId }
