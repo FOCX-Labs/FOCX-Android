@@ -220,10 +220,10 @@ class SolanaProductDataSource @Inject constructor(
                     product.name,
                     product.description,
                     product.price,
-                    listOf("数码相机"),
+                    listOf("Digital Camera"),
                     product.stock.toULong(),
                     AppConstants.App.getMint(),
-                    "默认发货地"
+                    "Default Shipping Location"
                 )
             )
         )
@@ -243,15 +243,15 @@ class SolanaProductDataSource @Inject constructor(
                         "https://placehold.co/400x500/e67e22/white?text=1",
                         "https://placehold.co/400x500/e67e22/white?text=2"
                     ),
-                    listOf("中国大陆", "港澳台"),
-                    listOf("顺丰快递", "京东物流", "圆通速递")
+                    listOf("Mainland China", "Hong Kong, Macao, Taiwan"),
+                    listOf("SF Express", "JD Logistics", "YTO Express")
                 )
             )
         )
 
         val keywordsIx: List<TransactionInstruction> = genKeywordIndexInstructions(
             nextProductId,
-            listOf("数码产品"),
+            listOf("Digital Products"),
             accountPublicKey
         )
 
