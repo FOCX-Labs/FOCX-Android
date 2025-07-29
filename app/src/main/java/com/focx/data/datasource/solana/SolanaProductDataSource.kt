@@ -2,6 +2,7 @@ package com.focx.data.datasource.solana
 
 
 import android.content.Context
+import android.text.TextUtils
 import com.focx.core.constants.AppConstants
 import com.focx.core.network.NetworkConfig
 import com.focx.data.datasource.mock.mockProducts
@@ -11,8 +12,14 @@ import com.focx.domain.entity.AddProductToSalesIndex
 import com.focx.domain.entity.CreateProductBase
 import com.focx.domain.entity.CreateProductExtended
 import com.focx.domain.entity.IdChunk
+import com.focx.domain.entity.KeywordRoot
+import com.focx.domain.entity.KeywordShard
 import com.focx.domain.entity.MerchantIdAccount
+import com.focx.domain.entity.PriceIndexNode
 import com.focx.domain.entity.Product
+import com.focx.domain.entity.ProductBase
+import com.focx.domain.entity.ProductExtended
+import com.focx.domain.entity.SalesIndexNode
 import com.focx.domain.repository.IProductRepository
 import com.focx.domain.usecase.RecentBlockhashUseCase
 import com.focx.utils.Log
@@ -37,6 +44,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import javax.inject.Inject
+import kotlin.ULong
 
 class SolanaProductDataSource @Inject constructor(
     private val context: Context,
@@ -55,17 +63,110 @@ class SolanaProductDataSource @Inject constructor(
         pageSize: Int,
         refresh: Boolean
     ): Flow<List<Product>> = flow {
-        delay(500) // Simulate network delay
-        if (refresh) {
-            products = mockProducts.shuffled().toMutableList()
+//        delay(500) // Simulate network delay
+//        if (refresh) {
+//            products = mockProducts.shuffled().toMutableList()
+//        }
+//        val start = (page - 1) * pageSize
+//        val end = minOf(start + pageSize, products.size)
+//        if (start >= products.size) {
+//            emit(emptyList())
+//        } else {
+//            emit(products.subList(start, end))
+//        }
+
+        emit(getProductsFromChain(page, pageSize))
+    }
+
+    private suspend fun getProductsFromChain(
+        page: Int,
+        pageSize: Int,
+        keyword: String? = null,
+        priceRange: Pair<ULong, ULong>? = null,
+        salesRange: Pair<UInt, UInt>? = null): List<Product> {
+        val ids = ArrayList<ULong>()
+        if(!TextUtils.isEmpty(keyword)) {
+            ids.addAll(searchByKeywordFormChain(keyword!!))
         }
+        if(priceRange != null) {
+            ids.addAll(searchByPriceRangeFormChain(priceRange))
+        }
+        if(salesRange != null) {
+            ids.addAll(searchBySalesRangeFormChain(salesRange))
+        }
+        val distinctIds = if(ids.isEmpty()) getRecommendIds() else ids.distinct()
+
+
         val start = (page - 1) * pageSize
-        val end = minOf(start + pageSize, products.size)
-        if (start >= products.size) {
-            emit(emptyList())
+        val end = minOf(start + pageSize, distinctIds.size)
+        if (start >= distinctIds.size) {
+            return emptyList()
         } else {
-            emit(products.subList(start, end))
+            return distinctIds.subList(start, end).mapNotNull { id -> getProductInfoById(id) }
         }
+    }
+
+    private suspend fun getRecommendIds(): List<ULong> {
+        return listOf(490002UL)
+    }
+
+    private suspend fun getProductInfoById(productId: ULong): Product? {
+        val productPda = ShopUtils.getProductBasePDA(productId).getOrNull()!!
+        val baseInfo = solanaRpcClient.getAccountInfo<ProductBase>(productPda).result?.data
+
+        if (baseInfo == null) {
+            return null
+        }
+
+        val productExtendedPda = ShopUtils.getProductExtendedPDA(productId).getOrNull()!!
+        val extendedInfo = solanaRpcClient.getAccountInfo<ProductExtended>(productExtendedPda).result?.data
+
+        val product = Product(
+            baseInfo.id, //            val id: ULong,
+            baseInfo.name, //        val name: String,
+            baseInfo.description, //        val description: String,
+            baseInfo.price, //        val price: ULong,
+            "USDC", //        val currency: String = "USDC",
+            if (extendedInfo != null && extendedInfo.imageVideoUrls.isNotEmpty()) extendedInfo.imageVideoUrls.split(",") else emptyList(), //        val imageUrls: List<String>,
+            "", //        val sellerId: String,
+            "", //        val sellerName: String,
+            "", //        val category: String,
+            baseInfo.inventory.toInt(), //        val stock: Int,
+            baseInfo.sales.toInt(), //        val salesCount: Int = 0,
+            "", //        val shippingFrom: String,
+            emptyList(), //        val shippingMethods: List<String>,
+            emptyList() //        val specifications: Map<String, String> = emptyMap(),
+//        val rating: Float = 0f,
+//        val reviewCount: Int = 0,
+        )
+
+        return product
+    }
+
+    private suspend fun searchByKeywordFormChain(keyword: String): List<ULong> {
+        val keywordRootPda = ShopUtils.getKeywordRootPda(keyword).getOrNull()!!
+        val keywordShardPda = ShopUtils.getTargetShardPda(keyword).getOrNull()!!
+
+        val keywordRoot = solanaRpcClient.getAccountInfo<KeywordRoot>(keywordRootPda).result?.data
+        val result = solanaRpcClient.getAccountInfo<KeywordShard>(keywordShardPda).result?.data?.productIds
+
+        return result ?: emptyList()
+    }
+
+    private suspend fun searchByPriceRangeFormChain(priceRange: Pair<ULong, ULong>): List<ULong> {
+        val priceIndexPda = ShopUtils.getPriceIndexPDA(priceRange).getOrNull()!!
+
+        val result = solanaRpcClient.getAccountInfo<PriceIndexNode>(priceIndexPda).result?.data?.productIds
+
+        return result ?: emptyList()
+    }
+
+    private suspend fun searchBySalesRangeFormChain(salesRange: Pair<UInt, UInt>): List<ULong> {
+        val salesIndexPda = ShopUtils.getSalesIndexPDA(salesRange).getOrNull()!!
+
+        val result = solanaRpcClient.getAccountInfo<SalesIndexNode>(salesIndexPda).result?.data?.productIds
+
+        return result ?: emptyList()
     }
 
     override suspend fun getProductById(productId: ULong): Flow<Product?> = flow {
@@ -79,18 +180,7 @@ class SolanaProductDataSource @Inject constructor(
         pageSize: Int
     ): Flow<List<Product>> =
         flow {
-            delay(500)
-            val filtered = mockProducts.filter {
-                it.name.contains(query, ignoreCase = true) ||
-                        it.description.contains(query, ignoreCase = true)
-            }
-            val start = (page - 1) * pageSize
-            val end = minOf(start + pageSize, filtered.size)
-            if (start >= filtered.size) {
-                emit(emptyList())
-            } else {
-                emit(filtered.subList(start, end))
-            }
+            emit(getProductsFromChain(page, pageSize, keyword = query))
         }
 
     override suspend fun getProductsByCategory(

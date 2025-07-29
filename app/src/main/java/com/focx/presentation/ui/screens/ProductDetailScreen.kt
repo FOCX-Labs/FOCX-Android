@@ -48,6 +48,7 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
+import com.focx.core.constants.AppConstants
 import com.focx.domain.entity.Product
 import com.focx.domain.entity.UserAddress
 import com.focx.presentation.ui.components.CardStyle
@@ -65,6 +66,7 @@ import com.focx.presentation.ui.theme.Success
 import com.focx.presentation.ui.theme.SurfaceDark
 import com.focx.presentation.viewmodel.ProductListViewModel
 import com.focx.presentation.viewmodel.ProfileViewModel
+import com.focx.utils.ShopUtils
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -214,7 +216,7 @@ fun ProductDetailScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "$${product.price}",
+                            text = "$${ShopUtils.getPriceShow(product.price)}",
                             style = MaterialTheme.typography.headlineLarge,
                             color = Primary,
                             fontWeight = FontWeight.Bold
@@ -514,7 +516,7 @@ fun BottomBuyDialog(
                                 fontWeight = FontWeight.Medium
                             )
                             Text(
-                                text = "$${product.price}",
+                                text = "$${ShopUtils.getPriceShow(product.price)}",
                                 style = MaterialTheme.typography.titleLarge,
                                 color = Primary,
                                 fontWeight = FontWeight.Bold
@@ -624,7 +626,7 @@ fun BottomBuyDialog(
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "$${String.format("%.2f", (product.price.toDouble() / 1_000_000) * quantity)}",
+                            text = "$${ShopUtils.getPriceShow(product.price * quantity.toUInt())}",
                             style = MaterialTheme.typography.titleLarge,
                             color = Primary,
                             fontWeight = FontWeight.Bold

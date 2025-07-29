@@ -44,6 +44,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.focx.core.constants.AppConstants
 import com.focx.domain.entity.Product
 import com.focx.presentation.ui.theme.AnimationDuration
 import com.focx.presentation.ui.theme.BackgroundDark
@@ -236,7 +237,7 @@ fun ProductCard(
 
             // Price with enhanced styling
             Text(
-                text = "${product.price} ${product.currency}", style = MaterialTheme.typography.titleMedium.copy(
+                text = "${String.format("%.2f", product.price.toDouble() / AppConstants.App.TOKEN_DECIMAL)} ${product.currency}", style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.Bold
                 ), color = PriceColor
             )

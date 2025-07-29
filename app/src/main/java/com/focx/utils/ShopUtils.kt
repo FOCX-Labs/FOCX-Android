@@ -193,5 +193,7 @@ object ShopUtils {
         )
     }
 
-
+    fun getPriceShow(price: ULong): String{
+        return String.format(String.format("%.2f", (price.toDouble() / AppConstants.App.TOKEN_DECIMAL)))
+    }
 }
