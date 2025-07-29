@@ -54,5 +54,5 @@ data class CreateOrder(
 @Serializable
 data class OrderPayment(
     val productId: ULong,
-    val quantity: UInt,
+    val quantity: ULong,
 )

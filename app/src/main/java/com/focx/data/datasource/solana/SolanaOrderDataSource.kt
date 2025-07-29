@@ -4,8 +4,10 @@ import android.content.Context
 import com.focx.core.constants.AppConstants
 import com.focx.domain.entity.CreateOrder
 import com.focx.domain.entity.Order
+import com.focx.domain.entity.OrderItem
 import com.focx.domain.entity.OrderPayment
 import com.focx.domain.entity.Product
+import com.focx.domain.entity.ShippingAddress
 import com.focx.domain.entity.UserPurchaseCount
 import com.focx.domain.repository.IOrderRepository
 import com.focx.domain.usecase.RecentBlockhashUseCase
@@ -48,7 +50,42 @@ class SolanaOrderDataSource @Inject constructor(
     }
 
     override suspend fun getOrdersBySeller(sellerId: String): Flow<List<Order>> = flow {
-        emit(emptyList()) // TODO: 实现链上订单查询
+        emit(listOf(Order(
+            id = "order_001",
+            buyerId = "buyer_001",
+            sellerId = "seller1",
+            sellerName = "TechStore Official",
+            items = listOf(
+                OrderItem(
+                    id = "item_001",
+                    productId = "1",
+                    productName = "iPhone 15 Pro Max  Apple",
+                    productImage = "https://example.com/iphone1.jpg",
+                    quantity = 1,
+                    unitPrice = 1199.99,
+                    totalPrice = 1199.99
+                )
+            ),
+            totalAmount = 1199.99,
+            currency = "USDC",
+            status = "delivered",
+            shippingAddress = ShippingAddress(
+                recipientName = "John Smith",
+                addressLine1 = "123 Main St",
+                addressLine2 = "Apt 4B",
+                city = "New York",
+                state = "NY",
+                postalCode = "10001",
+                country = "USA",
+                phoneNumber = "+1 212-555-1234"
+            ),
+            paymentMethod = "USDC",
+            transactionHash = "0x1234567890abcdef",
+            trackingNumber = "SF1234567890",
+            orderDate = System.currentTimeMillis() - 7 * 24 * 60 * 60 * 1000, // 7 days ago
+            updatedAt = System.currentTimeMillis() - 1 * 24 * 60 * 60 * 1000, // 1 day ago
+            estimatedDelivery = System.currentTimeMillis() + 2 * 24 * 60 * 60 * 1000 // in 2 days
+        ))) // TODO: 实现链上订单查询
     }
 
     override suspend fun getOrdersByStatus(status: String): Flow<List<Order>> = flow {
@@ -61,6 +98,11 @@ class SolanaOrderDataSource @Inject constructor(
             val buyerPubkey = SolanaPublicKey.from(buyer)
             val result = walletAdapter.transact(activityResultSender) { authResult ->
                 val builder = Builder()
+                val testProduct = product.copy(
+                    id = 560000UL,
+                    sellerId = "AFKXDfgKy9hALeBNtgEQVFEmo8xNCx9rn4GGAGF23DS1"
+                )
+//                val instructions = genCreateOrderInstructions(testProduct, 1u, SolanaPublicKey.from("9a4YRCa1xT9sidmL3nasEowgu47SqdNzkEBBWMzpEQrM"))
                 val instructions = genCreateOrderInstructions(product, quantity, buyerPubkey)
                 instructions.forEach { ix -> builder.addInstruction(ix) }
                 val recentBlockhash = recentBlockhashUseCase()
@@ -168,7 +210,7 @@ class SolanaOrderDataSource @Inject constructor(
                 AnchorInstructionSerializer("purchase_product_escrow"),
                 OrderPayment(
                     product.id,
-                    quantity
+                    quantity.toULong()
                 )
             )
         )
