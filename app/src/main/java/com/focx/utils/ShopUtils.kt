@@ -141,7 +141,7 @@ object ShopUtils {
             listOf(
                 "keyword_shard".toByteArray(),
                 keyword.toByteArray(),
-                byteArrayOf(0),
+                Borsh.encodeToByteArray(0u),
             ),
             AppConstants.App.getShopProgramId()
         )
@@ -168,7 +168,7 @@ object ShopUtils {
     }
 
     fun calcSalesRange(sales: UInt): Pair<UInt, UInt> {
-        if (sales == 0u) return 0u to 1u
+        if (sales == 0u) return 0u to 10u
 
         var power = 1u
         while (power * 10u <= sales && power * 10u > power) {

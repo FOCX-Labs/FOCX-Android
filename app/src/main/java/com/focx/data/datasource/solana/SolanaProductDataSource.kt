@@ -260,11 +260,10 @@ class SolanaProductDataSource @Inject constructor(
         val priceIndexIx = genPriceInstruction(nextProductId, product.price, accountPublicKey)
         val salesIndexIx = genSalesInstruction(nextProductId, accountPublicKey)
 
-        return listOf(createProductBaseInstruction, createExtendedIx, priceIndexIx) //+ keywordsIx
-//        + listOf(
-//            priceIndexIx,
-//            salesIndexIx
-//        )
+        return listOf(createProductBaseInstruction, createExtendedIx) + keywordsIx + listOf(
+            priceIndexIx,
+            salesIndexIx
+        )
     }
 
     private suspend fun genKeywordIndexInstructions(
