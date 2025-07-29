@@ -128,7 +128,7 @@ class SolanaProductDataSource @Inject constructor(
             baseInfo.price, //        val price: ULong,
             "USDC", //        val currency: String = "USDC",
             if (extendedInfo != null && extendedInfo.imageVideoUrls.isNotEmpty()) extendedInfo.imageVideoUrls.split(",") else emptyList(), //        val imageUrls: List<String>,
-            "", //        val sellerId: String,
+            baseInfo.merchant.base58(), //        val sellerId: String,
             "", //        val sellerName: String,
             "", //        val category: String,
             baseInfo.inventory.toInt(), //        val stock: Int,

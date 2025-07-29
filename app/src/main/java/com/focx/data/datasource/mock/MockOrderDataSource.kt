@@ -185,13 +185,47 @@ class MockOrderDataSource @Inject constructor() : IOrderRepository {
         emit(mockOrders.filter { it.status == status })
     }
 
-    override suspend fun createOrder(order: Order): Result<Order> {
+    override suspend fun createOrder(product: com.focx.domain.entity.Product, quantity: UInt, buyer: String, activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender): Result<Order> {
         delay(500)
-        val newOrder = order.copy(
+        
+        // Create order from product
+        val newOrder = Order(
             id = "order_${System.currentTimeMillis()}",
+            buyerId = buyer,
+            sellerId = product.sellerId,
+            sellerName = product.sellerName,
+            items = listOf(
+                OrderItem(
+                    id = "item_${System.currentTimeMillis()}",
+                    productId = product.id.toString(),
+                    productName = product.name,
+                    productImage = product.imageUrls.firstOrNull() ?: "",
+                    quantity = quantity.toInt(),
+                    unitPrice = (product.price.toDouble() / 1000000), // Convert from micro units
+                    totalPrice = (product.price.toDouble() / 1000000) * quantity.toDouble()
+                )
+            ),
+            totalAmount = (product.price.toDouble() / 1000000) * quantity.toDouble(),
+            currency = "USDC",
+            status = "pending",
+            shippingAddress = ShippingAddress(
+                recipientName = "Default User",
+                addressLine1 = "123 Default St",
+                addressLine2 = "",
+                city = "Default City",
+                state = "Default State",
+                postalCode = "12345",
+                country = "USA",
+                phoneNumber = "+1 555-0123"
+            ),
+            paymentMethod = "USDC",
+            transactionHash = null,
+            trackingNumber = null,
             orderDate = System.currentTimeMillis(),
-            updatedAt = System.currentTimeMillis()
+            updatedAt = System.currentTimeMillis(),
+            estimatedDelivery = System.currentTimeMillis() + 7 * 24 * 60 * 60 * 1000 // 7 days from now
         )
+        
         mockOrders.add(newOrder)
         return Result.success(newOrder)
     }

@@ -1,5 +1,8 @@
 package com.focx.domain.entity
 
+import com.focx.presentation.intent.ProductDetailIntent
+import kotlinx.serialization.Serializable
+
 data class Order(
     val id: String,
     val buyerId: String,
@@ -37,4 +40,19 @@ data class ShippingAddress(
     val postalCode: String,
     val country: String,
     val phoneNumber: String
+)
+
+@Serializable
+data class CreateOrder(
+    val productId: ULong,
+    val quantity: UInt,
+    val shippingAddress: String,
+    val notes: String,
+    val transactionSignature: String
+)
+
+@Serializable
+data class OrderPayment(
+    val productId: ULong,
+    val quantity: UInt,
 )

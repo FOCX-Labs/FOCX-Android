@@ -109,8 +109,13 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideOrderRepository(): IOrderRepository {
-        return MockOrderDataSource()
+    fun provideOrderRepository(
+        @ApplicationContext context: Context,
+        walletAdapter: MobileWalletAdapter,
+        recentBlockhashUseCase: RecentBlockhashUseCase,
+        solanaRpcClient: SolanaRpcClient
+    ): IOrderRepository {
+        return com.focx.data.datasource.solana.SolanaOrderDataSource(context, walletAdapter, recentBlockhashUseCase, solanaRpcClient)
     }
 
     @Provides

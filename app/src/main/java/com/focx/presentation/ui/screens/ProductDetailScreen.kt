@@ -73,7 +73,8 @@ import com.focx.utils.ShopUtils
 fun ProductDetailScreen(
     productId: String,
     onNavigateBack: () -> Unit,
-    onBuyProduct: (Product, Int) -> Unit,
+    onBuyProduct: (Product, Int, com.solana.mobilewalletadapter.clientlib.ActivityResultSender) -> Unit,
+    activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender,
     modifier: Modifier = Modifier,
     viewModel: ProductListViewModel = hiltViewModel(),
     profileViewModel: ProfileViewModel = hiltViewModel()
@@ -429,7 +430,7 @@ fun ProductDetailScreen(
                 selectedQuantity = newQuantity
             },
             onConfirmBuy = {
-                onBuyProduct(product, selectedQuantity)
+                onBuyProduct(product, selectedQuantity, activityResultSender)
                 showBuyDialog = false
             },
             onDismiss = {
@@ -648,7 +649,7 @@ fun BottomBuyDialog(
                         )
                         TechButton(
                             text = "Confirm Purchase",
-                            onClick = onConfirmBuy,
+                            onClick = { onConfirmBuy() },
                             style = TechButtonStyle.PRIMARY,
                             modifier = Modifier.weight(1f)
                         )

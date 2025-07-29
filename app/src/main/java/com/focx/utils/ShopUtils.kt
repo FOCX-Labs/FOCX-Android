@@ -196,4 +196,59 @@ object ShopUtils {
     fun getPriceShow(price: ULong): String{
         return String.format(String.format("%.2f", (price.toDouble() / AppConstants.App.TOKEN_DECIMAL)))
     }
+
+    suspend fun getUserPurchaseCountPDA (buyer: SolanaPublicKey): Result<ProgramDerivedAddress> {
+        return ProgramDerivedAddress.find(
+            listOf(
+                "user_purchase_count".toByteArray(),
+                buyer.bytes
+            ),
+            AppConstants.App.getShopProgramId()
+        )
+    }
+
+    suspend fun getOrderPda(merchantPda: SolanaPublicKey,
+                            buyerPubkey: SolanaPublicKey,
+                            productId: ULong,
+                            currentPurchaseCount: ULong
+    ): Result<ProgramDerivedAddress> {
+        return ProgramDerivedAddress.find(
+            listOf(
+                "order".toByteArray(),
+                buyerPubkey.bytes,
+                merchantPda.bytes,
+                Borsh.encodeToByteArray(productId),
+                Borsh.encodeToByteArray(currentPurchaseCount)
+            ),
+            AppConstants.App.getShopProgramId()
+        )
+    }
+
+    suspend fun getOrderStatsPda(): Result<ProgramDerivedAddress> {
+        return ProgramDerivedAddress.find(
+            listOf(
+                "order_stats".toByteArray()
+            ),
+            AppConstants.App.getShopProgramId()
+        )
+    }
+
+    suspend fun getProgramTokenAccountPda(): Result<ProgramDerivedAddress> {
+        return ProgramDerivedAddress.find(
+            listOf(
+                "program_token_account".toByteArray(),
+                AppConstants.App.getMint().bytes
+            ),
+            AppConstants.App.getShopProgramId()
+        )
+    }
+
+    suspend fun getSimplePda(key: String): Result<ProgramDerivedAddress> {
+        return ProgramDerivedAddress.find(
+            listOf(
+                key.toByteArray()
+            ),
+            AppConstants.App.getShopProgramId()
+        )
+    }
 }

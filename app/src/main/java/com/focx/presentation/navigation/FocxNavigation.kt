@@ -32,6 +32,7 @@ import com.focx.presentation.ui.screens.SoldOrderDetailScreen
 import com.focx.presentation.viewmodel.ProfileViewModel
 import com.focx.presentation.viewmodel.AddEditProductViewModel
 import com.focx.presentation.intent.AddEditProductIntent
+import com.focx.presentation.viewmodel.OrderViewModel
 import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
 
 // Full screen routes configuration
@@ -120,12 +121,21 @@ fun FocxNavigation(activityResultSender: ActivityResultSender) {
 
             composable("product_detail/{productId}") { backStackEntry ->
                 val productId = backStackEntry.arguments?.getString("productId") ?: ""
-                ProductDetailScreen(productId = productId, onNavigateBack = {
-                    navController.popBackStack()
-                }, onBuyProduct = { product, quantity ->
-                    // TODO: Implement buy product functionality
-                    // Navigate to payment or order confirmation screen
-                })
+                val orderViewModel: OrderViewModel = hiltViewModel()
+                ProductDetailScreen(
+                    productId = productId,
+                    onNavigateBack = { navController.popBackStack() },
+                    onBuyProduct = { product, quantity, activityResultSender ->
+                        orderViewModel.buyProduct(product, quantity.toUInt(), activityResultSender) { result ->
+                            result.onSuccess {
+                                navController.navigate("order_confirm/${it.id}")
+                            }.onFailure {
+                                // Toast.makeText(context, it.message, Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    },
+                    activityResultSender = activityResultSender
+                )
             }
 
             // Seller Registration

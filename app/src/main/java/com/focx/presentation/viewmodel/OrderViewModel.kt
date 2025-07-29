@@ -20,11 +20,14 @@ data class OrderUiState(
 
 @HiltViewModel
 class OrderViewModel @Inject constructor(
-    // TODO: Inject order repository when available
+    private val createOrderUseCase: com.focx.domain.usecase.CreateOrderUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(OrderUiState())
     val uiState: StateFlow<OrderUiState> = _uiState.asStateFlow()
+
+    @Inject
+    lateinit var getCurrentWalletAddressUseCase: com.focx.domain.usecase.GetCurrentWalletAddressUseCase
 
     fun loadOrders() {
         viewModelScope.launch {
@@ -69,6 +72,26 @@ class OrderViewModel @Inject constructor(
                     isLoading = false,
                     error = e.message
                 )
+            }
+        }
+    }
+
+    fun buyProduct(
+        product: com.focx.domain.entity.Product,
+        quantity: UInt,
+        activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender,
+        onResult: (Result<Order>) -> Unit
+    ) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true)
+            try {
+                val buyer = getCurrentWalletAddressUseCase.execute()!!
+                val result = createOrderUseCase(product, quantity, buyer, activityResultSender)
+                onResult(result)
+                _uiState.value = _uiState.value.copy(isLoading = false)
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+                onResult(Result.failure(e))
             }
         }
     }

@@ -50,3 +50,14 @@ data class NotificationSettings(
     val stakingRewards: Boolean = true,
     val securityAlerts: Boolean = true
 )
+
+fun UserAddress.toShippingAddress(): ShippingAddress = ShippingAddress(
+    recipientName = this.recipientName,
+    addressLine1 = this.addressLine1,
+    addressLine2 = this.addressLine2,
+    city = this.city,
+    state = this.state,
+    postalCode = this.postalCode,
+    country = this.country,
+    phoneNumber = this.phoneNumber
+)
