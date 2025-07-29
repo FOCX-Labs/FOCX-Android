@@ -307,7 +307,7 @@ class SolanaProductDataSource @Inject constructor(
                 AccountMeta(SystemProgram.PROGRAM_ID, false, false)
             ),
             Borsh.encodeToByteArray(
-                AnchorInstructionSerializer("add_product_to_sales_index"),
+                AnchorInstructionSerializer("add_product_to_price_index"),
                 AddProductToPriceIndex(
                     productId,
                     price,
