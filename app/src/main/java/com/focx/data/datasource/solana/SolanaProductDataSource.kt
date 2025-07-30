@@ -17,8 +17,6 @@ import com.focx.domain.entity.KeywordShard
 import com.focx.domain.entity.MerchantIdAccount
 import com.focx.domain.entity.PriceIndexNode
 import com.focx.domain.entity.Product
-import com.focx.domain.entity.ProductBase
-import com.focx.domain.entity.ProductExtended
 import com.focx.domain.entity.SalesIndexNode
 import com.focx.domain.repository.IProductRepository
 import com.focx.domain.usecase.RecentBlockhashUseCase
@@ -102,7 +100,7 @@ class SolanaProductDataSource @Inject constructor(
         if (start >= distinctIds.size) {
             return emptyList()
         } else {
-            return distinctIds.subList(start, end).mapNotNull { id -> getProductInfoById(id) }
+            return distinctIds.subList(start, end).mapNotNull { id -> ShopUtils.getProductInfoById(id, solanaRpcClient) }
         }
     }
 
@@ -110,38 +108,6 @@ class SolanaProductDataSource @Inject constructor(
         return listOf(490002UL)
     }
 
-    private suspend fun getProductInfoById(productId: ULong): Product? {
-        val productPda = ShopUtils.getProductBasePDA(productId).getOrNull()!!
-        val baseInfo = solanaRpcClient.getAccountInfo<ProductBase>(productPda).result?.data
-
-        if (baseInfo == null) {
-            return null
-        }
-
-        val productExtendedPda = ShopUtils.getProductExtendedPDA(productId).getOrNull()!!
-        val extendedInfo = solanaRpcClient.getAccountInfo<ProductExtended>(productExtendedPda).result?.data
-
-        val product = Product(
-            baseInfo.id, //            val id: ULong,
-            baseInfo.name, //        val name: String,
-            baseInfo.description, //        val description: String,
-            baseInfo.price, //        val price: ULong,
-            "USDC", //        val currency: String = "USDC",
-            if (extendedInfo != null && extendedInfo.imageVideoUrls.isNotEmpty()) extendedInfo.imageVideoUrls.split(",") else emptyList(), //        val imageUrls: List<String>,
-            baseInfo.merchant.base58(), //        val sellerId: String,
-            "", //        val sellerName: String,
-            "", //        val category: String,
-            baseInfo.inventory.toInt(), //        val stock: Int,
-            baseInfo.sales.toInt(), //        val salesCount: Int = 0,
-            "", //        val shippingFrom: String,
-            emptyList(), //        val shippingMethods: List<String>,
-            emptyList() //        val specifications: Map<String, String> = emptyMap(),
-//        val rating: Float = 0f,
-//        val reviewCount: Int = 0,
-        )
-
-        return product
-    }
 
     private suspend fun searchByKeywordFormChain(keyword: String): List<ULong> {
         val keywordRootPda = ShopUtils.getKeywordRootPda(keyword).getOrNull()!!

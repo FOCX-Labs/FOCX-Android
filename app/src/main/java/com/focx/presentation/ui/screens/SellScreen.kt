@@ -49,6 +49,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.focx.domain.entity.Order
+import com.focx.domain.entity.OrderManagementStatus
 import com.focx.domain.entity.Product
 import com.focx.presentation.ui.theme.FocxTheme
 import com.focx.presentation.ui.theme.Spacing
@@ -443,30 +444,21 @@ fun OrderCard(
 
             Surface(
                 color = when (order.status) {
-                    "delivered" -> Color(0xFF4CAF50).copy(alpha = 0.1f)
-                    "shipped" -> Color(0xFF2196F3).copy(alpha = 0.1f)
-                    "processing" -> Color(0xFFFF9800).copy(alpha = 0.1f)
+                    OrderManagementStatus.Delivered -> Color(0xFF4CAF50).copy(alpha = 0.1f)
+                    OrderManagementStatus.Shipped -> Color(0xFF2196F3).copy(alpha = 0.1f)
+                    OrderManagementStatus.Pending -> Color(0xFFFF9800).copy(alpha = 0.1f)
                     else -> MaterialTheme.colorScheme.surfaceVariant
                 },
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Text(
-                    text = when (order.status) {
-                        "pending" -> "Pending"
-                        "confirmed" -> "Confirmed"
-                        "processing" -> "Processing"
-                        "shipped" -> "Shipped"
-                        "delivered" -> "Delivered"
-                        "cancelled" -> "Cancelled"
-                        "refunded" -> "Refunded"
-                        else -> order.status
-                    },
+                    text = order.status.toString(),
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                     style = MaterialTheme.typography.labelMedium,
                     color = when (order.status) {
-                        "delivered" -> Color(0xFF4CAF50)
-                        "shipped" -> Color(0xFF2196F3)
-                        "processing" -> Color(0xFFFF9800)
+                        OrderManagementStatus.Delivered -> Color(0xFF4CAF50)
+                        OrderManagementStatus.Shipped -> Color(0xFF2196F3)
+                        OrderManagementStatus.Pending -> Color(0xFFFF9800)
                         else -> MaterialTheme.colorScheme.onSurfaceVariant
                     }
                 )

@@ -2,6 +2,7 @@ package com.focx.data.datasource.mock
 
 import com.focx.domain.entity.Order
 import com.focx.domain.entity.OrderItem
+import com.focx.domain.entity.OrderManagementStatus
 import com.focx.domain.entity.ShippingAddress
 import com.focx.domain.repository.IOrderRepository
 import kotlinx.coroutines.delay
@@ -32,7 +33,7 @@ class MockOrderDataSource @Inject constructor() : IOrderRepository {
             ),
             totalAmount = 1199.99,
             currency = "USDC",
-            status = "delivered",
+            status = OrderManagementStatus.Delivered,
             shippingAddress = ShippingAddress(
                 recipientName = "John Smith",
                 addressLine1 = "123 Main St",
@@ -68,7 +69,7 @@ class MockOrderDataSource @Inject constructor() : IOrderRepository {
             ),
             totalAmount = 170.00,
             currency = "USDC",
-            status = "shipped",
+            status = OrderManagementStatus.Shipped,
             shippingAddress = ShippingAddress(
                 recipientName = "John Smith",
                 addressLine1 = "123 Main St",
@@ -104,7 +105,7 @@ class MockOrderDataSource @Inject constructor() : IOrderRepository {
             ),
             totalAmount = 3499.99,
             currency = "USDC",
-            status = "processing",
+            status = OrderManagementStatus.Pending,
             shippingAddress = ShippingAddress(
                 recipientName = "Jane Doe",
                 addressLine1 = "456 Oak Ave",
@@ -140,7 +141,7 @@ class MockOrderDataSource @Inject constructor() : IOrderRepository {
             ),
             totalAmount = 599.98,
             currency = "USDC",
-            status = "pending",
+            status = OrderManagementStatus.Pending,
             shippingAddress = ShippingAddress(
                 recipientName = "John Smith",
                 addressLine1 = "123 Main St",
@@ -180,7 +181,7 @@ class MockOrderDataSource @Inject constructor() : IOrderRepository {
         emit(mockOrders.filter { it.sellerId == sellerId })
     }
 
-    override suspend fun getOrdersByStatus(status: String): Flow<List<Order>> = flow {
+    override suspend fun getOrdersByStatus(status: OrderManagementStatus): Flow<List<Order>> = flow {
         delay(300)
         emit(mockOrders.filter { it.status == status })
     }
@@ -207,7 +208,7 @@ class MockOrderDataSource @Inject constructor() : IOrderRepository {
             ),
             totalAmount = (product.price.toDouble() / 1000000) * quantity.toDouble(),
             currency = "USDC",
-            status = "pending",
+            status = OrderManagementStatus.Pending,
             shippingAddress = ShippingAddress(
                 recipientName = "Default User",
                 addressLine1 = "123 Default St",
@@ -230,7 +231,7 @@ class MockOrderDataSource @Inject constructor() : IOrderRepository {
         return Result.success(newOrder)
     }
 
-    override suspend fun updateOrderStatus(orderId: String, status: String): Result<Unit> {
+    override suspend fun updateOrderStatus(orderId: String, status: OrderManagementStatus): Result<Unit> {
         delay(400)
         val orderIndex = mockOrders.indexOfFirst { it.id == orderId }
         if (orderIndex != -1) {
@@ -244,7 +245,7 @@ class MockOrderDataSource @Inject constructor() : IOrderRepository {
     }
 
     override suspend fun cancelOrder(orderId: String): Result<Unit> {
-        return updateOrderStatus(orderId, "cancelled")
+        return updateOrderStatus(orderId, OrderManagementStatus.Refunded)
     }
 
     override suspend fun updateTrackingNumber(orderId: String, trackingNumber: String): Result<Unit> {

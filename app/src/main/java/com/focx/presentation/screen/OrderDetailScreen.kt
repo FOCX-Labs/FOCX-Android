@@ -226,7 +226,7 @@ fun OrderStatusCard(order: Order) {
 @Composable
 fun OrderStatusTimeline(order: Order) {
     val statuses = listOf("Pending", "Processing", "Shipped", "Delivered")
-    val currentStatusIndex = statuses.indexOfFirst { it.lowercase() == order.status.lowercase() }
+    val currentStatusIndex = statuses.indexOfFirst { it.lowercase() == order.status.toString().lowercase() }
 
     Column {
         statuses.forEachIndexed { index, status ->

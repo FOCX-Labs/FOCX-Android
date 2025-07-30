@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.focx.domain.entity.Order
+import com.focx.domain.entity.OrderManagementStatus
 import com.focx.presentation.viewmodel.OrderViewModel
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
@@ -216,13 +217,12 @@ fun OrderListItem(
 }
 
 @Composable
-fun OrderStatusChip(status: String) {
-    val (backgroundColor, textColor) = when (status.lowercase()) {
-        "pending" -> MaterialTheme.colorScheme.secondary to MaterialTheme.colorScheme.onSecondary
-        "processing" -> Color(0xFFFF9800) to Color.White
-        "shipped" -> Color(0xFF2196F3) to Color.White
-        "delivered" -> Color(0xFF4CAF50) to Color.White
-        "cancelled" -> MaterialTheme.colorScheme.error to MaterialTheme.colorScheme.onError
+fun OrderStatusChip(status: OrderManagementStatus) {
+    val (backgroundColor, textColor) = when (status) {
+        OrderManagementStatus.Pending -> MaterialTheme.colorScheme.secondary to MaterialTheme.colorScheme.onSecondary
+        OrderManagementStatus.Shipped -> Color(0xFF2196F3) to Color.White
+        OrderManagementStatus.Delivered -> Color(0xFF4CAF50) to Color.White
+        OrderManagementStatus.Refunded -> MaterialTheme.colorScheme.error to MaterialTheme.colorScheme.onError
         else -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
     }
 
@@ -231,7 +231,7 @@ fun OrderStatusChip(status: String) {
         shape = RoundedCornerShape(8.dp)
     ) {
         Text(
-            text = status.replaceFirstChar { it.uppercase() },
+            text = status.toString().replaceFirstChar { it.uppercase() },
             style = MaterialTheme.typography.labelSmall,
             color = textColor,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)

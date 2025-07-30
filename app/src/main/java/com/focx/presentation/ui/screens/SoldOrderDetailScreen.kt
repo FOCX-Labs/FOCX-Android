@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -29,108 +30,42 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.focx.presentation.ui.theme.Spacing
+import com.focx.domain.entity.OrderManagementStatus
+import com.focx.presentation.viewmodel.OrderStatusStep
+import com.focx.presentation.viewmodel.SoldOrderDetailViewModel
 
-data class SoldOrderDetail(
-    val orderId: String,
-    val productName: String,
-    val productPrice: Double,
-    val quantity: Int,
-    val totalAmount: Double,
-    val orderDate: String,
-    val status: String,
-    val customerName: String,
-    val customerPhone: String,
-    val shippingAddress: String,
-    val paymentMethod: String,
-    val trackingNumber: String?,
-    val estimatedDelivery: String?
-)
-
-data class OrderStatusStep(
-    val title: String,
-    val description: String,
-    val timestamp: String,
-    val isCompleted: Boolean,
-    val isCurrent: Boolean
-)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SoldOrderDetailScreen(
     orderId: String,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    viewModel: SoldOrderDetailViewModel = hiltViewModel()
 ) {
-    val orderDetail = remember {
-        SoldOrderDetail(
-            orderId = orderId,
-            productName = "iPhone 15 Pro Max  Apple",
-            productPrice = 1199.99,
-            quantity = 1,
-            totalAmount = 1199.99,
-            orderDate = "2024-01-15 14:30",
-            status = "Shipped",
-            customerName = "John Smith",
-            customerPhone = "+1 (555) 123-4567",
-            shippingAddress = "123 Main St, Apt 4B\nNew York, NY 10001\nUnited States",
-            paymentMethod = "Credit Card (**** 1234)",
-            trackingNumber = "1Z999AA1234567890",
-            estimatedDelivery = "Jan 18, 2024"
-        )
-    }
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    val order = state.order
 
-    val orderSteps = remember {
-        listOf(
-            OrderStatusStep(
-                title = "Order Placed",
-                description = "Customer placed the order",
-                timestamp = "Jan 15, 2:30 PM",
-                isCompleted = true,
-                isCurrent = false
-            ),
-            OrderStatusStep(
-                title = "Payment Confirmed",
-                description = "Payment successfully processed",
-                timestamp = "Jan 15, 2:31 PM",
-                isCompleted = true,
-                isCurrent = false
-            ),
-            OrderStatusStep(
-                title = "Processing",
-                description = "Order is being prepared",
-                timestamp = "Jan 15, 3:00 PM",
-                isCompleted = true,
-                isCurrent = false
-            ),
-            OrderStatusStep(
-                title = "Shipped",
-                description = "Package has been shipped",
-                timestamp = "Jan 16, 10:00 AM",
-                isCompleted = true,
-                isCurrent = true
-            ),
-            OrderStatusStep(
-                title = "Delivered",
-                description = "Package delivered to customer",
-                timestamp = "Estimated: Jan 18",
-                isCompleted = false,
-                isCurrent = false
-            )
-        )
+    LaunchedEffect(orderId) {
+        viewModel.loadOrder(orderId)
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Order #${orderDetail.orderId}") },
+                title = { Text("Order #$orderId") },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
@@ -142,53 +77,123 @@ fun SoldOrderDetailScreen(
             )
         }
     ) { paddingValues ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = Spacing.medium),
-            verticalArrangement = Arrangement.spacedBy(Spacing.medium)
-        ) {
-            item {
-                Spacer(modifier = Modifier.height(Spacing.small))
+        when {
+            state.isLoading -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
             }
-
-            // Order Status Card
-            item {
-                OrderStatusCard(
-                    status = orderDetail.status,
-                    trackingNumber = orderDetail.trackingNumber,
-                    estimatedDelivery = orderDetail.estimatedDelivery
-                )
+            
+            state.error != null -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(Spacing.medium)
+                    ) {
+                        Text(
+                            text = state.error ?: "Unknown error",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.error,
+                            textAlign = TextAlign.Center
+                        )
+                        // TODO: Add retry button
+                    }
+                }
             }
+            
+            order != null -> {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues)
+                        .padding(horizontal = Spacing.medium),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.medium)
+                ) {
+                    item {
+                        Spacer(modifier = Modifier.height(Spacing.small))
+                    }
 
-            // Product Information
-            item {
-                ProductOrderCard(
-                    productName = orderDetail.productName,
-                    price = orderDetail.productPrice,
-                    quantity = orderDetail.quantity,
-                    totalAmount = orderDetail.totalAmount
-                )
+                    // Order Status Card
+                    item {
+                        OrderStatusCard(
+                            status = order.status,
+                            trackingNumber = order.trackingNumber,
+                            estimatedDelivery = order.estimatedDelivery?.let { 
+                                java.text.SimpleDateFormat("MMM dd, yyyy", java.util.Locale.getDefault())
+                                    .format(java.util.Date(it))
+                            }
+                        )
+                    }
+
+                    // Product Information
+                    item {
+                        if (order.items.isNotEmpty()) {
+                            val firstItem = order.items.first()
+                            ProductOrderCard(
+                                productName = firstItem.productName,
+                                price = firstItem.unitPrice,
+                                quantity = firstItem.quantity,
+                                totalAmount = firstItem.totalPrice
+                            )
+                        }
+                    }
+
+                    // Customer Information
+                    item {
+                        val shippingAddress = order.shippingAddress
+                        if (shippingAddress != null) {
+                            CustomerInfoCard(
+                                customerName = shippingAddress.recipientName,
+                                customerPhone = shippingAddress.phoneNumber,
+                                shippingAddress = buildString {
+                                    append(shippingAddress.addressLine1)
+                                    if (shippingAddress.addressLine2?.isNotEmpty() == true) {
+                                        append("\n${shippingAddress.addressLine2}")
+                                    }
+                                    append("\n${shippingAddress.city}, ${shippingAddress.state} ${shippingAddress.postalCode}")
+                                    append("\n${shippingAddress.country}")
+                                },
+                                paymentMethod = order.paymentMethod
+                            )
+                        }
+                    }
+
+                    // Order Timeline
+                    item {
+                        order?.let { orderData ->
+                            OrderTimelineCard(orderSteps = viewModel.getOrderStatusSteps(orderData))
+                        }
+                    }
+
+                    item {
+                        Spacer(modifier = Modifier.height(Spacing.medium))
+                    }
+                }
             }
-
-            // Customer Information
-            item {
-                CustomerInfoCard(
-                    customerName = orderDetail.customerName,
-                    customerPhone = orderDetail.customerPhone,
-                    shippingAddress = orderDetail.shippingAddress,
-                    paymentMethod = orderDetail.paymentMethod
-                )
-            }
-
-            // Order Timeline
-            item {
-                OrderTimelineCard(orderSteps = orderSteps)
-            }
-
-            item {
-                Spacer(modifier = Modifier.height(Spacing.medium))
+            
+            else -> {
+                // This shouldn't happen, but handle it just in case
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "No order data available",
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
             }
         }
     }
@@ -196,7 +201,7 @@ fun SoldOrderDetailScreen(
 
 @Composable
 fun OrderStatusCard(
-    status: String,
+    status: OrderManagementStatus,
     trackingNumber: String?,
     estimatedDelivery: String?,
     modifier: Modifier = Modifier
@@ -221,26 +226,34 @@ fun OrderStatusCard(
                     tint = MaterialTheme.colorScheme.onPrimaryContainer,
                     modifier = Modifier.size(24.dp)
                 )
+                
                 Spacer(modifier = Modifier.width(Spacing.small))
+                
                 Text(
-                    text = "Order Status: $status",
+                    text = when (status) {
+                        OrderManagementStatus.Pending -> "Pending"
+                        OrderManagementStatus.Shipped -> "Shipped"
+                        OrderManagementStatus.Delivered -> "Delivered"
+                        OrderManagementStatus.Refunded -> "Refunded"
+                    },
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
+                    fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             }
-
+            
+            Spacer(modifier = Modifier.height(Spacing.small))
+            
             if (trackingNumber != null) {
-                Spacer(modifier = Modifier.height(Spacing.small))
                 Text(
                     text = "Tracking: $trackingNumber",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
-            }
-
-            if (estimatedDelivery != null) {
                 Spacer(modifier = Modifier.height(Spacing.small))
+            }
+            
+            if (estimatedDelivery != null) {
                 Text(
                     text = "Estimated Delivery: $estimatedDelivery",
                     style = MaterialTheme.typography.bodyMedium,

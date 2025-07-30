@@ -1,6 +1,5 @@
 package com.focx.domain.entity
 
-import com.focx.presentation.intent.ProductDetailIntent
 import kotlinx.serialization.Serializable
 
 data class Order(
@@ -11,7 +10,7 @@ data class Order(
     val items: List<OrderItem>,
     val totalAmount: Double,
     val currency: String = "USDC",
-    val status: String,
+    val status: OrderManagementStatus,
     val shippingAddress: ShippingAddress? = null,
     val paymentMethod: String,
     val transactionHash: String? = null,

@@ -1,6 +1,7 @@
 package com.focx.domain.usecase
 
 import com.focx.domain.entity.Order
+import com.focx.domain.entity.OrderManagementStatus
 import com.focx.domain.repository.IOrderRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -49,6 +50,20 @@ class GetOrdersBySellerUseCase @Inject constructor(
     }
 }
 
+class GetOrdersByStatusUseCase @Inject constructor(
+    private val orderRepository: IOrderRepository
+) {
+    suspend operator fun invoke(status: OrderManagementStatus): Flow<Result<List<Order>>> {
+        return orderRepository.getOrdersByStatus(status)
+            .map { orders ->
+                Result.success(orders)
+            }
+            .catch { exception ->
+                emit(Result.failure(exception))
+            }
+    }
+}
+
 class CreateOrderUseCase @Inject constructor(
     private val orderRepository: IOrderRepository
 ) {
@@ -60,7 +75,7 @@ class CreateOrderUseCase @Inject constructor(
 class UpdateOrderStatusUseCase @Inject constructor(
     private val orderRepository: IOrderRepository
 ) {
-    suspend operator fun invoke(orderId: String, status: String): Result<Unit> {
+    suspend operator fun invoke(orderId: String, status: OrderManagementStatus): Result<Unit> {
         return orderRepository.updateOrderStatus(orderId, status)
     }
 }

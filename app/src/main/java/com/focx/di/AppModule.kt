@@ -7,12 +7,11 @@ import com.focx.core.network.NetworkConfig
 import com.focx.core.network.NetworkPreferences
 import com.focx.data.constants.PreferencesConstants
 import com.focx.data.datasource.mock.MockGovernanceDataSource
-import com.focx.data.datasource.mock.MockOrderDataSource
-import com.focx.data.datasource.mock.MockProductDataSource
 import com.focx.data.datasource.mock.MockSellerDataSource
 import com.focx.data.datasource.mock.MockUserDataSource
 import com.focx.data.datasource.mock.MockWalletDataSource
 import com.focx.data.datasource.solana.SolanaMerchantDataSource
+import com.focx.data.datasource.solana.SolanaOrderDataSource
 import com.focx.data.datasource.solana.SolanaProductDataSource
 import com.focx.data.networking.KtorHttpDriver
 import com.focx.domain.repository.IGovernanceRepository
@@ -31,9 +30,6 @@ import com.focx.domain.usecase.GetMerchantStatusUseCase
 import com.focx.domain.usecase.GetOrdersBySellerUseCase
 import com.focx.domain.usecase.GetProductByIdUseCase
 import com.focx.domain.usecase.GetProductsUseCase
-import com.focx.domain.usecase.SaveProductUseCase
-import com.focx.domain.usecase.UpdateProductUseCase
-
 import com.focx.domain.usecase.GetSellerStatsUseCase
 import com.focx.domain.usecase.GetStakingInfoUseCase
 import com.focx.domain.usecase.GetUserAddressesUseCase
@@ -42,13 +38,16 @@ import com.focx.domain.usecase.GetWalletBalanceUseCase
 import com.focx.domain.usecase.LoginWithWalletUseCase
 import com.focx.domain.usecase.RecentBlockhashUseCase
 import com.focx.domain.usecase.RegisterMerchantUseCase
+import com.focx.domain.usecase.SaveProductUseCase
 import com.focx.domain.usecase.SearchProductsUseCase
 import com.focx.domain.usecase.SolanaAccountBalanceUseCase
 import com.focx.domain.usecase.SolanaWalletConnectUseCase
 import com.focx.domain.usecase.SolanaWalletPersistenceUseCase
+import com.focx.domain.usecase.UpdateProductUseCase
 import com.focx.domain.usecase.VoteOnProposalUseCase
 import com.solana.mobilewalletadapter.clientlib.ConnectionIdentity
 import com.solana.mobilewalletadapter.clientlib.MobileWalletAdapter
+import com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient
 import com.solana.rpc.SolanaRpcClient
 import dagger.Module
 import dagger.Provides
@@ -110,12 +109,11 @@ object AppModule {
     @Provides
     @Singleton
     fun provideOrderRepository(
-        @ApplicationContext context: Context,
-        walletAdapter: MobileWalletAdapter,
+        walletAdapterClient: MobileWalletAdapter,
         recentBlockhashUseCase: RecentBlockhashUseCase,
         solanaRpcClient: SolanaRpcClient
     ): IOrderRepository {
-        return com.focx.data.datasource.solana.SolanaOrderDataSource(context, walletAdapter, recentBlockhashUseCase, solanaRpcClient)
+        return SolanaOrderDataSource(walletAdapterClient, recentBlockhashUseCase, solanaRpcClient)
     }
 
     @Provides

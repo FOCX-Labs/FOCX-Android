@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.focx.domain.entity.Order
 import com.focx.domain.entity.OrderItem
+import com.focx.domain.entity.OrderManagementStatus
 import com.focx.domain.entity.ShippingAddress
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -119,7 +120,7 @@ class OrderViewModel @Inject constructor(
                     )
                 ),
                 totalAmount = 259.98,
-                status = "delivered",
+                status = OrderManagementStatus.Delivered,
                 shippingAddress = ShippingAddress(
                     recipientName = "John Doe",
                     addressLine1 = "123 Main Street",
@@ -153,7 +154,7 @@ class OrderViewModel @Inject constructor(
                     )
                 ),
                 totalAmount = 135.98,
-                status = "shipped",
+                status = OrderManagementStatus.Shipped,
                 shippingAddress = ShippingAddress(
                     recipientName = "John Doe",
                     addressLine1 = "123 Main Street",
@@ -187,7 +188,7 @@ class OrderViewModel @Inject constructor(
                     )
                 ),
                 totalAmount = 64.96,
-                status = "processing",
+                status = OrderManagementStatus.Pending,
                 shippingAddress = ShippingAddress(
                     recipientName = "John Doe",
                     addressLine1 = "456 Business Ave",
@@ -220,7 +221,7 @@ class OrderViewModel @Inject constructor(
                     )
                 ),
                 totalAmount = 96.99,
-                status = "pending",
+                status = OrderManagementStatus.Refunded,
                 shippingAddress = ShippingAddress(
                     recipientName = "John Doe",
                     addressLine1 = "123 Main Street",

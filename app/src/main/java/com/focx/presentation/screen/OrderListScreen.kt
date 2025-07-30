@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.focx.domain.entity.Order
+import com.focx.domain.entity.OrderManagementStatus
 import com.focx.presentation.viewmodel.OrderViewModel
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
@@ -50,7 +51,7 @@ import java.util.Locale
 @Composable
 fun OrderListScreen(
     onNavigateBack: () -> Unit,
-    onOrderClick: (Order) -> Unit,
+    onOrderClick: (String) -> Unit,
     viewModel: OrderViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -106,7 +107,7 @@ fun OrderListScreen(
                 items(uiState.orders) { order ->
                     OrderListItem(
                         order = order,
-                        onClick = { onOrderClick(order) }
+                        onClick = { onOrderClick(order.id) }
                     )
                 }
             }
@@ -220,13 +221,12 @@ fun OrderListItem(
 }
 
 @Composable
-fun OrderStatusChip(status: String) {
-    val (backgroundColor, textColor) = when (status.lowercase()) {
-        "pending" -> MaterialTheme.colorScheme.secondary to MaterialTheme.colorScheme.onSecondary
-        "processing" -> Color(0xFFFF9800) to Color.White
-        "shipped" -> Color(0xFF2196F3) to Color.White
-        "delivered" -> MaterialTheme.colorScheme.primary to MaterialTheme.colorScheme.onPrimary
-        "cancelled" -> MaterialTheme.colorScheme.error to MaterialTheme.colorScheme.onError
+fun OrderStatusChip(status: OrderManagementStatus) {
+    val (backgroundColor, textColor) = when (status) {
+        OrderManagementStatus.Pending -> MaterialTheme.colorScheme.secondary to MaterialTheme.colorScheme.onSecondary
+        OrderManagementStatus.Shipped -> Color(0xFF2196F3) to Color.White
+        OrderManagementStatus.Delivered -> MaterialTheme.colorScheme.primary to MaterialTheme.colorScheme.onPrimary
+        OrderManagementStatus.Refunded -> MaterialTheme.colorScheme.error to MaterialTheme.colorScheme.onError
         else -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
     }
 
@@ -235,7 +235,7 @@ fun OrderStatusChip(status: String) {
         color = backgroundColor
     ) {
         Text(
-            text = status.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() },
+            text = status.toString().replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() },
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
             style = MaterialTheme.typography.labelSmall,
             color = textColor,
