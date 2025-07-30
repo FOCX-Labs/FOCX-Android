@@ -1,6 +1,8 @@
 package com.focx.utils
 
 import com.focx.core.constants.AppConstants
+import com.focx.domain.entity.MerchantOrder
+import com.focx.domain.entity.MerchantOrderCount
 import com.focx.domain.entity.Order
 import com.focx.domain.entity.OrderItem
 import com.focx.domain.entity.Product
@@ -202,11 +204,16 @@ object ShopUtils {
         )
     }
 
-    fun getPriceShow(price: ULong): String{
-        return String.format(String.format("%.2f", (price.toDouble() / AppConstants.App.TOKEN_DECIMAL)))
+    fun getPriceShow(price: ULong): String {
+        return String.format(
+            String.format(
+                "%.2f",
+                (price.toDouble() / AppConstants.App.TOKEN_DECIMAL)
+            )
+        )
     }
 
-    suspend fun getUserPurchaseCountPDA (buyer: SolanaPublicKey): Result<ProgramDerivedAddress> {
+    suspend fun getUserPurchaseCountPDA(buyer: SolanaPublicKey): Result<ProgramDerivedAddress> {
         return ProgramDerivedAddress.find(
             listOf(
                 "user_purchase_count".toByteArray(),
@@ -216,18 +223,15 @@ object ShopUtils {
         )
     }
 
-    suspend fun getOrderPda(merchantPda: SolanaPublicKey,
-                            buyerPubkey: SolanaPublicKey,
-                            productId: ULong,
-                            currentPurchaseCount: ULong
+    suspend fun getOrderPda(
+        buyerPubkey: SolanaPublicKey,
+        currentPurchaseCount: ULong
     ): Result<ProgramDerivedAddress> {
         return ProgramDerivedAddress.find(
             listOf(
-                "order".toByteArray(),
+                "buyer_order".toByteArray(),
                 buyerPubkey.bytes,
-                merchantPda.bytes,
-                Borsh.encodeToByteArray(productId),
-                Borsh.encodeToByteArray(currentPurchaseCount)
+                Borsh.encodeToByteArray(currentPurchaseCount + 1UL)
             ),
             AppConstants.App.getShopProgramId()
         )
@@ -270,7 +274,8 @@ object ShopUtils {
         }
 
         val productExtendedPda = getProductExtendedPDA(productId).getOrNull()!!
-        val extendedInfo = solanaRpcClient.getAccountInfo<ProductExtended>(productExtendedPda).result?.data
+        val extendedInfo =
+            solanaRpcClient.getAccountInfo<ProductExtended>(productExtendedPda).result?.data
 
         val product = Product(
             baseInfo.id, //            val id: ULong,
@@ -278,7 +283,9 @@ object ShopUtils {
             baseInfo.description, //        val description: String,
             baseInfo.price, //        val price: ULong,
             "USDC", //        val currency: String = "USDC",
-            if (extendedInfo != null && extendedInfo.imageVideoUrls.isNotEmpty()) extendedInfo.imageVideoUrls.split(",") else emptyList(), //        val imageUrls: List<String>,
+            if (extendedInfo != null && extendedInfo.imageVideoUrls.isNotEmpty()) extendedInfo.imageVideoUrls.split(
+                ","
+            ) else emptyList(), //        val imageUrls: List<String>,
             baseInfo.merchant.base58(), //        val sellerId: String,
             "", //        val sellerName: String,
             "", //        val category: String,
@@ -294,7 +301,10 @@ object ShopUtils {
         return product
     }
 
-    suspend fun getOrderInfoByPda(orderPda: SolanaPublicKey, solanaRpcClient: SolanaRpcClient): Order {
+    suspend fun getOrderInfoByPda(
+        orderPda: SolanaPublicKey,
+        solanaRpcClient: SolanaRpcClient
+    ): Order {
         val orderInfo = solanaRpcClient.getAccountInfo<SolanaOrder>(orderPda).result?.data!!
         val productInfo = getProductInfoById(orderInfo.productId, solanaRpcClient)!!
         return Order(
@@ -310,7 +320,8 @@ object ShopUtils {
                     productImage = productInfo.imageUrls[0],
                     quantity = orderInfo.quantity.toInt(),
                     unitPrice = productInfo.price.toDouble() / AppConstants.App.TOKEN_DECIMAL,
-                    totalPrice = productInfo.price.toDouble().times(orderInfo.quantity.toInt())  / AppConstants.App.TOKEN_DECIMAL
+                    totalPrice = productInfo.price.toDouble()
+                        .times(orderInfo.quantity.toInt()) / AppConstants.App.TOKEN_DECIMAL
                 )
             ),
             totalAmount = orderInfo.totalAmount.toDouble() / AppConstants.App.TOKEN_DECIMAL,
@@ -333,5 +344,42 @@ object ShopUtils {
             updatedAt = orderInfo.updatedAt,
             estimatedDelivery = orderInfo.deliveredAt
         )
+    }
+
+    suspend fun getMerchantOrderPDA(
+        merchantPubkey: SolanaPublicKey,
+        merchantOrderCount: ULong
+    ): Result<ProgramDerivedAddress> {
+        return ProgramDerivedAddress.find(
+            listOf(
+                "merchant_order".toByteArray(),
+                merchantPubkey.bytes,
+                Borsh.encodeToByteArray(merchantOrderCount)
+            ),
+            AppConstants.App.getShopProgramId()
+        )
+    }
+    suspend fun getMerchantOrderCountPDA(
+        merchantPubkey: SolanaPublicKey,
+    ): Result<ProgramDerivedAddress> {
+        return ProgramDerivedAddress.find(
+            listOf(
+                "merchant_order_count".toByteArray(),
+                merchantPubkey.bytes,
+            ),
+            AppConstants.App.getShopProgramId()
+        )
+    }
+
+    suspend fun getMerchantOrderCount(merchantOrderCountPda: SolanaPublicKey, solanaRpcClient: SolanaRpcClient): ULong {
+        val data = solanaRpcClient.getAccountInfo<MerchantOrderCount>(merchantOrderCountPda).result?.data
+        return data?.totalOrders?:0UL
+    }
+
+    suspend fun getMerchantOrder(
+        merchantOrderPda: SolanaPublicKey,
+        solanaRpcClient: SolanaRpcClient
+    ): MerchantOrder? {
+        return solanaRpcClient.getAccountInfo<MerchantOrder>(merchantOrderPda).result?.data
     }
 }

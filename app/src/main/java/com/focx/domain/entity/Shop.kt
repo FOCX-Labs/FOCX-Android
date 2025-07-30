@@ -287,3 +287,25 @@ data class UserPurchaseCount(
     val updatedAt: Long,
     val bump: UByte
 )
+
+@Serializable
+data class MerchantOrderCount(
+    val discriminator: Long,
+    val merchant: SolanaPublicKey,
+    val totalOrders: ULong,
+    val createAt: Long,
+    val updateAt: Long,
+    val bump: UByte
+)
+
+@Serializable
+data class MerchantOrder(
+    val discriminator: Long,
+    val merchant: SolanaPublicKey,
+    val buyer: SolanaPublicKey,
+    val merchantOrderSequence: ULong,
+    val buyerOrderPda: SolanaPublicKey,
+    val productId: ULong,
+    val createAt: Long,
+    val bump: UByte
+)

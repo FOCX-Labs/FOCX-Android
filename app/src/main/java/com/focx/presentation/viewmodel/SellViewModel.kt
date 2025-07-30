@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.focx.domain.entity.Order
 import com.focx.domain.entity.Product
 import com.focx.domain.entity.SellerStats
+import com.focx.domain.usecase.GetCurrentWalletAddressUseCase
 import com.focx.domain.usecase.GetOrdersBySellerUseCase
 import com.focx.domain.usecase.GetProductsUseCase
 import com.focx.domain.usecase.GetSellerStatsUseCase
@@ -28,7 +29,8 @@ data class SellUiState(
 class SellViewModel @Inject constructor(
     private val getSellerStatsUseCase: GetSellerStatsUseCase,
     private val getProductsUseCase: GetProductsUseCase,
-    private val getOrdersBySellerUseCase: GetOrdersBySellerUseCase
+    private val getOrdersBySellerUseCase: GetOrdersBySellerUseCase,
+    private val getCurrentWalletAddressUseCase: GetCurrentWalletAddressUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SellUiState())
@@ -41,7 +43,8 @@ class SellViewModel @Inject constructor(
             try {
                 // Load data in parallel
                 launch {
-                    getSellerStatsUseCase("current_seller_id")
+                    val merchant = getCurrentWalletAddressUseCase.execute()!!
+                    getSellerStatsUseCase(merchant)
                         .catch { e ->
                             _uiState.value = _uiState.value.copy(
                                 error = "Failed to load seller statistics: ${e.message}"
@@ -76,7 +79,8 @@ class SellViewModel @Inject constructor(
                 }
 
                 launch {
-                    getOrdersBySellerUseCase("current_seller_id")
+                    val merchant = getCurrentWalletAddressUseCase.execute()!!
+                    getOrdersBySellerUseCase(merchant)
                         .catch { e ->
                             _uiState.value = _uiState.value.copy(
                                 error = "Failed to load orders: ${e.message}"

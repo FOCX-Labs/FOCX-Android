@@ -39,6 +39,10 @@ class SolanaOrderDataSource @Inject constructor(
     private val solanaRpcClient: SolanaRpcClient
 ) : IOrderRepository {
 
+    companion object {
+        const val TAG = "SolanaOrderDataSource"
+    }
+
     override suspend fun getOrders(): Flow<List<Order>> = flow {
         emit(emptyList()) // TODO: 实现链上订单查询
     }
@@ -46,7 +50,7 @@ class SolanaOrderDataSource @Inject constructor(
     override suspend fun getOrderById(id: String): Order? {
         return try {
             Log.d("SolanaOrder", "Fetching order by ID: $id")
-            val orderPda = SolanaPublicKey.from("3hfuMVejJeTvLnspYX7DAYmTp1652DNoJF7rW6PTTPg1")
+            val orderPda = SolanaPublicKey.from(id)
             ShopUtils.getOrderInfoByPda(orderPda, solanaRpcClient)
         } catch (e: Exception) {
             Log.e("SolanaOrder", "Error fetching order by ID: $id", e)
@@ -59,42 +63,27 @@ class SolanaOrderDataSource @Inject constructor(
     }
 
     override suspend fun getOrdersBySeller(sellerId: String): Flow<List<Order>> = flow {
-        emit(listOf(Order(
-            id = "order_001",
-            buyerId = "buyer_001",
-            sellerId = "seller1",
-            sellerName = "TechStore Official",
-            items = listOf(
-                OrderItem(
-                    id = "item_001",
-                    productId = "1",
-                    productName = "iPhone 15 Pro Max  Apple",
-                    productImage = "https://example.com/iphone1.jpg",
-                    quantity = 1,
-                    unitPrice = 1199.99,
-                    totalPrice = 1199.99
-                )
-            ),
-            totalAmount = 1199.99,
-            currency = "USDC",
-            status = OrderManagementStatus.Delivered,
-            shippingAddress = ShippingAddress(
-                recipientName = "John Smith",
-                addressLine1 = "123 Main St",
-                addressLine2 = "Apt 4B",
-                city = "New York",
-                state = "NY",
-                postalCode = "10001",
-                country = "USA",
-                phoneNumber = "+1 212-555-1234"
-            ),
-            paymentMethod = "USDC",
-            transactionHash = "0x1234567890abcdef",
-            trackingNumber = "SF1234567890",
-            orderDate = System.currentTimeMillis() - 7 * 24 * 60 * 60 * 1000, // 7 days ago
-            updatedAt = System.currentTimeMillis() - 1 * 24 * 60 * 60 * 1000, // 1 day ago
-            estimatedDelivery = System.currentTimeMillis() + 2 * 24 * 60 * 60 * 1000 // in 2 days
-        ))) // TODO: 实现链上订单查询
+        val merchantPubKey = SolanaPublicKey.from(sellerId)
+        val pda = ShopUtils.getMerchantOrderCountPDA(merchantPubKey).getOrNull()!!
+        val orderCount = ShopUtils.getMerchantOrderCount(pda, solanaRpcClient)
+
+        val startIndex = 1
+        val endIndex = orderCount.toInt()
+        val orderList = ArrayList<Order>()
+
+        for(i in startIndex..endIndex) {
+            try {
+                val merchantOrderPda = ShopUtils.getMerchantOrderPDA(merchantPubKey, i.toULong()).getOrNull()!!
+                val orderPda = ShopUtils.getMerchantOrder(merchantOrderPda, solanaRpcClient)?.buyerOrderPda!!
+                val order = ShopUtils.getOrderInfoByPda(orderPda, solanaRpcClient)
+                orderList.add(order)
+            } catch (e: Exception) {
+                Log.e(TAG, "getOrdersBySeller", e)
+            }
+        }
+
+
+        emit(orderList)
     }
 
     override suspend fun getOrdersByStatus(status: OrderManagementStatus): Flow<List<Order>> = flow {
@@ -167,9 +156,12 @@ class SolanaOrderDataSource @Inject constructor(
 
         val currentPurchaseCount = getCurrentPurchaseCount(userPurchaseCountPda)
         val merchantPda = ShopUtils.getMerchantInfoPda(merchantPubKey).getOrNull()!!
-        val orderPda = ShopUtils.getOrderPda(merchantPda, buyerPubkey, product.id, currentPurchaseCount).getOrNull()!!
+        val orderPda = ShopUtils.getOrderPda(buyerPubkey, currentPurchaseCount).getOrNull()!!
         val orderStatsPda = ShopUtils.getOrderStatsPda().getOrNull()!!
         val productPda = ShopUtils.getProductBasePDA(product.id).getOrNull()!!
+        val merchantOrderCountPDA = ShopUtils.getMerchantOrderCountPDA(merchantPubKey).getOrNull()!!
+        val merchantOrderCount = ShopUtils.getMerchantOrderCount(merchantOrderCountPDA, solanaRpcClient)
+        val nextMerchantOrderPDA = ShopUtils.getMerchantOrderPDA(merchantPubKey,merchantOrderCount + 1UL).getOrNull()!!
 
 
         val createIx = ShopUtils.genTransactionInstruction(
@@ -179,10 +171,11 @@ class SolanaOrderDataSource @Inject constructor(
                 AccountMeta(orderStatsPda, false, true),
                 AccountMeta(productPda, false, false),
                 AccountMeta(merchantPda, false, false),
+                AccountMeta(merchantOrderCountPDA, false, true),
+                AccountMeta(nextMerchantOrderPDA, false, true),
                 AccountMeta(buyerPubkey, true, true),
-                AccountMeta(SystemProgram.PROGRAM_ID, false, false),
-
-                ),
+                AccountMeta(SystemProgram.PROGRAM_ID, false, false)
+            ),
             Borsh.encodeToByteArray(
                 AnchorInstructionSerializer("create_order"),
                 CreateOrder(
@@ -233,7 +226,6 @@ class SolanaOrderDataSource @Inject constructor(
         } catch (e: Exception) {
             0UL
         }
-
     }
 
     override suspend fun updateOrderStatus(orderId: String, status: OrderManagementStatus): Result<Unit> {
