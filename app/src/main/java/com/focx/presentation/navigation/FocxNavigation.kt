@@ -164,7 +164,9 @@ fun FocxNavigation(activityResultSender: ActivityResultSender) {
             composable("sold_order_detail/{orderId}") { backStackEntry ->
                 val orderId = backStackEntry.arguments?.getString("orderId") ?: ""
                 SoldOrderDetailScreen(
-                    orderId = orderId, onBackClick = {
+                    orderId = orderId, 
+                    activityResultSender = activityResultSender,
+                    onBackClick = {
                         navController.popBackStack()
                     })
             }

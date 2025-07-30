@@ -298,7 +298,7 @@ object ShopUtils {
         val orderInfo = solanaRpcClient.getAccountInfo<SolanaOrder>(orderPda).result?.data!!
         val productInfo = getProductInfoById(orderInfo.productId, solanaRpcClient)!!
         return Order(
-            id = "id",
+            id = orderPda.base58(),
             buyerId = orderInfo.buyer.base58(),
             sellerId = orderInfo.merchant.base58(),
             sellerName = "",

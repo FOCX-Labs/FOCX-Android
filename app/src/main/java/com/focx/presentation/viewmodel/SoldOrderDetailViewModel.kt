@@ -4,7 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.focx.domain.entity.Order
 import com.focx.domain.entity.OrderManagementStatus
+import com.focx.domain.usecase.GetCurrentWalletAddressUseCase
 import com.focx.domain.usecase.GetOrderByIdUseCase
+import com.focx.domain.usecase.UpdateTrackingNumberUseCase
+import com.solana.publickey.SolanaPublicKey
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -18,7 +21,9 @@ import javax.inject.Inject
 data class SoldOrderDetailState(
     val order: Order? = null,
     val isLoading: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val isUpdatingTracking: Boolean = false,
+    val trackingUpdateError: String? = null
 )
 
 data class OrderStatusStep(
@@ -31,7 +36,9 @@ data class OrderStatusStep(
 
 @HiltViewModel
 class SoldOrderDetailViewModel @Inject constructor(
-    private val getOrderByIdUseCase: GetOrderByIdUseCase
+    private val getOrderByIdUseCase: GetOrderByIdUseCase,
+    private val updateTrackingNumberUseCase: UpdateTrackingNumberUseCase,
+    private val getCurrentWalletAddressUseCase: GetCurrentWalletAddressUseCase
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(SoldOrderDetailState())
@@ -202,5 +209,37 @@ class SoldOrderDetailViewModel @Inject constructor(
 
     fun clearError() {
         _state.value = _state.value.copy(error = null)
+    }
+
+    fun updateTrackingNumber(orderId: String, trackingNumber: String, activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender) {
+        viewModelScope.launch {
+            _state.value = _state.value.copy(
+                isUpdatingTracking = true, 
+                trackingUpdateError = null
+            )
+            
+            try {
+                val walletAddress = getCurrentWalletAddressUseCase.execute()!!
+                val result = updateTrackingNumberUseCase(orderId, trackingNumber, SolanaPublicKey.from(walletAddress), activityResultSender)
+                if (result.isSuccess) {
+                    // Reload the order to get updated data
+                    loadOrder(orderId)
+                } else {
+                    _state.value = _state.value.copy(
+                        isUpdatingTracking = false,
+                        trackingUpdateError = result.exceptionOrNull()?.message ?: "Failed to update tracking number"
+                    )
+                }
+            } catch (e: Exception) {
+                _state.value = _state.value.copy(
+                    isUpdatingTracking = false,
+                    trackingUpdateError = e.message ?: "Failed to update tracking number"
+                )
+            }
+        }
+    }
+
+    fun clearTrackingUpdateError() {
+        _state.value = _state.value.copy(trackingUpdateError = null)
     }
 }

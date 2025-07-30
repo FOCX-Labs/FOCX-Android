@@ -3,6 +3,7 @@ package com.focx.domain.usecase
 import com.focx.domain.entity.Order
 import com.focx.domain.entity.OrderManagementStatus
 import com.focx.domain.repository.IOrderRepository
+import com.solana.publickey.SolanaPublicKey
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
@@ -77,5 +78,13 @@ class UpdateOrderStatusUseCase @Inject constructor(
 ) {
     suspend operator fun invoke(orderId: String, status: OrderManagementStatus): Result<Unit> {
         return orderRepository.updateOrderStatus(orderId, status)
+    }
+}
+
+class UpdateTrackingNumberUseCase @Inject constructor(
+    private val orderRepository: IOrderRepository
+) {
+    suspend operator fun invoke(orderId: String, trackingNumber: String, merchantPubKey: SolanaPublicKey, activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender): Result<Unit> {
+        return orderRepository.updateTrackingNumber(orderId, trackingNumber, merchantPubKey, activityResultSender)
     }
 }

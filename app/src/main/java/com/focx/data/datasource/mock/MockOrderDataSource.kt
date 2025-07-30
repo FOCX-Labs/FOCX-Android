@@ -5,6 +5,7 @@ import com.focx.domain.entity.OrderItem
 import com.focx.domain.entity.OrderManagementStatus
 import com.focx.domain.entity.ShippingAddress
 import com.focx.domain.repository.IOrderRepository
+import com.solana.publickey.SolanaPublicKey
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -248,7 +249,7 @@ class MockOrderDataSource @Inject constructor() : IOrderRepository {
         return updateOrderStatus(orderId, OrderManagementStatus.Refunded)
     }
 
-    override suspend fun updateTrackingNumber(orderId: String, trackingNumber: String): Result<Unit> {
+    override suspend fun updateTrackingNumber(orderId: String, trackingNumber: String, merchantPubKey: SolanaPublicKey, activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender): Result<Unit> {
         delay(300)
         val orderIndex = mockOrders.indexOfFirst { it.id == orderId }
         if (orderIndex != -1) {

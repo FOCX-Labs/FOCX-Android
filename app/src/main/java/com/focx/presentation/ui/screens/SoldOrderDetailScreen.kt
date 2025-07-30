@@ -19,6 +19,8 @@ import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Place
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -26,12 +28,17 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -52,6 +59,7 @@ import com.focx.presentation.viewmodel.SoldOrderDetailViewModel
 @Composable
 fun SoldOrderDetailScreen(
     orderId: String,
+    activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender,
     onBackClick: () -> Unit,
     viewModel: SoldOrderDetailViewModel = hiltViewModel()
 ) {
@@ -131,6 +139,9 @@ fun SoldOrderDetailScreen(
                             estimatedDelivery = order.estimatedDelivery?.let { 
                                 java.text.SimpleDateFormat("MMM dd, yyyy", java.util.Locale.getDefault())
                                     .format(java.util.Date(it))
+                            },
+                            onAddTrackingNumber = { trackingNumber ->
+                                viewModel.updateTrackingNumber(order.id, trackingNumber, activityResultSender)
                             }
                         )
                     }
@@ -204,8 +215,11 @@ fun OrderStatusCard(
     status: OrderManagementStatus,
     trackingNumber: String?,
     estimatedDelivery: String?,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onAddTrackingNumber: ((String) -> Unit)? = null
 ) {
+    var showTrackingDialog by remember { mutableStateOf(false) }
+    var inputTrackingNumber by remember { mutableStateOf("") }
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -260,7 +274,71 @@ fun OrderStatusCard(
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             }
+            
+            // Add tracking button for pending orders
+            if (status == OrderManagementStatus.Pending && onAddTrackingNumber != null) {
+                Spacer(modifier = Modifier.height(Spacing.medium))
+                Button(
+                    onClick = { showTrackingDialog = true },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Add Tracking Number")
+                }
+            }
         }
+    }
+    
+    // Tracking number input dialog
+    if (showTrackingDialog) {
+        AlertDialog(
+            onDismissRequest = { 
+                showTrackingDialog = false
+                inputTrackingNumber = ""
+            },
+            title = {
+                Text("Add Tracking Number")
+            },
+            text = {
+                Column {
+                    Text(
+                        text = "Input Tracking Number",
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(bottom = Spacing.medium)
+                    )
+                    OutlinedTextField(
+                        value = inputTrackingNumber,
+                        onValueChange = { inputTrackingNumber = it },
+                        label = { Text("Tracking Number") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (inputTrackingNumber.isNotBlank()) {
+                            onAddTrackingNumber?.invoke(inputTrackingNumber)
+                            showTrackingDialog = false
+                            inputTrackingNumber = ""
+                        }
+                    },
+                    enabled = inputTrackingNumber.isNotBlank()
+                ) {
+                    Text("确定")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showTrackingDialog = false
+                        inputTrackingNumber = ""
+                    }
+                ) {
+                    Text("取消")
+                }
+            }
+        )
     }
 }
 

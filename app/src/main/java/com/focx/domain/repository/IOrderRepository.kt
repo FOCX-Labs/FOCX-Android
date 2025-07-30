@@ -4,6 +4,7 @@ import com.focx.domain.entity.Order
 import com.focx.domain.entity.OrderManagementStatus
 import com.focx.domain.entity.Product
 import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
+import com.solana.publickey.SolanaPublicKey
 import kotlinx.coroutines.flow.Flow
 
 interface IOrderRepository {
@@ -15,5 +16,5 @@ interface IOrderRepository {
     suspend fun createOrder(product: Product, quantity: UInt, buyer: String, activityResultSender: ActivityResultSender): Result<Order>
     suspend fun updateOrderStatus(orderId: String, status: OrderManagementStatus): Result<Unit>
     suspend fun cancelOrder(orderId: String): Result<Unit>
-    suspend fun updateTrackingNumber(orderId: String, trackingNumber: String): Result<Unit>
+    suspend fun updateTrackingNumber(orderId: String, trackingNumber: String, merchantPubKey: SolanaPublicKey, activityResultSender: ActivityResultSender): Result<Unit>
 }
