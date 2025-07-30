@@ -275,7 +275,11 @@ data class SystemConfig(
     val depositTokenMint: SolanaPublicKey,
     val platformFeeRate: UShort,
     val platformFeeRecipient: SolanaPublicKey,
-    val autoConfirmDays: UInt
+    val autoConfirmDays: UInt,
+    val vaultProgramId: SolanaPublicKey,
+    val vaultTokenAccount: SolanaPublicKey,
+    val platformTokenAccount: SolanaPublicKey,
+
 )
 
 @Serializable

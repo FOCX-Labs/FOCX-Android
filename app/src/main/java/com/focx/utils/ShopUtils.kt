@@ -1,5 +1,6 @@
 package com.focx.utils
 
+import android.annotation.SuppressLint
 import com.focx.core.constants.AppConstants
 import com.focx.domain.entity.MerchantOrder
 import com.focx.domain.entity.MerchantOrderCount
@@ -11,6 +12,7 @@ import com.focx.domain.entity.ProductExtended
 import com.focx.domain.entity.ShippingAddress
 import com.focx.domain.entity.SolanaOrder
 import com.focx.domain.entity.SortOrder
+import com.focx.domain.entity.SystemConfig
 import com.focx.domain.entity.UserPurchaseCount
 import com.funkatronics.kborsh.Borsh
 import com.solana.publickey.ProgramDerivedAddress
@@ -71,9 +73,14 @@ object ShopUtils {
         )
     }
 
-    suspend fun getDepositEscrowPda(): Result<ProgramDerivedAddress> {
+    suspend fun getDepositEscrowPda(
+        mint: SolanaPublicKey = AppConstants.App.getMint(),
+    ): Result<ProgramDerivedAddress> {
         return ProgramDerivedAddress.find(
-            listOf("deposit_escrow".toByteArray()),
+            listOf(
+                "deposit_escrow".toByteArray(),
+                mint.bytes
+            ),
             AppConstants.App.getShopProgramId()
         )
     }
@@ -208,6 +215,7 @@ object ShopUtils {
         )
     }
 
+    @SuppressLint("DefaultLocale")
     fun getPriceShow(price: ULong): String {
         return String.format(
             String.format(
@@ -468,5 +476,10 @@ object ShopUtils {
             orderList.add(order)
         }
         return orderList
+    }
+
+    suspend fun getSystemConfig(solanaRpcClient: SolanaRpcClient): SystemConfig {
+        val systemConfigPda = getSystemConfigPDA().getOrNull()!!
+        return solanaRpcClient.getAccountInfo<SystemConfig>(systemConfigPda).result?.data!!
     }
 }

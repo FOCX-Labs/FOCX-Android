@@ -310,6 +310,7 @@ class SolanaOrderDataSource @Inject constructor(
                 val systemConfigPDA = ShopUtils.getSystemConfigPDA().getOrNull()!!
                 val depositEscrowPda = ShopUtils.getDepositEscrowPda().getOrNull()!!
                 val merchantInfoPda = ShopUtils.getMerchantInfoPda(merchantPubKey).getOrNull()!!
+                val systemConfig = ShopUtils.getSystemConfig(solanaRpcClient)
 
                 val ix = ShopUtils.genTransactionInstruction(
                     listOf(
@@ -320,6 +321,9 @@ class SolanaOrderDataSource @Inject constructor(
                         AccountMeta(programTokenAccountPDA, false, true),
                         AccountMeta(depositEscrowPda, false, true),
                         AccountMeta(programAuthorityPDA, false, false),
+                        AccountMeta(systemConfig.vaultProgramId, false, true),
+                        AccountMeta(systemConfig.vaultTokenAccount, false, true),
+                        AccountMeta(systemConfig.platformTokenAccount, false, true),
                         AccountMeta(buyerPubKey, true, false),
                         AccountMeta(SolanaPublicKey.from(AppConstants.App.SPL_TOKEN_PROGRAM_ID), false, false),
                         AccountMeta(SystemProgram.PROGRAM_ID, false, false)
