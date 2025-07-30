@@ -8,10 +8,12 @@ import com.focx.domain.entity.OrderManagementStatus
 import com.focx.domain.entity.ShippingAddress
 import com.focx.domain.usecase.CreateOrderUseCase
 import com.focx.domain.usecase.GetOrderByIdUseCase
+import com.focx.domain.usecase.GetOrdersByBuyerUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -24,7 +26,8 @@ data class OrderUiState(
 @HiltViewModel
 class OrderViewModel @Inject constructor(
     private val createOrderUseCase: CreateOrderUseCase,
-    private val getOrderByIdUseCase: GetOrderByIdUseCase
+    private val getOrderByIdUseCase: GetOrderByIdUseCase,
+    private val getOrdersByBuyerUseCase: GetOrdersByBuyerUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(OrderUiState())
@@ -36,15 +39,34 @@ class OrderViewModel @Inject constructor(
     fun loadOrders() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
-
             try {
-                // TODO: Replace with actual repository call
-                val mockOrders = generateMockOrders()
-                _uiState.value = _uiState.value.copy(
-                    orders = mockOrders,
-                    isLoading = false,
-                    error = null
-                )
+                val buyer = getCurrentWalletAddressUseCase.execute()!!
+                getOrdersByBuyerUseCase(buyer)
+                    .catch { e ->
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            error = e.message
+                        )
+                    }.collect { result ->
+
+                        result.fold(
+                            onSuccess = { orders ->
+                                // Only show the 5 most recent orders
+                                val recentOrders = orders.take(5)
+                                _uiState.value = _uiState.value.copy(
+                                    orders = recentOrders,
+                                    isLoading = false,
+                                    error = null
+                                )
+                            },
+                            onFailure = { e ->
+                                _uiState.value = _uiState.value.copy(
+                                    isLoading = false,
+                                    error = "Failed to load orders: ${e.message}"
+                                )
+                            }
+                        )
+                    }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,

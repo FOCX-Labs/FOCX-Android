@@ -10,6 +10,8 @@ import com.focx.domain.entity.ProductBase
 import com.focx.domain.entity.ProductExtended
 import com.focx.domain.entity.ShippingAddress
 import com.focx.domain.entity.SolanaOrder
+import com.focx.domain.entity.SortOrder
+import com.focx.domain.entity.UserPurchaseCount
 import com.funkatronics.kborsh.Borsh
 import com.solana.publickey.ProgramDerivedAddress
 import com.solana.publickey.PublicKey
@@ -19,9 +21,11 @@ import com.solana.rpc.getAccountInfo
 import com.solana.transaction.AccountMeta
 import com.solana.transaction.TransactionInstruction
 import kotlinx.serialization.encodeToByteArray
+import kotlin.math.max
+import kotlin.math.min
 
 object ShopUtils {
-    private val TAG = "ShopUtils"
+    private const val TAG = "ShopUtils"
     suspend fun getMerchantInfoPda(
         merchantPublicKey: PublicKey
     ): Result<ProgramDerivedAddress> {
@@ -231,7 +235,7 @@ object ShopUtils {
             listOf(
                 "buyer_order".toByteArray(),
                 buyerPubkey.bytes,
-                Borsh.encodeToByteArray(currentPurchaseCount + 1UL)
+                Borsh.encodeToByteArray(currentPurchaseCount)
             ),
             AppConstants.App.getShopProgramId()
         )
@@ -359,6 +363,7 @@ object ShopUtils {
             AppConstants.App.getShopProgramId()
         )
     }
+
     suspend fun getMerchantOrderCountPDA(
         merchantPubkey: SolanaPublicKey,
     ): Result<ProgramDerivedAddress> {
@@ -371,9 +376,13 @@ object ShopUtils {
         )
     }
 
-    suspend fun getMerchantOrderCount(merchantOrderCountPda: SolanaPublicKey, solanaRpcClient: SolanaRpcClient): ULong {
-        val data = solanaRpcClient.getAccountInfo<MerchantOrderCount>(merchantOrderCountPda).result?.data
-        return data?.totalOrders?:0UL
+    suspend fun getMerchantOrderCount(
+        merchantOrderCountPda: SolanaPublicKey,
+        solanaRpcClient: SolanaRpcClient
+    ): ULong {
+        val data =
+            solanaRpcClient.getAccountInfo<MerchantOrderCount>(merchantOrderCountPda).result?.data
+        return data?.totalOrders ?: 0UL
     }
 
     suspend fun getMerchantOrder(
@@ -381,5 +390,83 @@ object ShopUtils {
         solanaRpcClient: SolanaRpcClient
     ): MerchantOrder? {
         return solanaRpcClient.getAccountInfo<MerchantOrder>(merchantOrderPda).result?.data
+    }
+
+    fun calcPageInfo(
+        page: Int,
+        pageSize: Int,
+        total: Int,
+        sortOrder: SortOrder = SortOrder.DESC
+    ): Pair<Int, Int> {
+        val startIndex = if (sortOrder == SortOrder.DESC) max(
+            1,
+            total - page * pageSize + 1
+        ) else min(1 + pageSize * (page - 1), total)
+        val endIndex = min(total, startIndex + pageSize)
+
+        return Pair(startIndex, endIndex)
+    }
+
+    suspend fun getOrdersBySeller(
+        sellerId: String,
+        solanaRpcClient: SolanaRpcClient,
+        page: Int = 1,
+        pageSize: Int = 10,
+        sortOrder: SortOrder = SortOrder.DESC
+    ): List<Order> {
+        val merchantPubKey = SolanaPublicKey.from(sellerId)
+        val pda = getMerchantOrderCountPDA(merchantPubKey).getOrNull()!!
+        val orderCount = getMerchantOrderCount(pda, solanaRpcClient)
+
+        val pageInfo = calcPageInfo(page, pageSize, orderCount.toInt(), sortOrder)
+        val orderList = ArrayList<Order>()
+        if (orderCount.toInt() < pageInfo.first){
+            return emptyList()
+        }
+
+        for (i in pageInfo.first..pageInfo.second) {
+            try {
+                val merchantOrderPda =
+                    getMerchantOrderPDA(merchantPubKey, i.toULong()).getOrNull()!!
+                val orderPda =
+                    getMerchantOrder(merchantOrderPda, solanaRpcClient)?.buyerOrderPda!!
+                val order = getOrderInfoByPda(orderPda, solanaRpcClient)
+                orderList.add(order)
+            } catch (e: Exception) {
+                Log.e(TAG, "getOrdersBySeller", e)
+            }
+        }
+        return orderList
+    }
+
+    suspend fun getUserPurchaseCount(
+        buyerPubkey: SolanaPublicKey,
+        solanaRpcClient: SolanaRpcClient
+    ): UserPurchaseCount {
+        val userPurchaseCountPda = getUserPurchaseCountPDA(buyerPubkey).getOrNull()!!
+        return solanaRpcClient.getAccountInfo<UserPurchaseCount>(userPurchaseCountPda).result?.data!!
+    }
+
+    suspend fun getOrdersByBuyer(
+        buyerId: String,
+        solanaRpcClient: SolanaRpcClient,
+        page: Int = 1,
+        pageSize: Int = 10,
+        sortOrder: SortOrder = SortOrder.DESC
+    ): List<Order> {
+        val buyerPubkey = SolanaPublicKey.from(buyerId)
+        val orderCount = getUserPurchaseCount(buyerPubkey, solanaRpcClient).purchaseCount
+
+        val pageInfo = calcPageInfo(page, pageSize, orderCount.toInt(), sortOrder)
+        if (orderCount.toInt() < pageInfo.first){
+            return emptyList()
+        }
+        val orderList = ArrayList<Order>()
+        for (i in pageInfo.first..pageInfo.second) {
+            val orderPda = getOrderPda(buyerPubkey, i.toULong()).getOrNull()!!
+            val order = getOrderInfoByPda(orderPda, solanaRpcClient)
+            orderList.add(order)
+        }
+        return orderList
     }
 }

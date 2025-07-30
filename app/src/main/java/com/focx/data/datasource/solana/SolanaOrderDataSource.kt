@@ -3,11 +3,9 @@ package com.focx.data.datasource.solana
 import com.focx.core.constants.AppConstants
 import com.focx.domain.entity.CreateOrder
 import com.focx.domain.entity.Order
-import com.focx.domain.entity.OrderItem
 import com.focx.domain.entity.OrderManagementStatus
 import com.focx.domain.entity.OrderPayment
 import com.focx.domain.entity.Product
-import com.focx.domain.entity.ShippingAddress
 import com.focx.domain.entity.UserPurchaseCount
 import com.focx.domain.repository.IOrderRepository
 import com.focx.domain.usecase.RecentBlockhashUseCase
@@ -59,31 +57,11 @@ class SolanaOrderDataSource @Inject constructor(
     }
 
     override suspend fun getOrdersByBuyer(buyerId: String): Flow<List<Order>> = flow {
-        emit(emptyList()) // TODO: 实现链上订单查询
+        emit(ShopUtils.getOrdersByBuyer(buyerId, solanaRpcClient))
     }
 
     override suspend fun getOrdersBySeller(sellerId: String): Flow<List<Order>> = flow {
-        val merchantPubKey = SolanaPublicKey.from(sellerId)
-        val pda = ShopUtils.getMerchantOrderCountPDA(merchantPubKey).getOrNull()!!
-        val orderCount = ShopUtils.getMerchantOrderCount(pda, solanaRpcClient)
-
-        val startIndex = 1
-        val endIndex = orderCount.toInt()
-        val orderList = ArrayList<Order>()
-
-        for(i in startIndex..endIndex) {
-            try {
-                val merchantOrderPda = ShopUtils.getMerchantOrderPDA(merchantPubKey, i.toULong()).getOrNull()!!
-                val orderPda = ShopUtils.getMerchantOrder(merchantOrderPda, solanaRpcClient)?.buyerOrderPda!!
-                val order = ShopUtils.getOrderInfoByPda(orderPda, solanaRpcClient)
-                orderList.add(order)
-            } catch (e: Exception) {
-                Log.e(TAG, "getOrdersBySeller", e)
-            }
-        }
-
-
-        emit(orderList)
+        emit(ShopUtils.getOrdersBySeller(sellerId, solanaRpcClient))
     }
 
     override suspend fun getOrdersByStatus(status: OrderManagementStatus): Flow<List<Order>> = flow {
@@ -156,7 +134,7 @@ class SolanaOrderDataSource @Inject constructor(
 
         val currentPurchaseCount = getCurrentPurchaseCount(userPurchaseCountPda)
         val merchantPda = ShopUtils.getMerchantInfoPda(merchantPubKey).getOrNull()!!
-        val orderPda = ShopUtils.getOrderPda(buyerPubkey, currentPurchaseCount).getOrNull()!!
+        val orderPda = ShopUtils.getOrderPda(buyerPubkey, currentPurchaseCount + 1UL).getOrNull()!!
         val orderStatsPda = ShopUtils.getOrderStatsPda().getOrNull()!!
         val productPda = ShopUtils.getProductBasePDA(product.id).getOrNull()!!
         val merchantOrderCountPDA = ShopUtils.getMerchantOrderCountPDA(merchantPubKey).getOrNull()!!
