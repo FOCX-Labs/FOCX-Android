@@ -49,7 +49,7 @@ import java.util.Locale
 @Composable
 fun OrderListScreen(
     onNavigateBack: () -> Unit,
-    onOrderClick: (Order) -> Unit,
+    onOrderClick: (String) -> Unit,
     viewModel: OrderViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -104,7 +104,7 @@ fun OrderListScreen(
                 items(uiState.orders) { order ->
                     OrderListItem(
                         order = order,
-                        onClick = { onOrderClick(order) }
+                        onClick = { onOrderClick(order.id) }
                     )
                 }
             }

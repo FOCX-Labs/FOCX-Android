@@ -33,9 +33,15 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.Button
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -46,7 +52,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.focx.domain.entity.Order
 import com.focx.domain.entity.OrderItem
 import com.focx.domain.entity.OrderManagementStatus
-import com.focx.presentation.viewmodel.OrderViewModel
+import com.focx.presentation.viewmodel.BuyerOrderDetailViewModel
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -55,14 +61,18 @@ import java.util.Locale
 @Composable
 fun OrderDetailScreen(
     orderId: String,
+    activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender,
     onNavigateBack: () -> Unit,
-    viewModel: OrderViewModel = hiltViewModel()
+    viewModel: BuyerOrderDetailViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val order = uiState.orders.find { it.id == orderId }
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    val order = state.order
+    
+    var showConfirmReceiptDialog by remember { mutableStateOf(false) }
+    var showDisputeDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(orderId) {
-        viewModel.loadOrderDetail(orderId)
+        viewModel.loadOrder(orderId)
     }
 
     Scaffold(
@@ -86,7 +96,7 @@ fun OrderDetailScreen(
             )
         }
     ) { paddingValues ->
-        if (uiState.isLoading) {
+        if (state.isLoading) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -133,6 +143,16 @@ fun OrderDetailScreen(
                         ShippingAddressCard(order = order)
                     }
                 }
+                
+                // Add action buttons for shipped orders
+                if (order.status == OrderManagementStatus.Shipped) {
+                    item {
+                        OrderActionButtons(
+                            onConfirmReceipt = { showConfirmReceiptDialog = true },
+                            onDispute = { showDisputeDialog = true }
+                        )
+                    }
+                }
             }
         } else {
             Box(
@@ -147,6 +167,57 @@ fun OrderDetailScreen(
                 )
             }
         }
+    }
+    
+    // Confirmation dialogs
+    if (showConfirmReceiptDialog) {
+        AlertDialog(
+            onDismissRequest = { showConfirmReceiptDialog = false },
+            title = { Text("Confirm Receipt") },
+            text = { Text("Are you sure you want to confirm that you have received this order? This action cannot be undone.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showConfirmReceiptDialog = false
+                        order?.let { 
+                            viewModel.confirmReceipt(it.id, it.sellerId, activityResultSender)
+                        }
+                    }
+                ) {
+                    Text("Confirm")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showConfirmReceiptDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+    
+    if (showDisputeDialog) {
+        AlertDialog(
+            onDismissRequest = { showDisputeDialog = false },
+            title = { Text("Initiate Dispute") },
+            text = { Text("Are you sure you want to initiate a dispute for this order? This will require review and may take time to resolve.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDisputeDialog = false
+                        order?.let { 
+                            viewModel.initiateDispute(it.id, activityResultSender)
+                        }
+                    }
+                ) {
+                    Text("Initiate Dispute")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDisputeDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }
 
@@ -474,6 +545,48 @@ fun ShippingAddressCard(order: Order) {
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+            }
+        }
+    }
+}
+
+@Composable
+fun OrderActionButtons(
+    onConfirmReceipt: () -> Unit,
+    onDispute: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Text(
+                text = "Order Actions",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Button(
+                    onClick = onConfirmReceipt,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Confirm Receipt")
+                }
+                
+                Button(
+                    onClick = onDispute,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Initiate Dispute")
+                }
             }
         }
     }

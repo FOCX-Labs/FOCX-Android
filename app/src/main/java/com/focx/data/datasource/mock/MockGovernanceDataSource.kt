@@ -105,6 +105,29 @@ class MockGovernanceDataSource @Inject constructor() : IGovernanceRepository {
         }
     }
 
+    override suspend fun initiateDispute(orderId: String, buyerPubKey: com.solana.publickey.SolanaPublicKey, activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender): Result<Dispute> {
+        return try {
+            kotlinx.coroutines.delay(500) // Simulate network delay
+            
+            val newDispute = Dispute(
+                id = "dispute_${System.currentTimeMillis()}",
+                title = "Order Dispute #$orderId",
+                buyer = buyerPubKey.toString(),
+                order = orderId,
+                amount = "299.99 USDC",
+                submitted = java.text.SimpleDateFormat("MM/dd/yyyy", java.util.Locale.getDefault()).format(java.util.Date()),
+                status = DisputeStatus.UNDER_REVIEW,
+                daysRemaining = 7,
+                evidenceSummary = "Buyer initiated dispute for order $orderId",
+                communityVoting = null
+            )
+            
+            Result.success(newDispute)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     private fun getSampleProposals(): List<Proposal> {
         return mockGovernance
     }

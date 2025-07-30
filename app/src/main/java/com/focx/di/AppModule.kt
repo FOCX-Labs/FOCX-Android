@@ -124,6 +124,20 @@ object AppModule {
     }
 
     @Provides
+    fun provideGetOrderByIdUseCase(
+        orderRepository: IOrderRepository
+    ): com.focx.domain.usecase.GetOrderByIdUseCase {
+        return com.focx.domain.usecase.GetOrderByIdUseCase(orderRepository)
+    }
+
+    @Provides
+    fun provideCreateOrderUseCase(
+        orderRepository: IOrderRepository
+    ): com.focx.domain.usecase.CreateOrderUseCase {
+        return com.focx.domain.usecase.CreateOrderUseCase(orderRepository)
+    }
+
+    @Provides
     @Singleton
     fun provideSellerRepository(): ISellerRepository {
         return MockSellerDataSource()

@@ -261,4 +261,17 @@ class MockOrderDataSource @Inject constructor() : IOrderRepository {
         }
         return Result.failure(Exception("Order not found"))
     }
+
+    override suspend fun confirmReceipt(orderId: String, buyerPubKey: SolanaPublicKey, merchantPubKey: SolanaPublicKey, activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender): Result<Unit> {
+        delay(400)
+        val orderIndex = mockOrders.indexOfFirst { it.id == orderId }
+        if (orderIndex != -1) {
+            mockOrders[orderIndex] = mockOrders[orderIndex].copy(
+                status = OrderManagementStatus.Delivered,
+                updatedAt = System.currentTimeMillis()
+            )
+            return Result.success(Unit)
+        }
+        return Result.failure(Exception("Order not found"))
+    }
 }

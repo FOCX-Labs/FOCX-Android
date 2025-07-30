@@ -88,3 +88,14 @@ class UpdateTrackingNumberUseCase @Inject constructor(
         return orderRepository.updateTrackingNumber(orderId, trackingNumber, merchantPubKey, activityResultSender)
     }
 }
+
+class ConfirmReceiptUseCase @Inject constructor(
+    private val orderRepository: IOrderRepository
+) {
+    suspend operator fun invoke(orderId: String,
+                                buyerPubKey: SolanaPublicKey,
+                                merchantPubKey: SolanaPublicKey,
+                                activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender): Result<Unit> {
+        return orderRepository.confirmReceipt(orderId, buyerPubKey, merchantPubKey, activityResultSender)
+    }
+}

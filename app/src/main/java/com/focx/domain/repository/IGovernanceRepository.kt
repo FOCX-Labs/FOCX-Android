@@ -6,6 +6,8 @@ import com.focx.domain.entity.PlatformRule
 import com.focx.domain.entity.Proposal
 import com.focx.domain.entity.Vote
 import com.focx.domain.entity.VoteType
+import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
+import com.solana.publickey.SolanaPublicKey
 import kotlinx.coroutines.flow.Flow
 
 interface IGovernanceRepository {
@@ -21,4 +23,5 @@ interface IGovernanceRepository {
     suspend fun getDisputes(): Flow<List<Dispute>>
     suspend fun getPlatformRules(): Flow<List<PlatformRule>>
     suspend fun voteOnDispute(disputeId: String, favorBuyer: Boolean): Result<Unit>
+    suspend fun initiateDispute(orderId: String, buyerPubKey: SolanaPublicKey, activityResultSender: ActivityResultSender): Result<Dispute>
 }

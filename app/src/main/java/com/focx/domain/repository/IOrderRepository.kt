@@ -17,4 +17,5 @@ interface IOrderRepository {
     suspend fun updateOrderStatus(orderId: String, status: OrderManagementStatus): Result<Unit>
     suspend fun cancelOrder(orderId: String): Result<Unit>
     suspend fun updateTrackingNumber(orderId: String, trackingNumber: String, merchantPubKey: SolanaPublicKey, activityResultSender: ActivityResultSender): Result<Unit>
+    suspend fun confirmReceipt(orderId: String, buyerPubKey: SolanaPublicKey, merchantPubKey: SolanaPublicKey, activityResultSender: ActivityResultSender): Result<Unit>
 }

@@ -6,6 +6,8 @@ import com.focx.domain.entity.Order
 import com.focx.domain.entity.OrderItem
 import com.focx.domain.entity.OrderManagementStatus
 import com.focx.domain.entity.ShippingAddress
+import com.focx.domain.usecase.CreateOrderUseCase
+import com.focx.domain.usecase.GetOrderByIdUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -21,7 +23,8 @@ data class OrderUiState(
 
 @HiltViewModel
 class OrderViewModel @Inject constructor(
-    private val createOrderUseCase: com.focx.domain.usecase.CreateOrderUseCase
+    private val createOrderUseCase: CreateOrderUseCase,
+    private val getOrderByIdUseCase: GetOrderByIdUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(OrderUiState())
@@ -56,17 +59,18 @@ class OrderViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(isLoading = true)
 
             try {
-                // TODO: Replace with actual repository call
-                // For now, just use the existing orders or generate mock data
-                if (_uiState.value.orders.isEmpty()) {
-                    val mockOrders = generateMockOrders()
+                val order = getOrderByIdUseCase(orderId)
+                if (order != null) {
                     _uiState.value = _uiState.value.copy(
-                        orders = mockOrders,
+                        orders = listOf(order),
                         isLoading = false,
                         error = null
                     )
                 } else {
-                    _uiState.value = _uiState.value.copy(isLoading = false)
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        error = "订单未找到"
+                    )
                 }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(

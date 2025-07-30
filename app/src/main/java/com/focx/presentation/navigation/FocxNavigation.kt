@@ -14,8 +14,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.focx.presentation.screen.OrderDetailScreen
-import com.focx.presentation.screen.OrderListScreen
 import com.focx.presentation.ui.components.BottomNavigationBar
 import com.focx.presentation.ui.screens.AddEditAddressScreen
 import com.focx.presentation.ui.screens.AddEditProductScreen
@@ -32,6 +30,8 @@ import com.focx.presentation.ui.screens.SoldOrderDetailScreen
 import com.focx.presentation.viewmodel.ProfileViewModel
 import com.focx.presentation.viewmodel.AddEditProductViewModel
 import com.focx.presentation.intent.AddEditProductIntent
+import com.focx.presentation.ui.screens.OrderDetailScreen
+import com.focx.presentation.ui.screens.OrderListScreen
 import com.focx.presentation.viewmodel.OrderViewModel
 import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
 
@@ -260,7 +260,9 @@ fun FocxNavigation(activityResultSender: ActivityResultSender) {
             ) { backStackEntry ->
                 val orderId = backStackEntry.arguments?.getString("orderId") ?: ""
                 OrderDetailScreen(
-                    orderId = orderId, onNavigateBack = {
+                    orderId = orderId,
+                    activityResultSender = activityResultSender,
+                    onNavigateBack = {
                         navController.popBackStack()
                     })
             }

@@ -15,25 +15,22 @@ import com.focx.utils.Log
 import com.focx.utils.ShopUtils
 import com.funkatronics.kborsh.Borsh
 import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
-import com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient
-import com.solana.publickey.SolanaPublicKey
-import com.solana.transaction.Instruction
-import com.solana.transaction.Message.Builder
-import com.solana.transaction.Transaction
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
-import javax.inject.Inject
-import javax.inject.Singleton
 import com.solana.mobilewalletadapter.clientlib.MobileWalletAdapter
 import com.solana.mobilewalletadapter.clientlib.TransactionResult
 import com.solana.mobilewalletadapter.clientlib.successPayload
 import com.solana.programs.SystemProgram
+import com.solana.publickey.SolanaPublicKey
 import com.solana.rpc.SolanaRpcClient
 import com.solana.rpc.getAccountInfo
 import com.solana.serialization.AnchorInstructionSerializer
 import com.solana.transaction.AccountMeta
-import com.solana.transaction.Message
+import com.solana.transaction.Message.Builder
+import com.solana.transaction.Transaction
 import com.solana.transaction.TransactionInstruction
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import javax.inject.Inject
+import javax.inject.Singleton
 
 @Singleton
 class SolanaOrderDataSource @Inject constructor(
@@ -322,6 +319,83 @@ class SolanaOrderDataSource @Inject constructor(
         } catch (e: Exception) {
             Log.e("SolanaOrder", "updateTrackingNumber exception:", e)
             Result.failure(Exception("Failed to update tracking number: ${e.message}"))
+        }
+    }
+
+    override suspend fun confirmReceipt(orderId: String,
+                                        buyerPubKey: SolanaPublicKey,
+                                        merchantPubKey: SolanaPublicKey,
+                                        activityResultSender: ActivityResultSender): Result<Unit> {
+        return try {
+            Log.d("SolanaOrder", "Starting confirmReceipt for order: $orderId")
+            
+            val result = walletAdapter.transact(activityResultSender) { authResult ->
+                val builder = Builder()
+                
+                // Generate confirm receipt instruction
+                val orderPda = SolanaPublicKey.from(orderId)
+                val orderStats = ShopUtils.getOrderStatsPda().getOrNull()!!
+                val programTokenAccountPDA = ShopUtils.getProgramTokenAccountPda().getOrNull()!!
+                val programAuthorityPDA = ShopUtils.getSimplePda("program_authority").getOrNull()!!
+                val systemConfigPDA = ShopUtils.getSystemConfigPDA().getOrNull()!!
+                val depositEscrowPda = ShopUtils.getDepositEscrowPda().getOrNull()!!
+                val merchantInfoPda = ShopUtils.getMerchantInfoPda(merchantPubKey).getOrNull()!!
+
+                val ix = ShopUtils.genTransactionInstruction(
+                    listOf(
+                        AccountMeta(orderPda, false, true),
+                        AccountMeta(orderStats, false, true),
+                        AccountMeta(merchantInfoPda, false, true),
+                        AccountMeta(systemConfigPDA, false, false),
+                        AccountMeta(programTokenAccountPDA, false, true),
+                        AccountMeta(depositEscrowPda, false, true),
+                        AccountMeta(programAuthorityPDA, false, false),
+                        AccountMeta(buyerPubKey, true, false),
+                        AccountMeta(SolanaPublicKey.from(AppConstants.App.SPL_TOKEN_PROGRAM_ID), false, false),
+                        AccountMeta(SystemProgram.PROGRAM_ID, false, false)
+                    ),
+                    Borsh.encodeToByteArray(
+                        AnchorInstructionSerializer("confirm_delivery"),
+                        Unit
+                    )
+                )
+                
+                builder.addInstruction(ix)
+                
+                // Get recent blockhash and build message
+                val recentBlockhash = recentBlockhashUseCase()
+                val message = builder.setRecentBlockhash(recentBlockhash).build()
+                
+                // Create and sign transaction
+                val transaction = Transaction(message)
+                val signResult = signAndSendTransactions(arrayOf(transaction.serialize()))
+                signResult
+            }
+            
+            when (result) {
+                is TransactionResult.Success -> {
+                    val signature = result.successPayload?.signatures?.first()
+                    if (signature != null) {
+                        Log.d("SolanaOrder", "Receipt confirmed successfully: $signature")
+                        Result.success(Unit)
+                    } else {
+                        Log.e("SolanaOrder", "No signature returned from confirmReceipt transaction")
+                        Result.failure(Exception("No signature returned from transaction"))
+                    }
+                }
+                is TransactionResult.NoWalletFound -> {
+                    Log.e("SolanaOrder", "No wallet found for confirmReceipt")
+                    Result.failure(Exception("No wallet found"))
+                }
+                is TransactionResult.Failure -> {
+                    Log.e("SolanaOrder", "confirmReceipt failed: ${result.e.message}")
+                    Result.failure(Exception("Transaction failed: ${result.e.message}"))
+                }
+                else -> Result.failure(Exception("Unknown transaction result"))
+            }
+        } catch (e: Exception) {
+            Log.e("SolanaOrder", "confirmReceipt exception:", e)
+            Result.failure(Exception("Failed to confirm receipt: ${e.message}"))
         }
     }
 
