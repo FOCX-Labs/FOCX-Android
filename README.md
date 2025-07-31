@@ -15,7 +15,7 @@ The Android application for the decentralized e-commerce platform built on Solan
 ### Core Screens
 - **Buy/Index**: Product browsing with search and filtering
 - **Sell**: Merchant dashboard with product and order management
-- **Earn**: Insurance fund vuult and staking features
+- **Earn**: Insurance fund vault and staking features
 - **Governance**: Proposal management and voting system
 - **Profile**: Wallet management and user settings
 
