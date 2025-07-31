@@ -1,6 +1,6 @@
-# FOCX - Decentralized E-commerce Platform
+# FOCX - Fully On-Chain e-commerce Platform
 
-The Android application for the decentralized e-commerce platform built on Solana blockchain.
+The Android application for the Fully On-Chain e-commerce platform built on Solana blockchain.
 
 ## UI Components & Features
 
