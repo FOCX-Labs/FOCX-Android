@@ -315,7 +315,7 @@ fun OrderStatusCard(order: Order) {
 
 @Composable
 fun OrderStatusTimeline(order: Order) {
-    val statuses = listOf("Pending", "Processing", "Shipped", "Delivered")
+    val statuses = listOf("Pending", "Shipped", "Delivered")
     val currentStatusIndex = statuses.indexOfFirst { it.lowercase() == order.status.toString().lowercase() }
 
     Column {
@@ -352,7 +352,7 @@ fun OrderStatusTimeline(order: Order) {
                 Spacer(modifier = Modifier.width(12.dp))
 
                 Text(
-                    text = status,
+                    text = if (status == "Pending") "Awaiting shipment" else status,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal,
                     color = if (isCompleted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant

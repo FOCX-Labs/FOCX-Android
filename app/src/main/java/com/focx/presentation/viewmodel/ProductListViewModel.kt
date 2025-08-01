@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.focx.domain.usecase.GetProductsUseCase
 import com.focx.domain.usecase.SearchProductsUseCase
+import com.focx.domain.usecase.GetProductByIdUseCase
 import com.focx.presentation.intent.ProductListIntent
 import com.focx.presentation.state.FilterState
 import com.focx.presentation.state.ProductListState
@@ -23,7 +24,8 @@ import javax.inject.Inject
 @HiltViewModel
 class ProductListViewModel @Inject constructor(
     private val getProductsUseCase: GetProductsUseCase,
-    private val searchProductsUseCase: SearchProductsUseCase
+    private val searchProductsUseCase: SearchProductsUseCase,
+    private val getProductByIdUseCase: GetProductByIdUseCase
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(ProductListState())
@@ -60,6 +62,7 @@ class ProductListViewModel @Inject constructor(
         when (intent) {
             is ProductListIntent.LoadProducts -> loadProducts()
             is ProductListIntent.RefreshProducts -> refreshProducts()
+            is ProductListIntent.LoadProductById -> loadProductById(intent.productId)
             is ProductListIntent.SearchProducts -> searchProducts(intent.query)
             is ProductListIntent.UpdateSearchQuery -> {
                 _state.value = _state.value.copy(searchQuery = intent.query)
@@ -143,6 +146,47 @@ class ProductListViewModel @Inject constructor(
         viewModelScope.launch {
             loadProducts(refresh = true)
             _effect.emit(ProductListEffect.ScrollToTop)
+        }
+    }
+
+    private fun loadProductById(productId: String) {
+        viewModelScope.launch {
+            _state.value = _state.value.copy(isLoading = true)
+            
+            getProductByIdUseCase(productId)
+                .catch { exception ->
+                    _state.value = _state.value.copy(
+                        isLoading = false,
+                        error = exception.message ?: "Failed to load product"
+                    )
+                }
+                .collect { result ->
+                    result.fold(
+                        onSuccess = { product ->
+                            if (product != null) {
+                                // Add the product to both products and filteredProducts lists
+                                val updatedProducts = (_state.value.products + product).distinctBy { it.id }
+                                val updatedFilteredProducts = (_state.value.filteredProducts + product).distinctBy { it.id }
+                                _state.value = _state.value.copy(
+                                    products = updatedProducts,
+                                    filteredProducts = updatedFilteredProducts,
+                                    isLoading = false
+                                )
+                            } else {
+                                _state.value = _state.value.copy(
+                                    isLoading = false,
+                                    error = "Product not found"
+                                )
+                            }
+                        },
+                        onFailure = { exception ->
+                            _state.value = _state.value.copy(
+                                isLoading = false,
+                                error = exception.message ?: "Failed to load product"
+                            )
+                        }
+                    )
+                }
         }
     }
 

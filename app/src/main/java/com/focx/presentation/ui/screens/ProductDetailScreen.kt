@@ -57,6 +57,8 @@ import com.focx.presentation.ui.components.TechButtonSize
 import com.focx.presentation.ui.components.TechButtonStyle
 import com.focx.presentation.ui.components.TechCard
 import com.focx.presentation.ui.components.TechIconButton
+import com.focx.presentation.ui.components.TechLoadingIndicator
+import com.focx.presentation.ui.components.LoadingSize
 import com.focx.presentation.ui.theme.Error
 import com.focx.presentation.ui.theme.OnSurface
 import com.focx.presentation.ui.theme.OnSurfaceVariant
@@ -66,6 +68,7 @@ import com.focx.presentation.ui.theme.Success
 import com.focx.presentation.ui.theme.SurfaceDark
 import com.focx.presentation.viewmodel.ProductListViewModel
 import com.focx.presentation.viewmodel.ProfileViewModel
+import com.focx.presentation.intent.ProductListIntent
 import com.focx.utils.ShopUtils
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -90,9 +93,47 @@ fun ProductDetailScreen(
         profileViewModel.loadUserAddressesOnly()
     }
 
-    val product = state.products.find { it.id == productId.toULongOrNull() } ?: return
+    val productIdULong = productId.toULongOrNull()
+    if (productIdULong == null) {
+        android.util.Log.e("ProductDetailScreen", "Invalid product ID: $productId")
+        return
+    }
+    
+    var product = state.products.find { it.id == productIdULong } 
+        ?: state.filteredProducts.find { it.id == productIdULong }
+    
+    // If product not found locally, try to load it
+    if (product == null) {
+        LaunchedEffect(productIdULong) {
+            viewModel.handleIntent(ProductListIntent.LoadProductById(productIdULong.toString()))
+        }
+        // Show loading state while fetching product
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            TechLoadingIndicator(size = LoadingSize.LARGE)
+        }
+        return
+    }
+    
+    // Re-check for product after loading
+    val currentProduct = state.products.find { it.id == productIdULong } 
+        ?: state.filteredProducts.find { it.id == productIdULong }
+        ?: product
+    
+    if (currentProduct == null) {
+        // Show error state if product still not found
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Text("Product not found")
+        }
+        return
+    }
 
-    val productImages = product.imageUrls
+    val productImages = currentProduct.imageUrls
 
     val pagerState = rememberPagerState(pageCount = { productImages.size })
 
@@ -180,7 +221,7 @@ fun ProductDetailScreen(
                 ) {
                     // Product Name and Category
                     Text(
-                        text = product.name,
+                        text = currentProduct.name,
                         style = MaterialTheme.typography.titleLarge,
                         color = OnSurface,
                         fontWeight = FontWeight.Bold
@@ -222,7 +263,7 @@ fun ProductDetailScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "$${ShopUtils.getPriceShow(product.price)}",
+                            text = "$${ShopUtils.getPriceShow(currentProduct.price)}",
                             style = MaterialTheme.typography.headlineLarge,
                             color = Primary,
                             fontWeight = FontWeight.Bold
@@ -241,13 +282,13 @@ fun ProductDetailScreen(
                             modifier = Modifier
                                 .size(8.dp)
                                 .clip(RoundedCornerShape(4.dp))
-                                .background(if (product.stock > 0) Success else Error)
+                                .background(if (currentProduct.stock > 0) Success else Error)
                         )
                         Spacer(modifier = Modifier.width(Spacing.small))
                         Text(
-                            text = if (product.stock > 0) "In Stock (${product.stock} left)" else "Out of Stock",
+                            text = if (currentProduct.stock > 0) "In Stock (${currentProduct.stock} left)" else "Out of Stock",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = if (product.stock > 0) Success else Error
+                            color = if (currentProduct.stock > 0) Success else Error
                         )
                     }
 
@@ -259,7 +300,7 @@ fun ProductDetailScreen(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(
-                            text = "Sold by ${product.sellerName}",
+                            text = "Sold by ${currentProduct.sellerName}",
                             style = MaterialTheme.typography.titleSmall,
                             color = OnSurface,
                             fontWeight = FontWeight.Medium
@@ -278,7 +319,7 @@ fun ProductDetailScreen(
 
                     Spacer(modifier = Modifier.height(Spacing.medium))
 
-                    val specifications = product.specifications.toList()
+                    val specifications = currentProduct.specifications.toList()
 
                     specifications.forEach { (key, value) ->
                         Row(
@@ -318,9 +359,9 @@ fun ProductDetailScreen(
                     Spacer(modifier = Modifier.height(Spacing.medium))
 
                     val shippingInfo = listOf(
-                        "Origin" to product.shippingFrom,
-                        "Shipping Range" to product.shippingTo.joinToString(),
-                        "Logistics" to product.shippingMethods.joinToString()
+                        "Origin" to currentProduct.shippingFrom,
+                        "Shipping Range" to currentProduct.shippingTo.joinToString(),
+                        "Logistics" to currentProduct.shippingMethods.joinToString()
                     )
 
                     shippingInfo.forEach { (key, value) ->
@@ -363,7 +404,7 @@ fun ProductDetailScreen(
                     Spacer(modifier = Modifier.height(Spacing.medium))
 
                     Text(
-                        text = product.description,
+                        text = currentProduct.description,
                         style = MaterialTheme.typography.bodyLarge,
                         color = OnSurface,
                         lineHeight = 24.sp
@@ -407,9 +448,9 @@ fun ProductDetailScreen(
 
                     TechIconButton(
                         icon = androidx.compose.material.icons.Icons.Default.Add,
-                        onClick = { if (selectedQuantity < product.stock) selectedQuantity++ },
+                        onClick = { if (selectedQuantity < currentProduct.stock) selectedQuantity++ },
                         style = TechButtonStyle.OUTLINE,
-                        enabled = selectedQuantity < product.stock
+                        enabled = selectedQuantity < currentProduct.stock
                     )
                 }
 
@@ -418,7 +459,7 @@ fun ProductDetailScreen(
                     text = "Buy Now",
                     onClick = { showBuyDialog = true },
                     style = TechButtonStyle.PRIMARY,
-                    enabled = product.stock > 0,
+                    enabled = currentProduct.stock > 0,
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -428,14 +469,14 @@ fun ProductDetailScreen(
     // Buy Dialog
     if (showBuyDialog) {
         BottomBuyDialog(
-            product = product,
+            product = currentProduct,
             quantity = selectedQuantity,
             addresses = profileState.userAddresses,
             onQuantityChange = { newQuantity ->
                 selectedQuantity = newQuantity
             },
             onConfirmBuy = { selectedAddress, orderNote ->
-                onBuyProduct(product, selectedQuantity, selectedAddress, orderNote, activityResultSender)
+                onBuyProduct(currentProduct, selectedQuantity, selectedAddress, orderNote, activityResultSender)
                 showBuyDialog = false
             },
             onDismiss = {
@@ -736,7 +777,7 @@ fun BottomBuyDialog(
                             modifier = Modifier.weight(1f)
                         )
                         TechButton(
-                            text = "Confirm Purchase",
+                            text = "Purchase",
                             onClick = { onConfirmBuy(selectedAddress, orderNote) },
                             style = TechButtonStyle.PRIMARY,
                             modifier = Modifier.weight(1f),

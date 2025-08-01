@@ -5,6 +5,7 @@ import com.focx.presentation.state.SortOption
 sealed class ProductListIntent {
     object LoadProducts : ProductListIntent()
     object RefreshProducts : ProductListIntent()
+    data class LoadProductById(val productId: String) : ProductListIntent()
     data class SearchProducts(val query: String) : ProductListIntent()
     data class UpdateSearchQuery(val query: String) : ProductListIntent()
     data class SelectCategory(val category: String) : ProductListIntent()
