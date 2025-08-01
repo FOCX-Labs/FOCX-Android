@@ -55,7 +55,7 @@ object Log {
 
     private const val CUR_LOG_NAME = "log1.txt"
     private const val LAST_LOG_NAME = "log2.txt"
-    private val dateFormat by lazy { SimpleDateFormat("yyMMdd_HHmmss_SSS", Locale.CHINA) }
+    private val dateFormat by lazy { SimpleDateFormat("yyMMdd_HHmmss_SSS", Locale.US) }
 
     private val logHandler: Handler
 

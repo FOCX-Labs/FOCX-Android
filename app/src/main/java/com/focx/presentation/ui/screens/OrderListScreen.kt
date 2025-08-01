@@ -178,7 +178,7 @@ fun OrderListItem(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(order.orderDate),
+                                        text = SimpleDateFormat("MMM dd, yyyy", Locale.US).format(order.orderDate * 1000),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

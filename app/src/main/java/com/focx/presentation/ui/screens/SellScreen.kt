@@ -453,8 +453,8 @@ fun OrderCard(
                         color = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = java.text.SimpleDateFormat("MM-dd HH:mm", java.util.Locale.getDefault())
-                            .format(java.util.Date(order.orderDate)),
+                                        text = java.text.SimpleDateFormat("MM-dd HH:mm", java.util.Locale.US)
+                    .format(java.util.Date(order.orderDate * 1000)),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

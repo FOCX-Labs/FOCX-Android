@@ -16,8 +16,8 @@ data class Order(
     val paymentMethod: String,
     val transactionHash: String? = null,
     val trackingNumber: String? = null,
-    val orderDate: Long = System.currentTimeMillis(),
-    val updatedAt: Long = System.currentTimeMillis(),
+    val orderDate: Long = System.currentTimeMillis() / 1000,
+    val updatedAt: Long = System.currentTimeMillis() / 1000,
     val estimatedDelivery: Long? = null
 )
 

@@ -197,13 +197,13 @@ class SoldOrderDetailViewModel @Inject constructor(
 
     private fun formatTimestamp(timestamp: Long): String {
         val date = Date(timestamp)
-        val formatter = SimpleDateFormat("MMM dd, yyyy 'at' HH:mm", Locale.getDefault())
+        val formatter = SimpleDateFormat("MMM dd, yyyy 'at' HH:mm", Locale.US)
         return formatter.format(date)
     }
 
     private fun formatDate(timestamp: Long): String {
         val date = Date(timestamp)
-        val formatter = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
+        val formatter = SimpleDateFormat("MMM dd, yyyy", Locale.US)
         return formatter.format(date)
     }
 

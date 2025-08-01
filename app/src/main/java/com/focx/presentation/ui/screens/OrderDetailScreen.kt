@@ -270,8 +270,8 @@ fun OrderInfoCard(order: Order) {
                 text = "Placed on ${
                     SimpleDateFormat(
                         "MMMM dd, yyyy 'at' hh:mm a",
-                        Locale.getDefault()
-                    ).format(order.orderDate)
+                        Locale.US
+                    ).format(order.orderDate * 1000)
                 }",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant

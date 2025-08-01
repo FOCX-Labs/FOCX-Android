@@ -134,7 +134,7 @@ class SolanaGovernanceDataSource @Inject constructor(
                             buyer = buyerPubKey.toString(),
                             order = orderId,
                             amount = "299.99 USDC", // TODO: Get actual order amount
-                            submitted = java.text.SimpleDateFormat("MM/dd/yyyy", java.util.Locale.getDefault()).format(java.util.Date()),
+                            submitted = java.text.SimpleDateFormat("MM/dd/yyyy", java.util.Locale.US).format(java.util.Date()),
                             status = DisputeStatus.UNDER_REVIEW,
                             daysRemaining = 7,
                             evidenceSummary = "Buyer initiated dispute for order $orderId",

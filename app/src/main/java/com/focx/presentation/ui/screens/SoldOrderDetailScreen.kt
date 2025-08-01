@@ -137,8 +137,8 @@ fun SoldOrderDetailScreen(
                             status = order.status,
                             trackingNumber = order.trackingNumber,
                             estimatedDelivery = order.estimatedDelivery?.let { 
-                                java.text.SimpleDateFormat("MMM dd, yyyy", java.util.Locale.getDefault())
-                                    .format(java.util.Date(it))
+                                                    java.text.SimpleDateFormat("MMM dd, yyyy", java.util.Locale.US)
+                        .format(java.util.Date(it * 1000))
                             },
                             onAddTrackingNumber = { trackingNumber ->
                                 viewModel.updateTrackingNumber(order.id, trackingNumber, activityResultSender)
