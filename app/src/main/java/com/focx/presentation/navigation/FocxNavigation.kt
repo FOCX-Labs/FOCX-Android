@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -29,6 +30,7 @@ import com.focx.presentation.ui.screens.SellerRegistrationScreen
 import com.focx.presentation.ui.screens.SoldOrderDetailScreen
 import com.focx.presentation.viewmodel.ProfileViewModel
 import com.focx.presentation.viewmodel.AddEditProductViewModel
+import com.focx.presentation.viewmodel.AddEditProductEffect
 import com.focx.presentation.intent.AddEditProductIntent
 import com.focx.presentation.ui.screens.OrderDetailScreen
 import com.focx.presentation.ui.screens.OrderListScreen
@@ -174,6 +176,23 @@ fun FocxNavigation(activityResultSender: ActivityResultSender) {
             // Add Product
             composable("add_product") {
                 val viewModel: AddEditProductViewModel = hiltViewModel()
+                
+                // Collect effects from ViewModel
+                LaunchedEffect(Unit) {
+                    viewModel.effect.collect { effect ->
+                        when (effect) {
+                            is AddEditProductEffect.NavigateBack -> {
+                                navController.popBackStack()
+                            }
+                            is AddEditProductEffect.ShowMessage -> {
+                                // You can show a toast or snackbar here
+                                // For now, we'll just log the message
+                                android.util.Log.d("AddProduct", effect.message)
+                            }
+                        }
+                    }
+                }
+                
                 AddEditProductScreen(
                     productId = null, 
                     onBackClick = {
@@ -184,7 +203,7 @@ fun FocxNavigation(activityResultSender: ActivityResultSender) {
                         viewModel.handleIntent(AddEditProductIntent.UpdateFormData(productData))
                         // Then save with ActivityResultSender
                         viewModel.handleIntent(AddEditProductIntent.SaveProduct(activityResultSender))
-                        navController.popBackStack()
+                        // Don't call popBackStack here, let ViewModel handle navigation
                     },
                     activityResultSender = activityResultSender
                 )
@@ -194,6 +213,23 @@ fun FocxNavigation(activityResultSender: ActivityResultSender) {
             composable("edit_product/{productId}") { backStackEntry ->
                 val productId = backStackEntry.arguments?.getString("productId") ?: ""
                 val viewModel: AddEditProductViewModel = hiltViewModel()
+                
+                // Collect effects from ViewModel
+                LaunchedEffect(Unit) {
+                    viewModel.effect.collect { effect ->
+                        when (effect) {
+                            is AddEditProductEffect.NavigateBack -> {
+                                navController.popBackStack()
+                            }
+                            is AddEditProductEffect.ShowMessage -> {
+                                // You can show a toast or snackbar here
+                                // For now, we'll just log the message
+                                android.util.Log.d("EditProduct", effect.message)
+                            }
+                        }
+                    }
+                }
+                
                 AddEditProductScreen(
                     productId = productId, 
                     onBackClick = {
@@ -204,7 +240,7 @@ fun FocxNavigation(activityResultSender: ActivityResultSender) {
                         viewModel.handleIntent(AddEditProductIntent.UpdateFormData(productData))
                         // Then save with ActivityResultSender
                         viewModel.handleIntent(AddEditProductIntent.SaveProduct(activityResultSender))
-                        navController.popBackStack()
+                        // Don't call popBackStack here, let ViewModel handle navigation
                     },
                     activityResultSender = activityResultSender
                 )

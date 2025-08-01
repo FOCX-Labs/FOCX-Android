@@ -260,8 +260,6 @@ class SolanaProductDataSource @Inject constructor(
         val productBasePDA = ShopUtils.getProductBasePDA(nextProductId).getOrNull()!!
         val productExtendedPDA = ShopUtils.getProductExtendedPDA(nextProductId).getOrNull()!!
 
-        val keywords = listOf("Digital Camera")
-
         val createProductBaseInstruction = genTransactionInstruction(
             listOf(
                 AccountMeta(accountPublicKey, true, true),
@@ -278,10 +276,10 @@ class SolanaProductDataSource @Inject constructor(
                     product.name,
                     product.description,
                     product.price,
-                    keywords,
+                    product.keywords,
                     product.stock.toULong(),
                     AppConstants.App.getMint(),
-                    "Default Shipping Location"
+                    product.shippingFrom
                 )
             )
         )
@@ -297,19 +295,16 @@ class SolanaProductDataSource @Inject constructor(
                 AnchorInstructionSerializer("create_product_extended"),
                 CreateProductExtended(
                     nextProductId,
-                    listOf(
-                        "https://node1.irys.xyz/3KFbO90QVBuVFPrSsqAeun-22HBR6UplCIZb2G8zkuQ",
-                        "https://node1.irys.xyz/3KFbO90QVBuVFPrSsqAeun-22HBR6UplCIZb2G8zkuQ"
-                    ),
-                    listOf("Mainland China", "Hong Kong, Macao, Taiwan"),
-                    listOf("SF Express", "JD Logistics", "YTO Express")
+                    product.imageUrls,
+                    product.shippingTo,
+                    product.shippingMethods
                 )
             )
         )
 
         val keywordsIx: List<TransactionInstruction> = genKeywordIndexInstructions(
             nextProductId,
-            keywords,
+            product.keywords,
             accountPublicKey
         )
 

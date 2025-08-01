@@ -147,11 +147,12 @@ class AddEditProductViewModel @Inject constructor(
                     sellerName = "Default Seller", // TODO: Get from user profile
                     category = formData.category,
                     stock = formData.stock.toIntOrNull() ?: 0,
-                    shippingFrom = "Default Location", // TODO: Get from user profile
-                    shippingTo = listOf("Worldwide"), // TODO: Get from form
-                    shippingMethods = formData.shippingOptions.ifEmpty { listOf("Standard") },
+                    shippingFrom = formData.shippingOrigin,
+                    shippingTo = formData.salesRegions,
+                    shippingMethods = formData.shippingOptions,
                     rating = _state.value.originalProduct?.rating ?: 0.0F,
-                    reviewCount = _state.value.originalProduct?.reviewCount ?: 0
+                    reviewCount = _state.value.originalProduct?.reviewCount ?: 0,
+                    keywords = formData.keywords
                 )
 
                 // Use a separate context with SupervisorJob to survive app lifecycle changes
@@ -196,7 +197,6 @@ class AddEditProductViewModel @Inject constructor(
                 formData.description.isNotBlank() &&
                 formData.price.isNotBlank() &&
                 formData.price.toDoubleOrNull() != null &&
-                formData.category.isNotBlank() &&
                 formData.stock.isNotBlank() &&
                 formData.stock.toIntOrNull() != null
     }

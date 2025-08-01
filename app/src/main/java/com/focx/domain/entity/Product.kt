@@ -21,6 +21,7 @@ data class Product(
     val specifications: Map<String, String> = emptyMap(),
     val rating: Float = 0f,
     val reviewCount: Int = 0,
+    val keywords: List<String> = emptyList(),
 )
 
 @Serializable

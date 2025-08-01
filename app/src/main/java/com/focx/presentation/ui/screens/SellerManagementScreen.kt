@@ -81,70 +81,8 @@ fun SellerManagementScreen(
                 shippingTo = listOf("US", "CA"),
                 shippingMethods = listOf("Standard", "Express"),
                 rating = 4.8f,
-                reviewCount = 245
-            ),
-            Product(
-                id = 2UL,
-                name = "MacBook Pro 16\"",
-                description = "Professional laptop for creators",
-                price = 2499999000UL,
-                currency = "USDC",
-                imageUrls = listOf(
-                    "https://example.com/macbook1.jpg",
-                    "https://example.com/macbook2.jpg"
-                ),
-                sellerId = "seller1",
-                sellerName = "TechStore",
-                category = "Electronics",
-                stock = 12,
-                salesCount = 89,
-                shippingFrom = "New York",
-                shippingTo = listOf("US", "CA"),
-                shippingMethods = listOf("Standard", "Express"),
-                rating = 4.9f,
-                reviewCount = 189
-            ),
-            Product(
-                id = 3UL,
-                name = "AirPods Pro 2",
-                description = "Active noise cancellation earbuds",
-                price = 249990000UL,
-                currency = "USDC",
-                imageUrls = listOf(
-                    "https://example.com/airpods1.jpg",
-                    "https://example.com/airpods2.jpg"
-                ),
-                sellerId = "seller1",
-                sellerName = "TechStore",
-                category = "Electronics",
-                stock = 45,
-                salesCount = 234,
-                shippingFrom = "New York",
-                shippingTo = listOf("US", "CA"),
-                shippingMethods = listOf("Standard", "Express"),
-                rating = 4.7f,
-                reviewCount = 567
-            ),
-            Product(
-                id = 4UL,
-                name = "iPad Air 5th Gen",
-                description = "Powerful tablet for work and creativity",
-                price = 599990000UL,
-                currency = "USDC",
-                imageUrls = listOf(
-                    "https://example.com/ipad1.jpg",
-                    "https://example.com/ipad2.jpg"
-                ),
-                sellerId = "seller1",
-                sellerName = "TechStore",
-                category = "Electronics",
-                stock = 8,
-                salesCount = 67,
-                shippingFrom = "New York",
-                shippingTo = listOf("US", "CA"),
-                shippingMethods = listOf("Standard", "Express"),
-                rating = 4.6f,
-                reviewCount = 123
+                reviewCount = 245,
+                keywords = listOf()
             )
         )
     }

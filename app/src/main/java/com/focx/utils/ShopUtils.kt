@@ -299,16 +299,19 @@ object ShopUtils {
                 ","
             ) else emptyList(), //        val imageUrls: List<String>,
             baseInfo.merchant.base58(), //        val sellerId: String,
-            "", //        val sellerName: String,
-            "", //        val category: String,
-            baseInfo.inventory.toInt(), //        val stock: Int,
-            baseInfo.sales.toInt(), //        val salesCount: Int = 0,
-            "", //        val shippingFrom: String,
-            emptyList(), //        val shippingMethods: List<String>,
-            emptyList() //        val specifications: Map<String, String> = emptyMap(),
-//        val rating: Float = 0f,
-//        val reviewCount: Int = 0,
-        )
+            "", //
+            "", //
+            baseInfo.inventory.toInt(),
+            baseInfo.sales.toInt(),
+            baseInfo.shippingLocation,
+            if (extendedInfo != null && extendedInfo.salesRegions.isNotEmpty()) extendedInfo.imageVideoUrls.split(
+                ","
+            ) else emptyList(),
+            if (extendedInfo != null && extendedInfo.logisticsMethods.isNotEmpty()) extendedInfo.imageVideoUrls.split(
+                ","
+            ) else emptyList(),
+
+            )
 
         return product
     }
@@ -428,7 +431,7 @@ object ShopUtils {
 
         val pageInfo = calcPageInfo(page, pageSize, orderCount.toInt(), sortOrder)
         val orderList = ArrayList<Order>()
-        if (orderCount.toInt() < pageInfo.first){
+        if (orderCount.toInt() < pageInfo.first) {
             return emptyList()
         }
 
@@ -466,7 +469,7 @@ object ShopUtils {
         val orderCount = getUserPurchaseCount(buyerPubkey, solanaRpcClient).purchaseCount
 
         val pageInfo = calcPageInfo(page, pageSize, orderCount.toInt(), sortOrder)
-        if (orderCount.toInt() < pageInfo.first){
+        if (orderCount.toInt() < pageInfo.first) {
             return emptyList()
         }
         val orderList = ArrayList<Order>()

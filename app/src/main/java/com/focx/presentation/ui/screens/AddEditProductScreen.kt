@@ -1,5 +1,6 @@
 package com.focx.presentation.ui.screens
 
+import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -25,10 +26,7 @@ import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -46,10 +44,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
 import com.focx.presentation.ui.theme.FocxTheme
 import com.focx.presentation.ui.theme.Spacing
 
@@ -60,22 +62,26 @@ data class ProductFormData(
     val category: String = "",
     val stock: String = "",
     val images: List<String> = emptyList(),
+    val keywords: List<String> = emptyList(),
+    val salesRegions: List<String> = emptyList(),
+    val shippingOrigin: String = "",
     val shippingOptions: List<String> = emptyList()
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddEditProductScreen(
-    productId: String? = null, // null for add, non-null for edit
+    productId: String? = null,
     onBackClick: () -> Unit,
     onSaveClick: (ProductFormData, com.solana.mobilewalletadapter.clientlib.ActivityResultSender) -> Unit,
     activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender
 ) {
+    val context = LocalContext.current
     val isEditMode = productId != null
     var formData by remember {
         mutableStateOf(
             if (isEditMode) {
-                // In real app, load existing product data
+
                 ProductFormData(
                     name = "iPhone 15 Pro Max  Apple",
                     description = "Latest iPhone with titanium design and advanced camera system",
@@ -83,6 +89,9 @@ fun AddEditProductScreen(
                     category = "Electronics",
                     stock = "25",
                     images = listOf("image1.jpg", "image2.jpg"),
+                    keywords = listOf("iPhone", "Apple", "Smartphone"),
+                    salesRegions = listOf("North America", "Europe"),
+                    shippingOrigin = "Shenzhen, China",
                     shippingOptions = listOf("Standard", "Express")
                 )
             } else {
@@ -91,9 +100,14 @@ fun AddEditProductScreen(
         )
     }
 
-    var showCategoryDropdown by remember { mutableStateOf(false) }
     var newShippingOption by remember { mutableStateOf("") }
     var showAddShippingDialog by remember { mutableStateOf(false) }
+    var newImageUrl by remember { mutableStateOf("") }
+    var showAddImageDialog by remember { mutableStateOf(false) }
+    var newKeyword by remember { mutableStateOf("") }
+    var showAddKeywordDialog by remember { mutableStateOf(false) }
+    var newSalesRegion by remember { mutableStateOf("") }
+    var showAddSalesRegionDialog by remember { mutableStateOf(false) }
 
     val categories = listOf(
         "Electronics", "Clothing", "Home & Garden", "Sports",
@@ -103,8 +117,11 @@ fun AddEditProductScreen(
     val isFormValid = formData.name.isNotBlank() &&
             formData.description.isNotBlank() &&
             formData.price.isNotBlank() &&
-            formData.category.isNotBlank() &&
-            formData.stock.isNotBlank()
+            formData.stock.isNotBlank() &&
+            formData.images.isNotEmpty() &&
+            formData.keywords.isNotEmpty() &&
+            formData.salesRegions.isNotEmpty() &&
+            formData.shippingOrigin.isNotBlank()
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -146,15 +163,17 @@ fun AddEditProductScreen(
                 Spacer(modifier = Modifier.height(Spacing.small))
             }
 
-            // Product Images Section
+
             item {
                 Text(
-                    text = "Product Images",
+                    text = "Product Images *",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold
                 )
                 Spacer(modifier = Modifier.height(Spacing.small))
 
+
+                
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(Spacing.small)
                 ) {
@@ -172,17 +191,19 @@ fun AddEditProductScreen(
                     item {
                         AddImageCard(
                             onClick = {
-                                // In real app, open image picker
-                                formData = formData.copy(
-                                    images = formData.images + "new_image_${formData.images.size + 1}.jpg"
-                                )
+                                Toast.makeText(
+                                    context,
+                                    "We are integrating with a decentralized storage service. For now, image/video uploading is not supported.",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                                showAddImageDialog = true
                             }
                         )
                     }
                 }
             }
 
-            // Basic Information
+
             item {
                 Text(
                     text = "Basic Information",
@@ -212,6 +233,72 @@ fun AddEditProductScreen(
                 )
             }
 
+            // Keywords Section
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Keywords *",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+
+                    TextButton(
+                        onClick = { showAddKeywordDialog = true }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = "Add",
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Add")
+                    }
+                }
+            }
+
+            item {
+                if (formData.keywords.isEmpty()) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant
+                        )
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(Spacing.large),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "No keywords added",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                } else {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(Spacing.small)
+                    ) {
+                        formData.keywords.forEach { keyword ->
+                            KeywordCard(
+                                keyword = keyword,
+                                onRemove = {
+                                    formData = formData.copy(
+                                        keywords = formData.keywords - keyword
+                                    )
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -237,41 +324,82 @@ fun AddEditProductScreen(
                 }
             }
 
+            // Sales Regions Section
             item {
-                ExposedDropdownMenuBox(
-                    expanded = showCategoryDropdown,
-                    onExpandedChange = { showCategoryDropdown = it }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    OutlinedTextField(
-                        value = formData.category,
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Category *") },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .menuAnchor(),
-                        trailingIcon = {
-                            ExposedDropdownMenuDefaults.TrailingIcon(
-                                expanded = showCategoryDropdown
-                            )
-                        }
+                    Text(
+                        text = "Sales Regions *",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
                     )
 
-                    ExposedDropdownMenu(
-                        expanded = showCategoryDropdown,
-                        onDismissRequest = { showCategoryDropdown = false }
+                    TextButton(
+                        onClick = { showAddSalesRegionDialog = true }
                     ) {
-                        categories.forEach { category ->
-                            DropdownMenuItem(
-                                text = { Text(category) },
-                                onClick = {
-                                    formData = formData.copy(category = category)
-                                    showCategoryDropdown = false
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = "Add",
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Add")
+                    }
+                }
+            }
+
+            item {
+                if (formData.salesRegions.isEmpty()) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant
+                        )
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(Spacing.large),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "No sales regions added",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                } else {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(Spacing.small)
+                    ) {
+                        formData.salesRegions.forEach { region ->
+                            SalesRegionCard(
+                                region = region,
+                                onRemove = {
+                                    formData = formData.copy(
+                                        salesRegions = formData.salesRegions - region
+                                    )
                                 }
                             )
                         }
                     }
                 }
+            }
+
+            // Shipping Origin
+            item {
+                OutlinedTextField(
+                    value = formData.shippingOrigin,
+                    onValueChange = { formData = formData.copy(shippingOrigin = it) },
+                    label = { Text("Shipping Origin *") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    placeholder = { Text("Enter shipping origin location") }
+                )
             }
 
             // Shipping Options
@@ -346,7 +474,7 @@ fun AddEditProductScreen(
         }
     }
 
-    // Add Shipping Option Dialog
+
     if (showAddShippingDialog) {
         AlertDialog(
             onDismissRequest = {
@@ -391,6 +519,147 @@ fun AddEditProductScreen(
             }
         )
     }
+
+
+    if (showAddImageDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showAddImageDialog = false
+                newImageUrl = ""
+            },
+            title = { Text("Add Image") },
+            text = {
+                OutlinedTextField(
+                    value = newImageUrl,
+                    onValueChange = { newImageUrl = it },
+                    label = { Text("Image URL") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    placeholder = { Text("Enter image URL address") }
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (newImageUrl.isNotBlank()) {
+                            formData = formData.copy(
+                                images = formData.images + newImageUrl
+                            )
+                        }
+                        showAddImageDialog = false
+                        newImageUrl = ""
+                    },
+                    enabled = newImageUrl.isNotBlank()
+                ) {
+                    Text("Add")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showAddImageDialog = false
+                        newImageUrl = ""
+                    }
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    // Add Keyword Dialog
+    if (showAddKeywordDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showAddKeywordDialog = false
+                newKeyword = ""
+            },
+            title = { Text("Add Keyword") },
+            text = {
+                OutlinedTextField(
+                    value = newKeyword,
+                    onValueChange = { newKeyword = it },
+                    label = { Text("Keyword") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    placeholder = { Text("Enter keyword") }
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (newKeyword.isNotBlank()) {
+                            formData = formData.copy(
+                                keywords = formData.keywords + newKeyword
+                            )
+                        }
+                        showAddKeywordDialog = false
+                        newKeyword = ""
+                    },
+                    enabled = newKeyword.isNotBlank()
+                ) {
+                    Text("Add")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showAddKeywordDialog = false
+                        newKeyword = ""
+                    }
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    // Add Sales Region Dialog
+    if (showAddSalesRegionDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showAddSalesRegionDialog = false
+                newSalesRegion = ""
+            },
+            title = { Text("Add Sales Region") },
+            text = {
+                OutlinedTextField(
+                    value = newSalesRegion,
+                    onValueChange = { newSalesRegion = it },
+                    label = { Text("Sales Region") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    placeholder = { Text("Enter sales region") }
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (newSalesRegion.isNotBlank()) {
+                            formData = formData.copy(
+                                salesRegions = formData.salesRegions + newSalesRegion
+                            )
+                        }
+                        showAddSalesRegionDialog = false
+                        newSalesRegion = ""
+                    },
+                    enabled = newSalesRegion.isNotBlank()
+                ) {
+                    Text("Add")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showAddSalesRegionDialog = false
+                        newSalesRegion = ""
+                    }
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 }
 
 @Composable
@@ -410,17 +679,17 @@ fun ProductImageCard(
                 containerColor = MaterialTheme.colorScheme.primaryContainer
             )
         ) {
-            Box(
+
+            AsyncImage(
+                model = imageUrl,
+                contentDescription = "Product Image",
                 modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "IMG",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-            }
+                contentScale = ContentScale.Crop,
+                error = painterResource(id = android.R.drawable.ic_menu_gallery),
+                placeholder = painterResource(id = android.R.drawable.ic_menu_gallery)
+            )
         }
+
 
         IconButton(
             onClick = onRemove,
@@ -487,6 +756,86 @@ fun AddImageCard(
 }
 
 @Composable
+fun KeywordCard(
+    keyword: String,
+    onRemove: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(Spacing.medium),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = keyword,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.weight(1f)
+            )
+
+            IconButton(
+                onClick = onRemove,
+                modifier = Modifier.size(24.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Remove",
+                    modifier = Modifier.size(16.dp),
+                    tint = MaterialTheme.colorScheme.error
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun SalesRegionCard(
+    region: String,
+    onRemove: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(Spacing.medium),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = region,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.weight(1f)
+            )
+
+            IconButton(
+                onClick = onRemove,
+                modifier = Modifier.size(24.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Remove",
+                    modifier = Modifier.size(16.dp),
+                    tint = MaterialTheme.colorScheme.error
+                )
+            }
+        }
+    }
+}
+
+@Composable
 fun ShippingOptionCard(
     option: String,
     onRemove: () -> Unit,
@@ -526,19 +875,6 @@ fun ShippingOptionCard(
     }
 }
 
-// Note: Preview disabled due to ActivityResultSender dependency
-// @Preview(showBackground = true, backgroundColor = 0xFF1A1A1A)
-// @Composable
-// fun AddEditProductScreenPreview() {
-//     FocxTheme {
-//         AddEditProductScreen(
-//             productId = null,
-//             onBackClick = { },
-//             onSaveClick = { _, _ -> },
-//             activityResultSender = // Cannot mock in preview
-//         )
-//     }
-// }
 
 @Preview(showBackground = true, backgroundColor = 0xFF1A1A1A)
 @Composable
