@@ -56,23 +56,51 @@ import java.util.UUID
 @Composable
 fun AddEditAddressScreen(
     addressToEdit: UserAddress? = null,
+    addressId: String? = null,
     onNavigateBack: () -> Unit,
     onSaveSuccess: () -> Unit,
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val isEditing = addressToEdit != null
+    
+    // Load profile data when screen is displayed
+    LaunchedEffect(Unit) {
+        viewModel.loadProfileData()
+    }
+    
+    // If addressToEdit is null but addressId is provided, try to find the address in the loaded addresses
+    val actualAddressToEdit = addressToEdit ?: addressId?.let { id ->
+        uiState.userAddresses.find { it.id == id }
+    }
+    
+    val isEditing = actualAddressToEdit != null
 
-    var label by remember { mutableStateOf(addressToEdit?.label ?: "") }
-    var recipientName by remember { mutableStateOf(addressToEdit?.recipientName ?: "") }
-    var addressLine1 by remember { mutableStateOf(addressToEdit?.addressLine1 ?: "") }
-    var addressLine2 by remember { mutableStateOf(addressToEdit?.addressLine2 ?: "") }
-    var city by remember { mutableStateOf(addressToEdit?.city ?: "") }
-    var state by remember { mutableStateOf(addressToEdit?.state ?: "") }
-    var postalCode by remember { mutableStateOf(addressToEdit?.postalCode ?: "") }
-    var country by remember { mutableStateOf(addressToEdit?.country ?: "United States") }
-    var phoneNumber by remember { mutableStateOf(addressToEdit?.phoneNumber ?: "") }
-    var isDefault by remember { mutableStateOf(addressToEdit?.isDefault ?: false) }
+    var label by remember { mutableStateOf("") }
+    var recipientName by remember { mutableStateOf("") }
+    var addressLine1 by remember { mutableStateOf("") }
+    var addressLine2 by remember { mutableStateOf("") }
+    var city by remember { mutableStateOf("") }
+    var state by remember { mutableStateOf("") }
+    var postalCode by remember { mutableStateOf("") }
+    var country by remember { mutableStateOf("United States") }
+    var phoneNumber by remember { mutableStateOf("") }
+    var isDefault by remember { mutableStateOf(false) }
+    
+    // Update form fields when actualAddressToEdit changes
+    LaunchedEffect(actualAddressToEdit) {
+        actualAddressToEdit?.let { address ->
+            label = address.label
+            recipientName = address.recipientName
+            addressLine1 = address.addressLine1
+            addressLine2 = address.addressLine2 ?: ""
+            city = address.city
+            state = address.state
+            postalCode = address.postalCode
+            country = address.country
+            phoneNumber = address.phoneNumber
+            isDefault = address.isDefault
+        }
+    }
 
     var isLoading by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
@@ -297,7 +325,7 @@ fun AddEditAddressScreen(
                 onClick = {
                     isLoading = true
                     val address = if (isEditing) {
-                        addressToEdit!!.copy(
+                        actualAddressToEdit!!.copy(
                             label = label,
                             recipientName = recipientName,
                             addressLine1 = addressLine1,
@@ -325,10 +353,11 @@ fun AddEditAddressScreen(
                         )
                     }
 
-                    // TODO: Call viewModel to save address
-                    // For now, just simulate success
-                    isLoading = false
-                    onSaveSuccess()
+                    // Call viewModel to save address
+                    viewModel.saveAddress(address) {
+                        isLoading = false
+                        onSaveSuccess()
+                    }
                 },
                 enabled = isFormValid && !isLoading,
                 modifier = Modifier.fillMaxWidth()
@@ -360,10 +389,11 @@ fun AddEditAddressScreen(
                     onClick = {
                         showDeleteDialog = false
                         isLoading = true
-                        // TODO: Call viewModel to delete address
-                        // For now, just simulate success
-                        isLoading = false
-                        onNavigateBack()
+                        // Call viewModel to delete address
+                        viewModel.deleteAddress(actualAddressToEdit!!.id) {
+                            isLoading = false
+                            onNavigateBack()
+                        }
                     }
                 ) {
                     Text(

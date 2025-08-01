@@ -1,6 +1,7 @@
 package com.focx.presentation.ui.screens
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -32,15 +33,19 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.focx.domain.entity.UserAddress
 import com.focx.presentation.viewmodel.ProfileViewModel
+import com.focx.presentation.ui.components.TechLoadingIndicator
+import com.focx.presentation.ui.components.LoadingSize
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -51,6 +56,11 @@ fun AddressListScreen(
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    // Load addresses when screen is displayed
+    LaunchedEffect(Unit) {
+        viewModel.loadProfileData()
+    }
 
     Scaffold(
         topBar = {
@@ -84,26 +94,76 @@ fun AddressListScreen(
             }
         }
     ) { paddingValues ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            contentPadding = PaddingValues(vertical = 16.dp)
-        ) {
-            if (uiState.userAddresses.isEmpty()) {
-                item {
-                    EmptyAddressState(
-                        onAddAddress = onNavigateToAddAddress
+        when {
+            uiState.isLoading -> {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    TechLoadingIndicator(size = LoadingSize.LARGE)
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "Loading addresses...",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-            } else {
-                items(uiState.userAddresses) { address ->
-                    AddressListItem(
-                        address = address,
-                        onClick = { onNavigateToEditAddress(address) }
+            }
+            uiState.error != null -> {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = "Error: ${uiState.error}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.error
                     )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(onClick = { viewModel.loadProfileData() }) {
+                        Text("Retry")
+                    }
+                }
+            }
+            else -> {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues)
+                        .padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    contentPadding = PaddingValues(vertical = 16.dp)
+                ) {
+                    if (uiState.userAddresses.isEmpty()) {
+                        item {
+                            EmptyAddressState(
+                                onAddAddress = onNavigateToAddAddress
+                            )
+                        }
+                    } else {
+                        item {
+                            Text(
+                                text = "Long press an address to set as default",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(bottom = 8.dp)
+                            )
+                        }
+                        
+                        items(uiState.userAddresses) { address ->
+                            AddressListItem(
+                                address = address,
+                                onClick = { onNavigateToEditAddress(address) },
+                                onSetAsDefault = { viewModel.setDefaultAddress(address.id) {} }
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -163,12 +223,18 @@ fun EmptyAddressState(
 @Composable
 fun AddressListItem(
     address: UserAddress,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onSetAsDefault: () -> Unit
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick() },
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onTap = { onClick() },
+                    onLongPress = { onSetAsDefault() }
+                )
+            },
         shape = RoundedCornerShape(12.dp)
     ) {
         Row(

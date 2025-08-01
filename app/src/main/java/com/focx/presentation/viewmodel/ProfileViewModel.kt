@@ -27,6 +27,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import com.focx.data.datasource.local.AddressLocalDataSource
 
 data class ProfileUiState(
     val isLoading: Boolean = false,
@@ -48,7 +49,8 @@ class ProfileViewModel @Inject constructor(
     private val connectWalletUseCase: ConnectWalletUseCase,
     private val disconnectWalletUseCase: DisconnectWalletUseCase,
     private val loginWithWalletUseCase: LoginWithWalletUseCase,
-    private val solanaWalletConnectUseCase: SolanaWalletConnectUseCase
+    private val solanaWalletConnectUseCase: SolanaWalletConnectUseCase,
+    private val addressLocalDataSource: AddressLocalDataSource
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProfileUiState())
@@ -209,17 +211,22 @@ class ProfileViewModel @Inject constructor(
     private fun loadUserAddresses() {
         viewModelScope.launch {
             try {
-                getUserAddressesUseCase().catch { e ->
+                addressLocalDataSource.getUserAddresses().catch { e ->
                     Log.e("ProfileViewModel", "User addresses flow error: ${e.message}")
                     _uiState.value = _uiState.value.copy(
+                        isLoading = false,
                         error = "Failed to load addresses: ${e.message}"
                     )
                 }.collect { addresses ->
-                    _uiState.value = _uiState.value.copy(userAddresses = addresses)
+                    _uiState.value = _uiState.value.copy(
+                        userAddresses = addresses,
+                        isLoading = false
+                    )
                 }
             } catch (e: Exception) {
                 Log.e("ProfileViewModel", "Exception in loadUserAddresses: ${e.message}", e)
                 _uiState.value = _uiState.value.copy(
+                    isLoading = false,
                     error = "Failed to load user addresses: ${e.message}"
                 )
             }
@@ -302,5 +309,104 @@ class ProfileViewModel @Inject constructor(
 
     fun getAddressById(addressId: String): UserAddress? {
         return _uiState.value.userAddresses.find { it.id == addressId }
+    }
+    
+    /**
+     * Save or update user address
+     */
+    fun saveAddress(address: UserAddress, onSuccess: () -> Unit = {}) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            
+            try {
+                addressLocalDataSource.saveAddress(address).fold(
+                    onSuccess = { savedAddress ->
+                        Log.d("ProfileViewModel", "Address saved successfully: ${savedAddress.id}")
+                        // Reload addresses to update UI
+                        loadUserAddresses()
+                        onSuccess()
+                    },
+                    onFailure = { error ->
+                        Log.e("ProfileViewModel", "Failed to save address: ${error.message}")
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            error = "Failed to save address: ${error.message}"
+                        )
+                    }
+                )
+            } catch (e: Exception) {
+                Log.e("ProfileViewModel", "Exception in saveAddress: ${e.message}", e)
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = "Failed to save address: ${e.message}"
+                )
+            }
+        }
+    }
+    
+    /**
+     * Delete user address
+     */
+    fun deleteAddress(addressId: String, onSuccess: () -> Unit = {}) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            
+            try {
+                addressLocalDataSource.deleteAddress(addressId).fold(
+                    onSuccess = {
+                        Log.d("ProfileViewModel", "Address deleted successfully: $addressId")
+                        // Reload addresses to update UI
+                        loadUserAddresses()
+                        onSuccess()
+                    },
+                    onFailure = { error ->
+                        Log.e("ProfileViewModel", "Failed to delete address: ${error.message}")
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            error = "Failed to delete address: ${error.message}"
+                        )
+                    }
+                )
+            } catch (e: Exception) {
+                Log.e("ProfileViewModel", "Exception in deleteAddress: ${e.message}", e)
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = "Failed to delete address: ${e.message}"
+                )
+            }
+        }
+    }
+    
+    /**
+     * Set address as default
+     */
+    fun setDefaultAddress(addressId: String, onSuccess: () -> Unit = {}) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            
+            try {
+                addressLocalDataSource.setDefaultAddress(addressId).fold(
+                    onSuccess = {
+                        Log.d("ProfileViewModel", "Default address set successfully: $addressId")
+                        // Reload addresses to update UI
+                        loadUserAddresses()
+                        onSuccess()
+                    },
+                    onFailure = { error ->
+                        Log.e("ProfileViewModel", "Failed to set default address: ${error.message}")
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            error = "Failed to set default address: ${error.message}"
+                        )
+                    }
+                )
+            } catch (e: Exception) {
+                Log.e("ProfileViewModel", "Exception in setDefaultAddress: ${e.message}", e)
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = "Failed to set default address: ${e.message}"
+                )
+            }
+        }
     }
 }

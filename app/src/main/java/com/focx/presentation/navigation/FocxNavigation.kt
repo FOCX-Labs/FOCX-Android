@@ -271,14 +271,16 @@ fun FocxNavigation(activityResultSender: ActivityResultSender) {
                 "edit_address/{addressId}", arguments = listOf(navArgument("addressId") { type = NavType.StringType })
             ) { backStackEntry ->
                 val addressId = backStackEntry.arguments?.getString("addressId") ?: ""
-                val profileViewModel: ProfileViewModel = hiltViewModel()
-                val addressToEdit = profileViewModel.getAddressById(addressId)
 
-                AddEditAddressScreen(addressToEdit = addressToEdit, onNavigateBack = {
-                    navController.popBackStack()
-                }, onSaveSuccess = {
-                    navController.popBackStack()
-                })
+                AddEditAddressScreen(
+                    addressId = addressId,
+                    onNavigateBack = {
+                        navController.popBackStack()
+                    }, 
+                    onSaveSuccess = {
+                        navController.popBackStack()
+                    }
+                )
             }
 
             // Order List

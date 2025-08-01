@@ -10,6 +10,7 @@ import com.focx.data.datasource.mock.MockGovernanceDataSource
 import com.focx.data.datasource.mock.MockSellerDataSource
 import com.focx.data.datasource.mock.MockUserDataSource
 import com.focx.data.datasource.mock.MockWalletDataSource
+import com.focx.data.datasource.local.AddressLocalDataSource
 import com.focx.data.datasource.solana.SolanaMerchantDataSource
 import com.focx.data.datasource.solana.SolanaOrderDataSource
 import com.focx.data.datasource.solana.SolanaProductDataSource
@@ -249,6 +250,21 @@ object AppModule {
     @Singleton
     fun provideNetworkPreferences(@ApplicationContext context: Context): NetworkPreferences {
         return NetworkPreferences(context)
+    }
+    
+    @Provides
+    @Singleton
+    fun provideGson(): com.google.gson.Gson {
+        return com.google.gson.Gson()
+    }
+    
+    @Provides
+    @Singleton
+    fun provideAddressLocalDataSource(
+        @ApplicationContext context: Context,
+        gson: com.google.gson.Gson
+    ): AddressLocalDataSource {
+        return AddressLocalDataSource(context, gson)
     }
 
     @Provides
