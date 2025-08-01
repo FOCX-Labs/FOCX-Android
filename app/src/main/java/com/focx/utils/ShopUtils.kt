@@ -18,6 +18,7 @@ import com.funkatronics.kborsh.Borsh
 import com.solana.publickey.ProgramDerivedAddress
 import com.solana.publickey.PublicKey
 import com.solana.publickey.SolanaPublicKey
+import com.solana.rpc.ProgramAccountsRequest
 import com.solana.rpc.SolanaRpcClient
 import com.solana.rpc.getAccountInfo
 import com.solana.transaction.AccountMeta
@@ -309,9 +310,8 @@ object ShopUtils {
             ) else emptyList(),
             if (extendedInfo != null && extendedInfo.logisticsMethods.isNotEmpty()) extendedInfo.imageVideoUrls.split(
                 ","
-            ) else emptyList(),
-
-            )
+            ) else emptyList()
+        )
 
         return product
     }
@@ -484,5 +484,19 @@ object ShopUtils {
     suspend fun getSystemConfig(solanaRpcClient: SolanaRpcClient): SystemConfig {
         val systemConfigPda = getSystemConfigPDA().getOrNull()!!
         return solanaRpcClient.getAccountInfo<SystemConfig>(systemConfigPda).result?.data!!
+    }
+
+    suspend fun getMerchantProducts(
+        merchantPublicKey: SolanaPublicKey,
+        solanaRpcClient: SolanaRpcClient
+    ) {
+        val accounts = solanaRpcClient.getProgramAccounts(
+            AppConstants.App.getShopProgramId(),
+            filters = listOf(
+                ProgramAccountsRequest.MemCompare(16, merchantPublicKey.base58())
+            )
+        ).result
+
+        Log.d(TAG, "getMerchantProducts ${merchantPublicKey.base58()}: ${accounts?.size}")
     }
 }

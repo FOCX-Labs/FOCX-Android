@@ -245,6 +245,8 @@ class SolanaMerchantDataSource @Inject constructor(
                 val pbPda = ShopUtils.getProductBasePDA(420000UL)
                 Log.d("DebugUtils", "pbpda 420000UL :$pbPda")
 
+                ShopUtils.getMerchantProducts(SolanaPublicKey.from(walletAddress), solanaRpcClient)
+
                 Log.d(TAG, "merchant pad: ${pda.getOrNull()!!.base58()}")
                 val merchant = solanaRpcClient.getAccountInfo<Merchant>(pda.getOrNull()!!).result
                 val orderCount = ShopUtils.getMerchantOrderCount(ShopUtils.getMerchantOrderCountPDA(merchantPublicKey).getOrNull()!!, solanaRpcClient)
