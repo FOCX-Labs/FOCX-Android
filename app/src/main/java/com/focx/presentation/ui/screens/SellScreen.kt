@@ -21,12 +21,14 @@ import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.Inventory
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.TrendingUp
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -35,6 +37,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -76,13 +79,14 @@ fun SellScreen(
         SellerRegistrationScreen(
             activityResultSender = activityResultSender,
             onRegistrationSuccess = {
-                // Simulate successful registration, directly set to registered state
+                // Update registration status and cache
                 registrationViewModel.setRegistered(true)
             }
         )
         return
     }
 
+    // Load data when screen is displayed or refreshed
     LaunchedEffect(Unit) {
         viewModel.loadSellerData()
     }
@@ -109,7 +113,17 @@ fun SellScreen(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator()
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(Spacing.medium)
+                    ) {
+                        CircularProgressIndicator()
+                        Text(
+                            text = if (uiState.isDataCached) "Refreshing data..." else "Loading data...",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
 
@@ -135,11 +149,37 @@ fun SellScreen(
                 ) {
                     item {
                         Spacer(modifier = Modifier.height(Spacing.small))
-                        Text(
-                            text = "Seller Dashboard",
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Seller Dashboard",
+                                style = MaterialTheme.typography.headlineMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            
+                            // Show cache status and refresh button
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(Spacing.small),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                IconButton(
+                                    onClick = { viewModel.refreshData() },
+                                    enabled = !uiState.isLoading
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Refresh,
+                                        contentDescription = "Refresh data",
+                                        tint = if (uiState.isLoading) 
+                                            MaterialTheme.colorScheme.onSurfaceVariant 
+                                        else 
+                                            MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
+                        }
                     }
 
                     // Statistics Cards

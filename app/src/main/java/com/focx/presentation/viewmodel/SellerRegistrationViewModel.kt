@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.focx.core.constants.AppConstants
 import com.focx.domain.entity.MerchantRegistration
+import com.focx.data.datasource.local.AccountCacheDataSource
 import com.focx.domain.usecase.GetCurrentWalletAddressUseCase
 import com.focx.domain.usecase.GetMerchantStatusUseCase
 import com.focx.domain.usecase.RegisterMerchantUseCase
@@ -54,7 +55,8 @@ data class CreatedAccount(
 class SellerRegistrationViewModel @Inject constructor(
     private val registerMerchantUseCase: RegisterMerchantUseCase,
     private val getMerchantStatusUseCase: GetMerchantStatusUseCase,
-    private val getCurrentWalletAddressUseCase: GetCurrentWalletAddressUseCase
+    private val getCurrentWalletAddressUseCase: GetCurrentWalletAddressUseCase,
+    private val accountCacheDataSource: AccountCacheDataSource
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SellerRegistrationUiState())
@@ -78,7 +80,26 @@ class SellerRegistrationViewModel @Inject constructor(
                 val isWalletConnected = getCurrentWalletAddressUseCase.isWalletConnected()
 
                 if (walletAddress != null && isWalletConnected) {
+                    // First check cache
+                    val cachedStatus = accountCacheDataSource.isMerchantRegistered(walletAddress)
+                    
+                    if (cachedStatus != null) {
+                        // Use cached data
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            isRegistered = cachedStatus,
+                            isWalletConnected = true,
+                            walletAddress = walletAddress
+                        )
+                        return@launch
+                    }
+                    
+                    // If no cache, fetch from network
                     val merchantStatus = getMerchantStatusUseCase(walletAddress).first()
+                    
+                    // Cache the result
+                    accountCacheDataSource.setMerchantRegistered(walletAddress, merchantStatus.isRegistered)
+                    
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         isRegistered = merchantStatus.isRegistered,
@@ -117,6 +138,22 @@ class SellerRegistrationViewModel @Inject constructor(
 
     fun clearError() {
         _uiState.value = _uiState.value.copy(errorMessage = null)
+    }
+
+    fun setRegistered(isRegistered: Boolean) {
+        val walletAddress = getCurrentWalletAddressUseCase.execute()
+        if (walletAddress != null) {
+            accountCacheDataSource.setMerchantRegistered(walletAddress, isRegistered)
+        }
+        _uiState.value = _uiState.value.copy(isRegistered = isRegistered)
+    }
+
+    fun refreshMerchantStatus() {
+        val walletAddress = getCurrentWalletAddressUseCase.execute()
+        if (walletAddress != null) {
+            accountCacheDataSource.clearMerchantCache(walletAddress)
+        }
+        checkMerchantStatus()
     }
 
     fun registerAsSeller(activityResultSender: ActivityResultSender) {
@@ -224,6 +261,12 @@ class SellerRegistrationViewModel @Inject constructor(
                         "Accounts created details: ${accountsCreated.map { "${it.accountType}: ${it.accountAddress}" }}"
                     )
 
+                    // Update cache with successful registration
+                    val walletAddress = getCurrentWalletAddressUseCase.execute()
+                    if (walletAddress != null) {
+                        accountCacheDataSource.setMerchantRegistered(walletAddress, true)
+                    }
+                    
                     _uiState.value = currentState.copy(
                         isRegistrationInProgress = false,
                         registrationSuccess = true,
@@ -250,10 +293,6 @@ class SellerRegistrationViewModel @Inject constructor(
                 )
             }
         }
-    }
-
-    fun setRegistered(isRegistered: Boolean) {
-        _uiState.value = _uiState.value.copy(isRegistered = isRegistered)
     }
 
     fun refreshWalletStatus() {

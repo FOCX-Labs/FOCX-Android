@@ -11,6 +11,7 @@ import com.focx.data.datasource.mock.MockSellerDataSource
 import com.focx.data.datasource.mock.MockUserDataSource
 import com.focx.data.datasource.mock.MockWalletDataSource
 import com.focx.data.datasource.local.AddressLocalDataSource
+import com.focx.data.datasource.local.AccountCacheDataSource
 import com.focx.data.datasource.solana.SolanaMerchantDataSource
 import com.focx.data.datasource.solana.SolanaOrderDataSource
 import com.focx.data.datasource.solana.SolanaProductDataSource
@@ -266,6 +267,14 @@ object AppModule {
         gson: com.google.gson.Gson
     ): AddressLocalDataSource {
         return AddressLocalDataSource(context, gson)
+    }
+
+    @Provides
+    @Singleton
+    fun provideAccountCacheDataSource(
+        @ApplicationContext context: Context
+    ): AccountCacheDataSource {
+        return AccountCacheDataSource(context)
     }
 
     @Provides

@@ -22,7 +22,9 @@ data class SellUiState(
     val error: String? = null,
     val sellerStats: MerchantStatus? = null,
     val myProducts: List<Product> = emptyList(),
-    val recentOrders: List<Order> = emptyList()
+    val recentOrders: List<Order> = emptyList(),
+    val isDataCached: Boolean = false,
+    val lastRefreshTime: Long = 0L
 )
 
 @HiltViewModel
@@ -36,7 +38,20 @@ class SellViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(SellUiState())
     val uiState: StateFlow<SellUiState> = _uiState.asStateFlow()
 
-    fun loadSellerData() {
+    private val CACHE_DURATION = 5 * 60 * 1000L // 5 minutes cache duration
+
+    fun loadSellerData(forceRefresh: Boolean = false) {
+        val currentTime = System.currentTimeMillis()
+        val currentState = _uiState.value
+        
+        // Check if we have cached data and it's still valid
+        if (!forceRefresh && 
+            currentState.isDataCached && 
+            currentState.sellerStats != null && 
+            currentState.myProducts.isNotEmpty() &&
+            (currentTime - currentState.lastRefreshTime) < CACHE_DURATION) {
+            return // Use cached data
+        }
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
 
@@ -107,8 +122,23 @@ class SellViewModel @Inject constructor(
                     error = "Failed to load data: ${e.message}"
                 )
             } finally {
-                _uiState.value = _uiState.value.copy(isLoading = false)
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    isDataCached = true,
+                    lastRefreshTime = System.currentTimeMillis()
+                )
             }
         }
+    }
+
+    fun refreshData() {
+        loadSellerData(forceRefresh = true)
+    }
+
+    fun clearCache() {
+        _uiState.value = _uiState.value.copy(
+            isDataCached = false,
+            lastRefreshTime = 0L
+        )
     }
 }

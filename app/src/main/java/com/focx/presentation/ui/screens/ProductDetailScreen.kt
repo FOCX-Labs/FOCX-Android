@@ -493,7 +493,7 @@ fun BottomBuyDialog(
 
                     // Dialog Title
                     Text(
-                        text = "Confirm Purchase",
+                        text = "Purchase",
                         style = MaterialTheme.typography.headlineSmall,
                         color = OnSurface,
                         fontWeight = FontWeight.Bold
