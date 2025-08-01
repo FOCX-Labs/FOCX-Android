@@ -36,6 +36,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -59,6 +62,7 @@ data class ProductFormData(
     val name: String = "",
     val description: String = "",
     val price: String = "",
+    val currency: String = "USDC",
     val category: String = "",
     val stock: String = "",
     val images: List<String> = emptyList(),
@@ -86,6 +90,7 @@ fun AddEditProductScreen(
                     name = "iPhone 15 Pro Max  Apple",
                     description = "Latest iPhone with titanium design and advanced camera system",
                     price = "1199.99",
+                    currency = "USDC",
                     category = "Electronics",
                     stock = "25",
                     images = listOf("image1.jpg", "image2.jpg"),
@@ -108,11 +113,14 @@ fun AddEditProductScreen(
     var showAddKeywordDialog by remember { mutableStateOf(false) }
     var newSalesRegion by remember { mutableStateOf("") }
     var showAddSalesRegionDialog by remember { mutableStateOf(false) }
+    var currencyExpanded by remember { mutableStateOf(false) }
 
     val categories = listOf(
         "Electronics", "Clothing", "Home & Garden", "Sports",
         "Books", "Toys", "Beauty", "Automotive", "Other"
     )
+
+    val currencies = listOf("USDC")
 
     val isFormValid = formData.name.isNotBlank() &&
             formData.description.isNotBlank() &&
@@ -307,12 +315,51 @@ fun AddEditProductScreen(
                     OutlinedTextField(
                         value = formData.price,
                         onValueChange = { formData = formData.copy(price = it) },
-                        label = { Text("Price ($) *") },
+                        label = { Text("Price *") },
                         modifier = Modifier.weight(1f),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         singleLine = true
                     )
+                    
+                    ExposedDropdownMenuBox(
+                        expanded = currencyExpanded,
+                        onExpandedChange = { currencyExpanded = it },
+                        modifier = Modifier.weight(0.5f)
+                    ) {
+                        OutlinedTextField(
+                            value = formData.currency,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Currency") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = currencyExpanded) },
+                            modifier = Modifier.menuAnchor(),
+                            textStyle = MaterialTheme.typography.bodySmall,
+                            singleLine = true
+                        )
+                        
+                        ExposedDropdownMenu(
+                            expanded = currencyExpanded,
+                            onDismissRequest = { currencyExpanded = false }
+                        ) {
+                            currencies.forEach { currency ->
+                                DropdownMenuItem(
+                                    text = { Text(currency) },
+                                    onClick = {
+                                        formData = formData.copy(currency = currency)
+                                        currencyExpanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
 
+            item{
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.medium)
+                ) {
                     OutlinedTextField(
                         value = formData.stock,
                         onValueChange = { formData = formData.copy(stock = it) },
