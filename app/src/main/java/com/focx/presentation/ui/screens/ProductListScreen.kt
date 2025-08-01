@@ -164,7 +164,7 @@ fun ProductListScreen(
                                     TechLoadingIndicator(size = LoadingSize.LARGE)
                                     Spacer(modifier = Modifier.height(Spacing.medium))
                                     Text(
-                                        text = "搜索中...",
+                                        text = "Loading...",
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = OnSurfaceVariant
                                     )
