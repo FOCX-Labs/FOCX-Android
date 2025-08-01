@@ -127,11 +127,14 @@ fun ProductListScreen(
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             SearchBarWithFilters(
-                searchQuery = state.searchQuery, onSearch = { query ->
+                searchQuery = state.searchQuery, 
+                onSearch = { query ->
                     viewModel.handleIntent(ProductListIntent.UpdateSearchQuery(query))
-                }, onFilterClick = {
+                }, 
+                onFilterClick = {
                     viewModel.handleIntent(ProductListIntent.ToggleFilterSheet)
-                }, onSortChange = { sortOption ->
+                }, 
+                onSortChange = { sortOption ->
                     viewModel.handleIntent(
                         ProductListIntent.ApplyFilters(
                             categories = filterState.selectedCategories,
@@ -139,13 +142,36 @@ fun ProductListScreen(
                             priceRange = filterState.priceRange
                         )
                     )
-                }, currentSortOption = filterState.selectedSortOption
+                }, 
+                currentSortOption = filterState.selectedSortOption,
+                isSearching = state.isSearching
             )
 
             Box(modifier = Modifier.weight(1f)) {
                 // Content
                 Box(modifier = Modifier.pullRefresh(pullRefreshState)) {
                     when {
+                        // 显示搜索loading状态
+                        state.isSearching && state.searchQuery.isNotBlank() -> {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center
+                                ) {
+                                    TechLoadingIndicator(size = LoadingSize.LARGE)
+                                    Spacer(modifier = Modifier.height(Spacing.medium))
+                                    Text(
+                                        text = "搜索中...",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = OnSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+                        
                         (state.isLoading || state.isRefreshing) && state.products.isEmpty() -> {
                             ShimmerProductGrid(
                                 modifier = Modifier.fillMaxSize()
@@ -160,7 +186,7 @@ fun ProductListScreen(
                             )
                         }
 
-                        state.products.isEmpty() && !state.isRefreshing -> {
+                        state.products.isEmpty() && !state.isRefreshing && !state.isSearching -> {
                             EmptyState(
                                 title = "No products found",
                                 subtitle = "Try adjusting your search or filters",
@@ -265,7 +291,8 @@ fun SearchBarWithFilters(
     onSearch: (String) -> Unit,
     onFilterClick: () -> Unit,
     onSortChange: (SortOption?) -> Unit = {},
-    currentSortOption: SortOption? = null
+    currentSortOption: SortOption? = null,
+    isSearching: Boolean = false
 ) {
     var localSearchQuery by remember(searchQuery) { mutableStateOf(searchQuery) }
     var selectedSort by remember(currentSortOption) {
@@ -298,7 +325,13 @@ fun SearchBarWithFilters(
             },
             modifier = Modifier.fillMaxWidth(),
             placeholder = { Text("Search Products") },
-            leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search") },
+            leadingIcon = { 
+                if (isSearching) {
+                    TechLoadingIndicator(size = LoadingSize.SMALL)
+                } else {
+                    Icon(Icons.Default.Search, contentDescription = "Search")
+                }
+            },
             singleLine = true
         )
 
