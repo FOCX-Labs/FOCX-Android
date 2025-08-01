@@ -73,7 +73,7 @@ fun SoldOrderDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Order #$orderId") },
+                title = { Text("Order $orderId") },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(

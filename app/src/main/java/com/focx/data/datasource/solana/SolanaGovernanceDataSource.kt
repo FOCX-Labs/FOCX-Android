@@ -130,7 +130,7 @@ class SolanaGovernanceDataSource @Inject constructor(
                         
                         val newDispute = Dispute(
                             id = "dispute_${System.currentTimeMillis()}",
-                            title = "Order Dispute #$orderId",
+                            title = "Order Dispute $orderId",
                             buyer = buyerPubKey.toString(),
                             order = orderId,
                             amount = "299.99 USDC", // TODO: Get actual order amount
