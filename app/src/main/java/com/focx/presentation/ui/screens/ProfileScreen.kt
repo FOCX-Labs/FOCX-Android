@@ -156,11 +156,14 @@ fun LoginPromptScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        // Network config info moved to bottom with smaller font
+
+        // Network Config Info at bottom
+        Spacer(modifier = Modifier.height(16.dp))
         Text(
             modifier = Modifier.fillMaxWidth(),
             text = NetworkConfig.getCurrentNetwork(),
-            style = MaterialTheme.typography.bodyLarge,
+            style = MaterialTheme.typography.bodySmall,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -251,6 +254,19 @@ fun ProfileContent(
                 onNavigateToOrders = onNavigateToOrders,
                 addressCount = uiState.userAddresses.size
             )
+        }
+
+        // Network Config Info at bottom
+        item {
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                modifier = Modifier.fillMaxWidth(),
+                text = NetworkConfig.getCurrentNetwork(),
+                style = MaterialTheme.typography.bodySmall,
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 
@@ -362,15 +378,7 @@ fun UserProfileHeader(
             }
         }
 
-        Text(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(4.dp),
-            text = NetworkConfig.getCurrentNetwork(),
-            style = MaterialTheme.typography.bodyLarge,
-            textAlign = TextAlign.Center,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        // Network config info moved to bottom with smaller font
     }
 }
 
