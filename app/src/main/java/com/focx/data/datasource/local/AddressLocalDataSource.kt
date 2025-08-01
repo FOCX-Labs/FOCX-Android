@@ -21,7 +21,6 @@ class AddressLocalDataSource @Inject constructor(
     companion object {
         private const val ADDRESSES_KEY = "user_addresses"
         private const val DEFAULT_ADDRESS_ID_KEY = "default_address_id"
-        private const val INITIALIZED_KEY = "addresses_initialized"
     }
     
     private val prefs: SharedPreferences by lazy {
@@ -40,62 +39,10 @@ class AddressLocalDataSource @Inject constructor(
             emptyList()
         }
         
-        // Initialize sample addresses if no addresses exist and not initialized before
-        if (addresses.isEmpty() && !prefs.getBoolean(INITIALIZED_KEY, false)) {
-            initializeSampleAddresses()
-            val sampleAddresses = getSampleAddresses()
-            emit(sampleAddresses)
-        } else {
-            emit(addresses)
-        }
+        emit(addresses)
     }
     
-    /**
-     * Initialize sample addresses for first-time users
-     */
-    private fun initializeSampleAddresses() {
-        val sampleAddresses = getSampleAddresses()
-        val addressesJson = gson.toJson(sampleAddresses)
-        prefs.edit()
-            .putString(ADDRESSES_KEY, addressesJson)
-            .putString(DEFAULT_ADDRESS_ID_KEY, sampleAddresses.first().id)
-            .putBoolean(INITIALIZED_KEY, true)
-            .apply()
-    }
     
-    /**
-     * Get sample addresses for demonstration
-     */
-    private fun getSampleAddresses(): List<UserAddress> {
-        return listOf(
-            UserAddress(
-                id = "addr_001",
-                label = "Home",
-                recipientName = "Jim Alice",
-                addressLine1 = "123 Blockchain Street",
-                addressLine2 = "Apt 4B",
-                city = "San Francisco",
-                state = "CA",
-                postalCode = "94102",
-                country = "United States",
-                phoneNumber = "+1-555-0123",
-                isDefault = true
-            ),
-            UserAddress(
-                id = "addr_002",
-                label = "Office",
-                recipientName = "Jim Alice",
-                addressLine1 = "456 Tech Avenue",
-                addressLine2 = "Suite 200",
-                city = "Palo Alto",
-                state = "CA",
-                postalCode = "94301",
-                country = "United States",
-                phoneNumber = "+1-555-0123",
-                isDefault = false
-            )
-        )
-    }
     
     /**
      * Save address to local storage
