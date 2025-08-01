@@ -2,13 +2,13 @@ package com.focx.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.focx.domain.entity.MerchantStatus
 import com.focx.domain.entity.Order
 import com.focx.domain.entity.Product
-import com.focx.domain.entity.SellerStats
 import com.focx.domain.usecase.GetCurrentWalletAddressUseCase
+import com.focx.domain.usecase.GetMerchantStatusUseCase
 import com.focx.domain.usecase.GetOrdersBySellerUseCase
 import com.focx.domain.usecase.GetProductsUseCase
-import com.focx.domain.usecase.GetSellerStatsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -20,14 +20,14 @@ import javax.inject.Inject
 data class SellUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
-    val sellerStats: SellerStats? = null,
+    val sellerStats: MerchantStatus? = null,
     val myProducts: List<Product> = emptyList(),
     val recentOrders: List<Order> = emptyList()
 )
 
 @HiltViewModel
 class SellViewModel @Inject constructor(
-    private val getSellerStatsUseCase: GetSellerStatsUseCase,
+    private val getSellerStatsUseCase: GetMerchantStatusUseCase,
     private val getProductsUseCase: GetProductsUseCase,
     private val getOrdersBySellerUseCase: GetOrdersBySellerUseCase,
     private val getCurrentWalletAddressUseCase: GetCurrentWalletAddressUseCase

@@ -22,5 +22,7 @@ data class MerchantStatus(
     val merchantAccount: String? = null,
     val registrationDate: String? = null,
     val securityDeposit: ULong? = null,
+    val orderCounts: ULong = 0UL,
+    val productCounts: ULong = 0UL,
     val status: String = AppConstants.Merchant.DEFAULT_STATUS
 )

@@ -153,36 +153,17 @@ fun SellScreen(
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
                                     StatCard(
-                                        title = "Total Sales",
-                                        value = stats.totalSales,
-                                        icon = Icons.Default.AttachMoney,
-                                        color = Color(0xFF4CAF50),
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                    StatCard(
                                         title = "Orders",
-                                        value = stats.totalOrders.toString(),
+                                        value = stats.orderCounts.toString(),
                                         icon = Icons.Default.ShoppingCart,
                                         color = Color(0xFF2196F3),
                                         modifier = Modifier.weight(1f)
                                     )
-                                }
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(Spacing.medium),
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
                                     StatCard(
                                         title = "Products",
-                                        value = stats.totalProducts.toString(),
+                                        value = stats.productCounts.toString(),
                                         icon = Icons.Default.Inventory,
                                         color = Color(0xFF9C27B0),
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                    StatCard(
-                                        title = "Rating",
-                                        value = String.format("%.1f", stats.averageRating),
-                                        icon = Icons.Default.TrendingUp,
-                                        color = Color(0xFFFF9800),
                                         modifier = Modifier.weight(1f)
                                     )
                                 }

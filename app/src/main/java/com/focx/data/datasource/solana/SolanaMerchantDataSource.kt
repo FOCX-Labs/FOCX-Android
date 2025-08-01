@@ -237,6 +237,7 @@ class SolanaMerchantDataSource @Inject constructor(
     override suspend fun getMerchantAccountData(walletAddress: String): Flow<MerchantStatus> =
         flow {
             try {
+                val merchantPublicKey = SolanaPublicKey.from(walletAddress)
                 val pda = getMerchantInfoPda(SolanaPublicKey.from(walletAddress))
                 DebugUtils.decodeCreateProductBase("9923fb426dc61a940d0000006950686f6e652031352050726f2b000000e69c80e696b0e6acbee88bb9e69e9ce6898be69cbaefbc8ce9858de5a4874131372050726fe88aafe7898700743ba40b0000000300000006000000e6898be69cba06000000e88bb9e69e9c060000006950686f6e656400000000000000ba09cc80988c16bdfbd50abbbc101d2459c2cf3d1e48bf25e922682da2a0f9fe12000000e9bb98e8aea4e58f91e8b4a7e59cb0e782b9")
                 DebugUtils.decodeCreateProductBase("9923fb426dc61a9406000000e69bb4e5889a09000000e5889ae8bf9be5aeb600362f5f3b000000010000000e0000004469676974616c2043616d6572619a02000000000000ba09cc80988c16bdfbd50abbbc101d2459c2cf3d1e48bf25e922682da2a0f9fe1900000044656661756c74205368697070696e67204c6f636174696f6e")
@@ -246,13 +247,16 @@ class SolanaMerchantDataSource @Inject constructor(
 
                 Log.d(TAG, "merchant pad: ${pda.getOrNull()!!.base58()}")
                 val merchant = solanaRpcClient.getAccountInfo<Merchant>(pda.getOrNull()!!).result
+                val orderCount = ShopUtils.getMerchantOrderCount(ShopUtils.getMerchantOrderCountPDA(merchantPublicKey).getOrNull()!!, solanaRpcClient)
 
                 if (!(merchant == null || merchant.data == null)) {
                     Log.d(TAG, "merchant info: ${merchant.data!!.name}, ${merchant.data!!.description}, ${merchant.data!!.depositAmount},")
 
                     val merchantStatus = MerchantStatus(
                         isRegistered = true,
-                        merchantAccount = "aaa",
+                        merchantAccount = walletAddress,
+                        orderCounts = orderCount,
+                        productCounts = merchant.data!!.productCount,
                         registrationDate = merchant.data!!.createdAt.toString(),
                         securityDeposit = merchant.data!!.depositAmount,
                         status = DEFAULT_STATUS
