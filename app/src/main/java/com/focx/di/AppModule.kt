@@ -42,6 +42,7 @@ import com.focx.domain.usecase.RegisterMerchantUseCase
 import com.focx.domain.usecase.SaveProductUseCase
 import com.focx.domain.usecase.SearchProductsUseCase
 import com.focx.domain.usecase.SolanaAccountBalanceUseCase
+import com.focx.domain.usecase.SolanaTokenBalanceUseCase
 import com.focx.domain.usecase.SolanaWalletConnectUseCase
 import com.focx.domain.usecase.SolanaWalletPersistenceUseCase
 import com.focx.domain.usecase.UpdateProductUseCase
@@ -323,6 +324,13 @@ object AppModule {
         return SolanaAccountBalanceUseCase(solanaRpcClient)
     }
 
+    @Provides
+    @Singleton
+    fun provideSolanaTokenBalanceUseCase(
+        solanaRpcClient: SolanaRpcClient
+    ): SolanaTokenBalanceUseCase {
+        return SolanaTokenBalanceUseCase(solanaRpcClient)
+    }
 
     @Provides
     @Singleton

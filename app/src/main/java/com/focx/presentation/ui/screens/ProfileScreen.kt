@@ -406,7 +406,7 @@ fun WalletBalanceCard(
             } else {
                 walletBalance?.let { balance ->
                     Text(
-                        text = "${String.format("%.4f", balance.usdcBalance)} SOL",
+                        text = "${String.format("%.4f", balance.solBalance)} SOL",
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
@@ -414,35 +414,12 @@ fun WalletBalanceCard(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Column {
-                            Text(
-                                text = "Total Value",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                text = "${NumberFormat.getCurrencyInstance(Locale.US).format(balance.totalValue)}",
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-
-                        Column {
-                            Text(
-                                text = "Staked",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                text = "${NumberFormat.getCurrencyInstance(Locale.US).format(balance.stakedAmount)}",
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-                    }
+                    Text(
+                        text = "${String.format("%.4f", balance.usdcBalance)} USDC",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
                 }
             }
         }

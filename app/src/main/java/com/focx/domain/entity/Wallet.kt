@@ -2,7 +2,7 @@ package com.focx.domain.entity
 
 data class WalletBalance(
     val usdcBalance: Double,
-    val ethBalance: Double,
+    val solBalance: Double,
     val stakedAmount: Double,
     val totalValue: Double,
     val lastUpdated: Long = System.currentTimeMillis()

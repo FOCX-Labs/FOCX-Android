@@ -15,6 +15,7 @@ import com.focx.domain.usecase.GetUserAddressesUseCase
 import com.focx.domain.usecase.GetWalletBalanceUseCase
 import com.focx.domain.usecase.LoginWithWalletUseCase
 import com.focx.domain.usecase.SolanaAccountBalanceUseCase
+import com.focx.domain.usecase.SolanaTokenBalanceUseCase
 import com.focx.domain.usecase.SolanaWalletConnectUseCase
 import com.focx.domain.usecase.WalletConnectResult
 import com.focx.utils.Log
@@ -28,6 +29,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import com.focx.data.datasource.local.AddressLocalDataSource
+import com.focx.utils.ShopUtils
 
 data class ProfileUiState(
     val isLoading: Boolean = false,
@@ -45,6 +47,7 @@ class ProfileViewModel @Inject constructor(
     private val getUserAddressesUseCase: GetUserAddressesUseCase,
     private val getWalletBalanceUseCase: GetWalletBalanceUseCase,
     private val solanaAccountBalanceUseCase: SolanaAccountBalanceUseCase,
+    private val solanaTokenBalanceUseCase: SolanaTokenBalanceUseCase,
     private val getStakingInfoUseCase: GetStakingInfoUseCase,
     private val connectWalletUseCase: ConnectWalletUseCase,
     private val disconnectWalletUseCase: DisconnectWalletUseCase,
@@ -142,9 +145,11 @@ class ProfileViewModel @Inject constructor(
                         // Convert lamports to SOL (1 SOL = 1,000,000,000 lamports)
                         val solBalance = lamports / 1_000_000_000.0
 
+                        val usdcBalance = solanaTokenBalanceUseCase.getBalanceByOwnerAndMint(publicKey) / 1_000_000_000.0
+
                         val walletBalance = WalletBalance(
-                            usdcBalance = solBalance, // Using SOL balance as USDC for now
-                            ethBalance = 0.0, // TODO: Implement ETH balance fetching
+                            usdcBalance = usdcBalance,
+                            solBalance = solBalance,
                             stakedAmount = 0.0, // TODO: Implement staking amount fetching
                             totalValue = solBalance,
                             lastUpdated = System.currentTimeMillis()

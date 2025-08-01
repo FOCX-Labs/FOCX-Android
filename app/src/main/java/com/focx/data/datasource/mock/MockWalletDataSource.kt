@@ -83,7 +83,7 @@ class MockWalletDataSource @Inject constructor() : IWalletRepository {
     private fun getSampleWalletBalance(): WalletBalance {
         return WalletBalance(
             usdcBalance = 12850.50,
-            ethBalance = 2.5,
+            solBalance = 2.5,
             stakedAmount = 2570.25,
             totalValue = 15420.75
         )
