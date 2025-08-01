@@ -68,8 +68,15 @@ class GetOrdersByStatusUseCase @Inject constructor(
 class CreateOrderUseCase @Inject constructor(
     private val orderRepository: IOrderRepository
 ) {
-    suspend operator fun invoke(product: com.focx.domain.entity.Product, quantity: UInt, buyer: String, activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender): Result<Order> {
-        return orderRepository.createOrder(product, quantity, buyer, activityResultSender)
+    suspend operator fun invoke(
+        product: com.focx.domain.entity.Product, 
+        quantity: UInt, 
+        buyer: String, 
+        shippingAddress: com.focx.domain.entity.ShippingAddress,
+        orderNote: String,
+        activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender
+    ): Result<Order> {
+        return orderRepository.createOrder(product, quantity, buyer, shippingAddress, orderNote, activityResultSender)
     }
 }
 

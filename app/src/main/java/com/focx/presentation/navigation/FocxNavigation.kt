@@ -127,8 +127,8 @@ fun FocxNavigation(activityResultSender: ActivityResultSender) {
                 ProductDetailScreen(
                     productId = productId,
                     onNavigateBack = { navController.popBackStack() },
-                    onBuyProduct = { product, quantity, activityResultSender ->
-                        orderViewModel.buyProduct(product, quantity.toUInt(), activityResultSender) { result ->
+                    onBuyProduct = { product, quantity, selectedAddress, orderNote, activityResultSender ->
+                        orderViewModel.buyProduct(product, quantity.toUInt(), selectedAddress, orderNote, activityResultSender) { result ->
                             result.onSuccess {
                                 navController.navigate("order_confirm/${it.id}")
                             }.onFailure {

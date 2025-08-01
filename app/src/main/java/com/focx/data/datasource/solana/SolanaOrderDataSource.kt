@@ -64,17 +64,34 @@ class SolanaOrderDataSource @Inject constructor(
         emit(ShopUtils.getOrdersBySeller(sellerId, solanaRpcClient))
     }
 
-    override suspend fun getOrdersByStatus(status: OrderManagementStatus): Flow<List<Order>> = flow {
-        emit(emptyList()) // TODO: 实现链上订单查询
-    }
+    override suspend fun getOrdersByStatus(status: OrderManagementStatus): Flow<List<Order>> =
+        flow {
+            emit(emptyList()) // TODO: 实现链上订单查询
+        }
 
-    override suspend fun createOrder(product: Product, quantity: UInt, buyer: String, activityResultSender: ActivityResultSender): Result<Order> {
+    override suspend fun createOrder(
+        product: Product,
+        quantity: UInt,
+        buyer: String,
+        shippingAddress: com.focx.domain.entity.ShippingAddress,
+        orderNote: String,
+        activityResultSender: ActivityResultSender
+    ): Result<Order> {
         return try {
-            Log.d("SolanaOrder", "Starting createOrder for product: ${product.id}, buyer: $buyer, quantity: $quantity")
+            Log.d(
+                "SolanaOrder",
+                "Starting createOrder for product: ${product.id}, buyer: $buyer, quantity: $quantity"
+            )
             val buyerPubkey = SolanaPublicKey.from(buyer)
             val result = walletAdapter.transact(activityResultSender) { authResult ->
                 val builder = Builder()
-                val instructions = genCreateOrderInstructions(product, quantity, buyerPubkey)
+                val instructions = genCreateOrderInstructions(
+                    product,
+                    quantity,
+                    buyerPubkey,
+                    shippingAddress,
+                    orderNote
+                )
                 instructions.forEach { ix -> builder.addInstruction(ix) }
                 val recentBlockhash = recentBlockhashUseCase()
                 val message = builder.setRecentBlockhash(recentBlockhash).build()
@@ -87,39 +104,48 @@ class SolanaOrderDataSource @Inject constructor(
                     val signature = result.successPayload?.signatures?.first()
                     if (signature != null) {
                         Log.d("SolanaOrder", "Order created successfully: $signature")
-                        Result.success(Order(
-                            id = java.util.UUID.randomUUID().toString(),
-                            buyerId = buyer,
-                            sellerId = product.sellerId,
-                            sellerName = product.sellerName,
-                            items = listOf(com.focx.domain.entity.OrderItem(
+                        Result.success(
+                            Order(
                                 id = java.util.UUID.randomUUID().toString(),
-                                productId = product.id.toString(),
-                                productName = product.name,
-                                productImage = product.imageUrls.firstOrNull() ?: "",
-                                quantity = quantity.toInt(),
-                                unitPrice = product.price.toDouble(),
-                                totalPrice = product.price.toDouble() * quantity.toDouble()
-                            )),
-                            totalAmount = product.price.toDouble() * quantity.toDouble(),
-                            currency = product.currency,
-                            status = OrderManagementStatus.Pending,
-                            paymentMethod = "USDC",
-                            transactionHash = signature.toString()
-                        ))
+                                buyerId = buyer,
+                                sellerId = product.sellerId,
+                                sellerName = product.sellerName,
+                                items = listOf(
+                                    com.focx.domain.entity.OrderItem(
+                                        id = java.util.UUID.randomUUID().toString(),
+                                        productId = product.id.toString(),
+                                        productName = product.name,
+                                        productImage = product.imageUrls.firstOrNull() ?: "",
+                                        quantity = quantity.toInt(),
+                                        unitPrice = product.price.toDouble(),
+                                        totalPrice = product.price.toDouble() * quantity.toDouble()
+                                    )
+                                ),
+                                totalAmount = product.price.toDouble() * quantity.toDouble(),
+                                currency = product.currency,
+                                status = OrderManagementStatus.Pending,
+                                shippingAddress = shippingAddress,
+                                orderNote = orderNote,
+                                paymentMethod = "USDC",
+                                transactionHash = signature.toString()
+                            )
+                        )
                     } else {
                         Log.e("SolanaOrder", "No signature returned from createOrder transaction")
                         Result.failure(Exception("No signature returned from transaction"))
                     }
                 }
+
                 is TransactionResult.NoWalletFound -> {
                     Log.e("SolanaOrder", "No wallet found for createOrder")
                     Result.failure(Exception("No wallet found"))
                 }
+
                 is TransactionResult.Failure -> {
                     Log.e("SolanaOrder", "createOrder failed: ${result.e.message}")
                     Result.failure(Exception("Transaction failed: ${result.e.message}"))
                 }
+
                 else -> Result.failure(Exception("Unknown transaction result"))
             }
         } catch (e: Exception) {
@@ -128,7 +154,13 @@ class SolanaOrderDataSource @Inject constructor(
         }
     }
 
-    private suspend fun genCreateOrderInstructions(product: Product, quantity: UInt, buyerPubkey: SolanaPublicKey): List<TransactionInstruction> {
+    private suspend fun genCreateOrderInstructions(
+        product: Product,
+        quantity: UInt,
+        buyerPubkey: SolanaPublicKey,
+        shippingAddress: com.focx.domain.entity.ShippingAddress,
+        orderNote: String
+    ): List<TransactionInstruction> {
         val merchantPubKey = SolanaPublicKey.from(product.sellerId)
         val userPurchaseCountPda = ShopUtils.getUserPurchaseCountPDA(buyerPubkey).getOrNull()!!
 
@@ -138,8 +170,10 @@ class SolanaOrderDataSource @Inject constructor(
         val orderStatsPda = ShopUtils.getOrderStatsPda().getOrNull()!!
         val productPda = ShopUtils.getProductBasePDA(product.id).getOrNull()!!
         val merchantOrderCountPDA = ShopUtils.getMerchantOrderCountPDA(merchantPubKey).getOrNull()!!
-        val merchantOrderCount = ShopUtils.getMerchantOrderCount(merchantOrderCountPDA, solanaRpcClient)
-        val nextMerchantOrderPDA = ShopUtils.getMerchantOrderPDA(merchantPubKey,merchantOrderCount + 1UL).getOrNull()!!
+        val merchantOrderCount =
+            ShopUtils.getMerchantOrderCount(merchantOrderCountPDA, solanaRpcClient)
+        val nextMerchantOrderPDA =
+            ShopUtils.getMerchantOrderPDA(merchantPubKey, merchantOrderCount + 1UL).getOrNull()!!
 
 
         val createIx = ShopUtils.genTransactionInstruction(
@@ -159,8 +193,8 @@ class SolanaOrderDataSource @Inject constructor(
                 CreateOrder(
                     product.id,
                     quantity,
-                    "shipping address",
-                    "default notes",
+                    "${shippingAddress.recipientName}, ${shippingAddress.addressLine1}, ${shippingAddress.city}, ${shippingAddress.state} ${shippingAddress.postalCode}, ${shippingAddress.phoneNumber}",
+                    orderNote,
                     "atomic_purchase_tx"
                 )
             )
@@ -178,7 +212,11 @@ class SolanaOrderDataSource @Inject constructor(
                 AccountMeta(programAuthorityPDA, false, false),
                 AccountMeta(buyerTokenAccount, false, true),
                 AccountMeta(AppConstants.App.getMint(), false, false),
-                AccountMeta(SolanaPublicKey.from(AppConstants.App.SPL_TOKEN_PROGRAM_ID), false, false),
+                AccountMeta(
+                    SolanaPublicKey.from(AppConstants.App.SPL_TOKEN_PROGRAM_ID),
+                    false,
+                    false
+                ),
                 AccountMeta(SystemProgram.PROGRAM_ID, false, false)
             ),
             Borsh.encodeToByteArray(
@@ -195,7 +233,8 @@ class SolanaOrderDataSource @Inject constructor(
 
     private suspend fun getCurrentPurchaseCount(userPurchaseCountPda: SolanaPublicKey): ULong {
         return try {
-            val userPurchaseCountAccount =  solanaRpcClient.getAccountInfo<UserPurchaseCount>(userPurchaseCountPda).result?.data
+            val userPurchaseCountAccount =
+                solanaRpcClient.getAccountInfo<UserPurchaseCount>(userPurchaseCountPda).result?.data
             if (userPurchaseCountAccount !== null) {
                 userPurchaseCountAccount.purchaseCount
             } else {
@@ -206,7 +245,10 @@ class SolanaOrderDataSource @Inject constructor(
         }
     }
 
-    override suspend fun updateOrderStatus(orderId: String, status: OrderManagementStatus): Result<Unit> {
+    override suspend fun updateOrderStatus(
+        orderId: String,
+        status: OrderManagementStatus
+    ): Result<Unit> {
         return try {
             Log.d("SolanaOrder", "Updating order status: $orderId to $status")
             // TODO: 实现链上订单状态更新
@@ -228,18 +270,26 @@ class SolanaOrderDataSource @Inject constructor(
         }
     }
 
-    override suspend fun updateTrackingNumber(orderId: String, trackingNumber: String, merchantPubKey: SolanaPublicKey, activityResultSender: ActivityResultSender): Result<Unit> {
+    override suspend fun updateTrackingNumber(
+        orderId: String,
+        trackingNumber: String,
+        merchantPubKey: SolanaPublicKey,
+        activityResultSender: ActivityResultSender
+    ): Result<Unit> {
         return try {
-            Log.d("SolanaOrder", "Starting updateTrackingNumber for order: $orderId, trackingNumber: $trackingNumber")
-            
+            Log.d(
+                "SolanaOrder",
+                "Starting updateTrackingNumber for order: $orderId, trackingNumber: $trackingNumber"
+            )
+
             val result = walletAdapter.transact(activityResultSender) { authResult ->
                 val builder = Builder()
-                
+
                 // Generate update tracking number instruction
                 val merchantInfoPDA = ShopUtils.getMerchantInfoPda(merchantPubKey).getOrNull()!!
                 val orderPda = SolanaPublicKey.from(orderId)
                 val orderStats = ShopUtils.getOrderStatsPda().getOrNull()!!
-                
+
                 val ix = ShopUtils.genTransactionInstruction(
                     listOf(
                         AccountMeta(orderPda, false, true),
@@ -252,19 +302,19 @@ class SolanaOrderDataSource @Inject constructor(
                         trackingNumber.toByteArray()
                     )
                 )
-                
+
                 builder.addInstruction(ix)
-                
+
                 // Get recent blockhash and build message
                 val recentBlockhash = recentBlockhashUseCase()
                 val message = builder.setRecentBlockhash(recentBlockhash).build()
-                
+
                 // Create and sign transaction
                 val transaction = Transaction(message)
                 val signResult = signAndSendTransactions(arrayOf(transaction.serialize()))
                 signResult
             }
-            
+
             when (result) {
                 is TransactionResult.Success -> {
                     val signature = result.successPayload?.signatures?.first()
@@ -272,18 +322,24 @@ class SolanaOrderDataSource @Inject constructor(
                         Log.d("SolanaOrder", "Tracking number updated successfully: $signature")
                         Result.success(Unit)
                     } else {
-                        Log.e("SolanaOrder", "No signature returned from updateTrackingNumber transaction")
+                        Log.e(
+                            "SolanaOrder",
+                            "No signature returned from updateTrackingNumber transaction"
+                        )
                         Result.failure(Exception("No signature returned from transaction"))
                     }
                 }
+
                 is TransactionResult.NoWalletFound -> {
                     Log.e("SolanaOrder", "No wallet found for updateTrackingNumber")
                     Result.failure(Exception("No wallet found"))
                 }
+
                 is TransactionResult.Failure -> {
                     Log.e("SolanaOrder", "updateTrackingNumber failed: ${result.e.message}")
                     Result.failure(Exception("Transaction failed: ${result.e.message}"))
                 }
+
                 else -> Result.failure(Exception("Unknown transaction result"))
             }
         } catch (e: Exception) {
@@ -292,16 +348,18 @@ class SolanaOrderDataSource @Inject constructor(
         }
     }
 
-    override suspend fun confirmReceipt(orderId: String,
-                                        buyerPubKey: SolanaPublicKey,
-                                        merchantPubKey: SolanaPublicKey,
-                                        activityResultSender: ActivityResultSender): Result<Unit> {
+    override suspend fun confirmReceipt(
+        orderId: String,
+        buyerPubKey: SolanaPublicKey,
+        merchantPubKey: SolanaPublicKey,
+        activityResultSender: ActivityResultSender
+    ): Result<Unit> {
         return try {
             Log.d("SolanaOrder", "Starting confirmReceipt for order: $orderId")
-            
+
             val result = walletAdapter.transact(activityResultSender) { authResult ->
                 val builder = Builder()
-                
+
                 // Generate confirm receipt instruction
                 val orderPda = SolanaPublicKey.from(orderId)
                 val orderStats = ShopUtils.getOrderStatsPda().getOrNull()!!
@@ -325,7 +383,11 @@ class SolanaOrderDataSource @Inject constructor(
                         AccountMeta(systemConfig.vaultTokenAccount, false, true),
                         AccountMeta(systemConfig.platformTokenAccount, false, true),
                         AccountMeta(buyerPubKey, true, true),
-                        AccountMeta(SolanaPublicKey.from(AppConstants.App.SPL_TOKEN_PROGRAM_ID), false, false),
+                        AccountMeta(
+                            SolanaPublicKey.from(AppConstants.App.SPL_TOKEN_PROGRAM_ID),
+                            false,
+                            false
+                        ),
                         AccountMeta(SystemProgram.PROGRAM_ID, false, false)
                     ),
                     Borsh.encodeToByteArray(
@@ -333,19 +395,19 @@ class SolanaOrderDataSource @Inject constructor(
                         Unit
                     )
                 )
-                
+
                 builder.addInstruction(ix)
-                
+
                 // Get recent blockhash and build message
                 val recentBlockhash = recentBlockhashUseCase()
                 val message = builder.setRecentBlockhash(recentBlockhash).build()
-                
+
                 // Create and sign transaction
                 val transaction = Transaction(message)
                 val signResult = signAndSendTransactions(arrayOf(transaction.serialize()))
                 signResult
             }
-            
+
             when (result) {
                 is TransactionResult.Success -> {
                     val signature = result.successPayload?.signatures?.first()
@@ -353,18 +415,24 @@ class SolanaOrderDataSource @Inject constructor(
                         Log.d("SolanaOrder", "Receipt confirmed successfully: $signature")
                         Result.success(Unit)
                     } else {
-                        Log.e("SolanaOrder", "No signature returned from confirmReceipt transaction")
+                        Log.e(
+                            "SolanaOrder",
+                            "No signature returned from confirmReceipt transaction"
+                        )
                         Result.failure(Exception("No signature returned from transaction"))
                     }
                 }
+
                 is TransactionResult.NoWalletFound -> {
                     Log.e("SolanaOrder", "No wallet found for confirmReceipt")
                     Result.failure(Exception("No wallet found"))
                 }
+
                 is TransactionResult.Failure -> {
                     Log.e("SolanaOrder", "confirmReceipt failed: ${result.e.message}")
                     Result.failure(Exception("Transaction failed: ${result.e.message}"))
                 }
+
                 else -> Result.failure(Exception("Unknown transaction result"))
             }
         } catch (e: Exception) {

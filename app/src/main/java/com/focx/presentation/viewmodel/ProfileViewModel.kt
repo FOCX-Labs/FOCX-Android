@@ -107,6 +107,13 @@ class ProfileViewModel @Inject constructor(
     fun loadProfileData() {
         loadProfileDataWithStoredConnection()
     }
+    
+    /**
+     * Load user addresses only, without requiring wallet connection
+     */
+    fun loadUserAddressesOnly() {
+        loadUserAddresses()
+    }
 
     private fun loadWalletData(walletAddress: String) {
         viewModelScope.launch {

@@ -12,6 +12,7 @@ data class Order(
     val currency: String = "USDC",
     val status: OrderManagementStatus,
     val shippingAddress: ShippingAddress? = null,
+    val orderNote: String? = null,
     val paymentMethod: String,
     val transactionHash: String? = null,
     val trackingNumber: String? = null,

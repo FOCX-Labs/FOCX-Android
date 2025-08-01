@@ -187,7 +187,7 @@ class MockOrderDataSource @Inject constructor() : IOrderRepository {
         emit(mockOrders.filter { it.status == status })
     }
 
-    override suspend fun createOrder(product: com.focx.domain.entity.Product, quantity: UInt, buyer: String, activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender): Result<Order> {
+    override suspend fun createOrder(product: com.focx.domain.entity.Product, quantity: UInt, buyer: String, shippingAddress: com.focx.domain.entity.ShippingAddress, orderNote: String, activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender): Result<Order> {
         delay(500)
         
         // Create order from product
@@ -210,16 +210,8 @@ class MockOrderDataSource @Inject constructor() : IOrderRepository {
             totalAmount = (product.price.toDouble() / 1000000) * quantity.toDouble(),
             currency = "USDC",
             status = OrderManagementStatus.Pending,
-            shippingAddress = ShippingAddress(
-                recipientName = "Default User",
-                addressLine1 = "123 Default St",
-                addressLine2 = "",
-                city = "Default City",
-                state = "Default State",
-                postalCode = "12345",
-                country = "USA",
-                phoneNumber = "+1 555-0123"
-            ),
+            shippingAddress = shippingAddress,
+            orderNote = orderNote,
             paymentMethod = "USDC",
             transactionHash = null,
             trackingNumber = null,

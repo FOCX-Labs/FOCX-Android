@@ -13,7 +13,7 @@ interface IOrderRepository {
     suspend fun getOrdersByBuyer(buyerId: String): Flow<List<Order>>
     suspend fun getOrdersBySeller(sellerId: String): Flow<List<Order>>
     suspend fun getOrdersByStatus(status: OrderManagementStatus): Flow<List<Order>>
-    suspend fun createOrder(product: Product, quantity: UInt, buyer: String, activityResultSender: ActivityResultSender): Result<Order>
+    suspend fun createOrder(product: Product, quantity: UInt, buyer: String, shippingAddress: com.focx.domain.entity.ShippingAddress, orderNote: String, activityResultSender: ActivityResultSender): Result<Order>
     suspend fun updateOrderStatus(orderId: String, status: OrderManagementStatus): Result<Unit>
     suspend fun cancelOrder(orderId: String): Result<Unit>
     suspend fun updateTrackingNumber(orderId: String, trackingNumber: String, merchantPubKey: SolanaPublicKey, activityResultSender: ActivityResultSender): Result<Unit>

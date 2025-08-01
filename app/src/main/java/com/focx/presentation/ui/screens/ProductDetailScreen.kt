@@ -31,6 +31,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -48,7 +49,6 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
-import com.focx.core.constants.AppConstants
 import com.focx.domain.entity.Product
 import com.focx.domain.entity.UserAddress
 import com.focx.presentation.ui.components.CardStyle
@@ -73,7 +73,7 @@ import com.focx.utils.ShopUtils
 fun ProductDetailScreen(
     productId: String,
     onNavigateBack: () -> Unit,
-    onBuyProduct: (Product, Int, com.solana.mobilewalletadapter.clientlib.ActivityResultSender) -> Unit,
+    onBuyProduct: (Product, Int, UserAddress?, String, com.solana.mobilewalletadapter.clientlib.ActivityResultSender) -> Unit,
     activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender,
     modifier: Modifier = Modifier,
     viewModel: ProductListViewModel = hiltViewModel(),
@@ -84,6 +84,11 @@ fun ProductDetailScreen(
     var isFavorite by remember { mutableStateOf(false) }
     var selectedQuantity by remember { mutableStateOf(1) }
     var showBuyDialog by remember { mutableStateOf(false) }
+    
+    // Load user addresses when screen is displayed
+    LaunchedEffect(Unit) {
+        profileViewModel.loadUserAddressesOnly()
+    }
 
     val product = state.products.find { it.id == productId.toULongOrNull() } ?: return
 
@@ -429,8 +434,8 @@ fun ProductDetailScreen(
             onQuantityChange = { newQuantity ->
                 selectedQuantity = newQuantity
             },
-            onConfirmBuy = {
-                onBuyProduct(product, selectedQuantity, activityResultSender)
+            onConfirmBuy = { selectedAddress, orderNote ->
+                onBuyProduct(product, selectedQuantity, selectedAddress, orderNote, activityResultSender)
                 showBuyDialog = false
             },
             onDismiss = {
@@ -446,10 +451,13 @@ fun BottomBuyDialog(
     quantity: Int,
     addresses: List<UserAddress>,
     onQuantityChange: (Int) -> Unit,
-    onConfirmBuy: () -> Unit,
+    onConfirmBuy: (UserAddress?, String) -> Unit,
     onDismiss: () -> Unit
 ) {
-    var selectedAddress by remember { mutableStateOf(addresses.find { it.isDefault } ?: addresses.firstOrNull()) }
+    var selectedAddress by remember(addresses) { 
+        mutableStateOf(addresses.find { it.isDefault } ?: addresses.firstOrNull()) 
+    }
+    var orderNote by remember { mutableStateOf("") }
 
 
     Dialog(
@@ -579,38 +587,118 @@ fun BottomBuyDialog(
 
                     Spacer(modifier = Modifier.height(Spacing.small))
 
-                    TechCard(
-                        style = CardStyle.OUTLINED,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(Spacing.medium)
+                    if (addresses.isEmpty()) {
+                        TechCard(
+                            style = CardStyle.OUTLINED,
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            addresses.forEach { address ->
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = Spacing.small),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    RadioButton(
-                                        selected = selectedAddress == address,
-                                        onClick = { selectedAddress = address },
-                                        colors = RadioButtonDefaults.colors(
-                                            selectedColor = Primary
+                            Column(
+                                modifier = Modifier.padding(Spacing.medium),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = "No delivery addresses found",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = OnSurfaceVariant
+                                )
+                                Spacer(modifier = Modifier.height(Spacing.small))
+                                Text(
+                                    text = "Please add an address in your profile",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = OnSurfaceVariant
+                                )
+                            }
+                        }
+                    } else {
+                        TechCard(
+                            style = CardStyle.OUTLINED,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(Spacing.medium)
+                            ) {
+                                addresses.forEach { address ->
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = Spacing.small),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        RadioButton(
+                                            selected = selectedAddress == address,
+                                            onClick = { selectedAddress = address },
+                                            colors = RadioButtonDefaults.colors(
+                                                selectedColor = Primary
+                                            )
                                         )
-                                    )
-                                    Spacer(modifier = Modifier.width(Spacing.small))
-                                    Text(
-                                        text = "${address.addressLine1}, ${address.city}, ${address.state} ${address.postalCode}",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = OnSurface,
-                                        modifier = Modifier.weight(1f)
-                                    )
+                                        Spacer(modifier = Modifier.width(Spacing.small))
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Text(
+                                                    text = address.label,
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    color = OnSurface,
+                                                    fontWeight = FontWeight.Medium
+                                                )
+                                                if (address.isDefault) {
+                                                    Spacer(modifier = Modifier.width(Spacing.small))
+                                                    Surface(
+                                                        color = Primary.copy(alpha = 0.1f),
+                                                        shape = RoundedCornerShape(4.dp)
+                                                    ) {
+                                                        Text(
+                                                            text = "Default",
+                                                            style = MaterialTheme.typography.labelSmall,
+                                                            color = Primary,
+                                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                            Text(
+                                                text = "${address.recipientName}",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = OnSurfaceVariant
+                                            )
+                                            Text(
+                                                text = "${address.addressLine1}${if (!address.addressLine2.isNullOrEmpty()) ", ${address.addressLine2}" else ""}",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = OnSurfaceVariant
+                                            )
+                                            Text(
+                                                text = "${address.city}, ${address.state} ${address.postalCode}",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = OnSurfaceVariant
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }
                     }
+
+                    Spacer(modifier = Modifier.height(Spacing.large))
+
+                    // Order Note
+                    Text(
+                        text = "Order Note (Optional):",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = OnSurface,
+                        fontWeight = FontWeight.Medium
+                    )
+
+                    Spacer(modifier = Modifier.height(Spacing.small))
+
+                    androidx.compose.material3.OutlinedTextField(
+                        value = orderNote,
+                        onValueChange = { orderNote = it },
+                        placeholder = { Text("Add any special instructions or notes for this order") },
+                        modifier = Modifier.fillMaxWidth(),
+                        minLines = 2,
+                        maxLines = 4
+                    )
 
                     Spacer(modifier = Modifier.height(Spacing.large))
 
@@ -649,9 +737,10 @@ fun BottomBuyDialog(
                         )
                         TechButton(
                             text = "Confirm Purchase",
-                            onClick = { onConfirmBuy() },
+                            onClick = { onConfirmBuy(selectedAddress, orderNote) },
                             style = TechButtonStyle.PRIMARY,
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f),
+                            enabled = selectedAddress != null
                         )
                     }
                 }

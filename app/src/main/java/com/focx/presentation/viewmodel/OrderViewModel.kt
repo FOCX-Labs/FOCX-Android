@@ -2,10 +2,7 @@ package com.focx.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.focx.domain.entity.Order
-import com.focx.domain.entity.OrderItem
-import com.focx.domain.entity.OrderManagementStatus
-import com.focx.domain.entity.ShippingAddress
+import com.focx.domain.entity.*
 import com.focx.domain.usecase.CreateOrderUseCase
 import com.focx.domain.usecase.GetOrderByIdUseCase
 import com.focx.domain.usecase.GetOrdersByBuyerUseCase
@@ -106,6 +103,8 @@ class OrderViewModel @Inject constructor(
     fun buyProduct(
         product: com.focx.domain.entity.Product,
         quantity: UInt,
+        selectedAddress: com.focx.domain.entity.UserAddress?,
+        orderNote: String,
         activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender,
         onResult: (Result<Order>) -> Unit
     ) {
@@ -113,7 +112,20 @@ class OrderViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(isLoading = true)
             try {
                 val buyer = getCurrentWalletAddressUseCase.execute()!!
-                val result = createOrderUseCase(product, quantity, buyer, activityResultSender)
+                
+                // Validate that an address is selected
+                if (selectedAddress == null) {
+                    throw IllegalArgumentException("Please select a delivery address")
+                }
+                
+                val result = createOrderUseCase(
+                    product = product, 
+                    quantity = quantity, 
+                    buyer = buyer, 
+                    shippingAddress = selectedAddress.toShippingAddress(),
+                    orderNote = orderNote,
+                    activityResultSender = activityResultSender
+                )
                 onResult(result)
                 _uiState.value = _uiState.value.copy(isLoading = false)
             } catch (e: Exception) {
