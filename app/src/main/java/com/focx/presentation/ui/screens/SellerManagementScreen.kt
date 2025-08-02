@@ -1,5 +1,6 @@
 package com.focx.presentation.ui.screens
 
+import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,6 +24,7 @@ import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
@@ -35,6 +37,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -43,11 +46,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.focx.domain.entity.Product
 import com.focx.presentation.ui.theme.Spacing
+import com.focx.presentation.viewmodel.SellerManagementViewModel
+import com.focx.utils.Log
+import com.focx.utils.ShopUtils
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -55,40 +67,39 @@ fun SellerManagementScreen(
     onBackClick: () -> Unit,
     onAddProductClick: () -> Unit,
     onProductClick: (String) -> Unit,
-    onEditProductClick: (String) -> Unit
+    onEditProductClick: (String) -> Unit,
+    merchantAddress: String?,
+    viewModel: SellerManagementViewModel = hiltViewModel()
 ) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
     var searchQuery by remember { mutableStateOf("") }
     var selectedFilter by remember { mutableStateOf("All") }
 
-    val allProducts = remember {
-        listOf(
-            Product(
-                id = 1UL,
-                name = "iPhone 15 Pro Max  Apple",
-                description = "Latest iPhone with titanium design",
-                price = 1199999000UL,
-                currency = "USDC",
-                imageUrls = listOf(
-                    "https://example.com/iphone1.jpg",
-                    "https://example.com/iphone2.jpg"
-                ),
-                sellerId = "seller1",
-                sellerName = "TechStore",
-                category = "Electronics",
-                stock = 25,
-                salesCount = 156,
-                shippingFrom = "New York",
-                shippingTo = listOf("US", "CA"),
-                shippingMethods = listOf("Standard", "Express"),
-                rating = 4.8f,
-                reviewCount = 245,
-                keywords = listOf()
-            )
-        )
+    // Debug log for merchant address
+    LaunchedEffect(merchantAddress) {
+        Log.d("SellerManagementScreen", "merchantAddress: $merchantAddress")
     }
 
-    val filteredProducts = remember(searchQuery, selectedFilter) {
-        allProducts.filter { product ->
+    // Load data when merchant address is available
+    LaunchedEffect(merchantAddress) {
+        merchantAddress?.let { address ->
+            Log.d("SellerManagementScreen", "Loading merchant products for address: $address")
+            viewModel.loadMerchantProducts(address)
+        } ?: run {
+            Log.w("SellerManagementScreen", "merchantAddress is null, cannot load products")
+        }
+    }
+
+    // Show toast when there's an error
+    LaunchedEffect(uiState.error) {
+        uiState.error?.let { error ->
+            Toast.makeText(context, error, Toast.LENGTH_LONG).show()
+        }
+    }
+
+    val filteredProducts = remember(searchQuery, selectedFilter, uiState.products) {
+        uiState.products.filter { product ->
             val matchesSearch = product.name.contains(searchQuery, ignoreCase = true)
             val matchesFilter = when (selectedFilter) {
                 "Low Stock" -> product.stock < 10
@@ -138,63 +149,82 @@ fun SellerManagementScreen(
             }
         }
     ) { paddingValues ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = Spacing.medium),
-            verticalArrangement = Arrangement.spacedBy(Spacing.medium)
-        ) {
-            item {
-                // Search Bar
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = { searchQuery = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("Search products...") },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = "Search"
-                        )
-                    },
-                    singleLine = true
-                )
-            }
-
-            item {
-                // Filter Chips
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.small)
+        if (merchantAddress == null) {
+            // Show wallet connection required message
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(Spacing.medium)
                 ) {
-                    listOf("All", "Low Stock", "High Sales").forEach { filter ->
-                        FilterChip(
-                            onClick = { selectedFilter = filter },
-                            label = { Text(filter) },
-                            selected = selectedFilter == filter
+                    Text(
+                        text = "Wallet Connection Required",
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "Please connect your wallet to view your products",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                }
+            }
+        } else if (uiState.isLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .padding(horizontal = Spacing.medium),
+                verticalArrangement = Arrangement.spacedBy(Spacing.medium)
+            ) {
+                item {
+                    Text(
+                        text = "${filteredProducts.size} products found",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                if (filteredProducts.isEmpty() && !uiState.isLoading) {
+                    item {
+                        Box(
+                            modifier = Modifier.fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "No products found",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                } else {
+                    items(filteredProducts, key = { it.id.toString() }) { product ->
+                        ProductManagementCard(
+                            product = product,
+                            onProductClick = { onProductClick(product.id.toString()) },
+                            onEditClick = { onEditProductClick(product.id.toString()) }
                         )
                     }
                 }
-            }
 
-            item {
-                Text(
-                    text = "${filteredProducts.size} products found",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            items(filteredProducts, key = { it.id.toString() }) { product ->
-                ProductManagementCard(
-                    product = product,
-                    onProductClick = { onProductClick(product.id.toString()) },
-                    onEditClick = { onEditProductClick(product.id.toString()) }
-                )
-            }
-
-            item {
-                Spacer(modifier = Modifier.height(80.dp)) // FAB space
+                item {
+                    Spacer(modifier = Modifier.height(80.dp)) // FAB space
+                }
             }
         }
     }
@@ -224,28 +254,40 @@ fun ProductManagementCard(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Product Image Placeholder
+                // Product Image
                 Box(
                     modifier = Modifier
                         .size(80.dp)
-                        .clip(RoundedCornerShape(12.dp)),
-                    contentAlignment = Alignment.Center
+                        .clip(RoundedCornerShape(12.dp))
                 ) {
-                    Card(
-                        modifier = Modifier.fillMaxSize(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer
-                        )
-                    ) {
-                        Box(
+                    if (product.imageUrls.isNotEmpty()) {
+                        AsyncImage(
+                            model = ImageRequest.Builder(LocalContext.current)
+                                .data(product.imageUrls.first())
+                                .crossfade(true)
+                                .build(),
+                            contentDescription = "Product image",
                             modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = product.name.take(2).uppercase(),
-                                style = MaterialTheme.typography.titleLarge,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        // Fallback to placeholder
+                        Card(
+                            modifier = Modifier.fillMaxSize(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.primaryContainer
                             )
+                        ) {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = product.name.take(2).uppercase(),
+                                    style = MaterialTheme.typography.titleLarge,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            }
                         }
                     }
                 }
@@ -263,7 +305,7 @@ fun ProductManagementCard(
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        text = "$${String.format("%.2f", product.price.toDouble() / 1_000_000)}",
+                        text = "$${ShopUtils.getPriceShow(product.price)}",
                         style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.SemiBold
@@ -275,12 +317,12 @@ fun ProductManagementCard(
                     )
                 }
 
-                IconButton(onClick = onEditClick) {
-                    Icon(
-                        imageVector = Icons.Default.Edit,
-                        contentDescription = "Edit Product"
-                    )
-                }
+//                IconButton(onClick = onEditClick) {
+//                    Icon(
+//                        imageVector = Icons.Default.Edit,
+//                        contentDescription = "Edit Product"
+//                    )
+//                }
             }
 
             Spacer(modifier = Modifier.height(Spacing.medium))
@@ -299,16 +341,6 @@ fun ProductManagementCard(
                     label = "Stock",
                     value = product.stock.toString(),
                     color = if (product.stock < 10) Color(0xFFFF5722) else Color(0xFF2196F3)
-                )
-                ProductStat(
-                    label = "Rating",
-                    value = "${product.rating}",
-                    color = Color(0xFFFF9800)
-                )
-                ProductStat(
-                    label = "Reviews",
-                    value = product.reviewCount.toString(),
-                    color = Color(0xFF9C27B0)
                 )
             }
         }

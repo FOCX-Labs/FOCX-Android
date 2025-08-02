@@ -9,6 +9,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -36,6 +37,7 @@ import com.focx.presentation.ui.screens.OrderDetailScreen
 import com.focx.presentation.ui.screens.OrderListScreen
 import com.focx.presentation.viewmodel.OrderViewModel
 import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
+import com.focx.utils.Log
 
 // Full screen routes configuration
 private val fullScreenRoutes = setOf(
@@ -151,15 +153,31 @@ fun FocxNavigation(activityResultSender: ActivityResultSender) {
 
             // Seller Management
             composable("seller_dashboard") {
-                SellerManagementScreen(onBackClick = {
-                    navController.popBackStack()
-                }, onAddProductClick = {
-                    navController.navigate("add_product")
-                }, onProductClick = { productId ->
-                    navController.navigate("product_detail/$productId")
-                }, onEditProductClick = { productId ->
-                    navController.navigate("edit_product/$productId")
-                })
+                val profileViewModel: ProfileViewModel = hiltViewModel()
+                val profileState by profileViewModel.uiState.collectAsStateWithLifecycle()
+                
+                // Ensure ProfileViewModel loads data
+                LaunchedEffect(Unit) {
+                    profileViewModel.loadProfileData()
+                }
+                
+                Log.d("FocxNavigation", "seller_dashboard - profileState.user?.walletAddress: ${profileState.user?.walletAddress}")
+                
+                SellerManagementScreen(
+                    onBackClick = {
+                        navController.popBackStack()
+                    }, 
+                    onAddProductClick = {
+                        navController.navigate("add_product")
+                    }, 
+                    onProductClick = { productId ->
+                        navController.navigate("product_detail/$productId")
+                    }, 
+                    onEditProductClick = { productId ->
+                        navController.navigate("edit_product/$productId")
+                    },
+                    merchantAddress = profileState.user?.walletAddress
+                )
             }
 
             // Sold Order Detail

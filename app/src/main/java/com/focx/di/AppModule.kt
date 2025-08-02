@@ -50,6 +50,7 @@ import com.focx.domain.usecase.SolanaWalletConnectUseCase
 import com.focx.domain.usecase.SolanaWalletPersistenceUseCase
 import com.focx.domain.usecase.UpdateProductUseCase
 import com.focx.domain.usecase.VoteOnProposalUseCase
+import com.focx.domain.usecase.GetMerchantProductsUseCase
 import com.solana.mobilewalletadapter.clientlib.ConnectionIdentity
 import com.solana.mobilewalletadapter.clientlib.MobileWalletAdapter
 import com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient
@@ -73,6 +74,17 @@ object AppModule {
         recentBlockhashUseCase: RecentBlockhashUseCase,
         solanaRpcClient: SolanaRpcClient
     ): IProductRepository {
+        return SolanaProductDataSource(context, walletAdapter, recentBlockhashUseCase, solanaRpcClient)
+    }
+
+    @Provides
+    @Singleton
+    fun provideSolanaProductDataSource(
+        @ApplicationContext context: Context,
+        walletAdapter: MobileWalletAdapter,
+        recentBlockhashUseCase: RecentBlockhashUseCase,
+        solanaRpcClient: SolanaRpcClient
+    ): SolanaProductDataSource {
         return SolanaProductDataSource(context, walletAdapter, recentBlockhashUseCase, solanaRpcClient)
     }
 
@@ -404,5 +416,13 @@ object AppModule {
         solanaFaucetDataSource: SolanaFaucetDataSource
     ): RequestUsdcFaucetUseCase {
         return RequestUsdcFaucetUseCase(solanaFaucetDataSource)
+    }
+
+    @Provides
+    @Singleton
+    fun provideGetMerchantProductsUseCase(
+        productDataSource: SolanaProductDataSource
+    ): GetMerchantProductsUseCase {
+        return GetMerchantProductsUseCase(productDataSource)
     }
 }

@@ -140,6 +140,19 @@ class SolanaProductDataSource @Inject constructor(
         emit(product)
     }
 
+    suspend fun getMerchantProducts(merchantAddress: String): Flow<Result<List<Product>>> = flow {
+        try {
+            Log.d(TAG, "Getting merchant products for: $merchantAddress")
+            val merchantPublicKey = SolanaPublicKey.from(merchantAddress)
+            
+            val products = ShopUtils.getMerchantProducts(merchantPublicKey, solanaRpcClient)
+            emit(Result.success(products))
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to get merchant products: ${e.message}", e)
+            emit(Result.failure(Exception("Failed to get merchant products: ${e.message}")))
+        }
+    }
+
     override suspend fun searchProducts(
         query: String,
         page: Int,

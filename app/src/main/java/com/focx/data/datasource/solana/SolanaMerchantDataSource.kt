@@ -239,14 +239,6 @@ class SolanaMerchantDataSource @Inject constructor(
             try {
                 val merchantPublicKey = SolanaPublicKey.from(walletAddress)
                 val pda = getMerchantInfoPda(SolanaPublicKey.from(walletAddress))
-                DebugUtils.decodeCreateProductBase("9923fb426dc61a940d0000006950686f6e652031352050726f2b000000e69c80e696b0e6acbee88bb9e69e9ce6898be69cbaefbc8ce9858de5a4874131372050726fe88aafe7898700743ba40b0000000300000006000000e6898be69cba06000000e88bb9e69e9c060000006950686f6e656400000000000000ba09cc80988c16bdfbd50abbbc101d2459c2cf3d1e48bf25e922682da2a0f9fe12000000e9bb98e8aea4e58f91e8b4a7e59cb0e782b9")
-                DebugUtils.decodeCreateProductBase("9923fb426dc61a9406000000e69bb4e5889a09000000e5889ae8bf9be5aeb600362f5f3b000000010000000e0000004469676974616c2043616d6572619a02000000000000ba09cc80988c16bdfbd50abbbc101d2459c2cf3d1e48bf25e922682da2a0f9fe1900000044656661756c74205368697070696e67204c6f636174696f6e")
-                DebugUtils.decodeCreateProductExtended("0e257c9b6d1ac91aa068060000000000020000001e00000068747470733a2f2f6578616d706c652e636f6d2f696d616765312e6a70671e00000068747470733a2f2f6578616d706c652e636f6d2f696d616765322e6a7067020000000c000000e4b8ade59bbde5a4a7e9998609000000e6b8afe6beb3e58fb0030000000c000000e9a1bae4b8b0e5bfabe980920c000000e4baace4b89ce789a9e6b5810c000000e59c86e9809ae9809fe98092")
-                val pbPda = ShopUtils.getProductBasePDA(420000UL)
-                Log.d("DebugUtils", "pbpda 420000UL :$pbPda")
-
-                ShopUtils.getMerchantProducts(SolanaPublicKey.from(walletAddress), solanaRpcClient)
-
                 Log.d(TAG, "merchant pad: ${pda.getOrNull()!!.base58()}")
                 val merchant = solanaRpcClient.getAccountInfo<Merchant>(pda.getOrNull()!!).result
                 val orderCount = ShopUtils.getMerchantOrderCount(ShopUtils.getMerchantOrderCountPDA(merchantPublicKey).getOrNull()!!, solanaRpcClient)

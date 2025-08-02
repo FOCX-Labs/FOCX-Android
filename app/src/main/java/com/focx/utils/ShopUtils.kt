@@ -2,6 +2,9 @@ package com.focx.utils
 
 import android.annotation.SuppressLint
 import com.focx.core.constants.AppConstants
+import com.focx.domain.entity.IdChunk
+import com.focx.domain.entity.Merchant
+import com.focx.domain.entity.MerchantIdAccount
 import com.focx.domain.entity.MerchantOrder
 import com.focx.domain.entity.MerchantOrderCount
 import com.focx.domain.entity.Order
@@ -18,7 +21,6 @@ import com.funkatronics.kborsh.Borsh
 import com.solana.publickey.ProgramDerivedAddress
 import com.solana.publickey.PublicKey
 import com.solana.publickey.SolanaPublicKey
-import com.solana.rpc.ProgramAccountsRequest
 import com.solana.rpc.SolanaRpcClient
 import com.solana.rpc.getAccountInfo
 import com.solana.transaction.AccountMeta
@@ -280,15 +282,18 @@ object ShopUtils {
 
     suspend fun getProductInfoById(productId: ULong, solanaRpcClient: SolanaRpcClient): Product? {
         val productPda = getProductBasePDA(productId).getOrNull()!!
-        
+        return getProductInfoPda(productPda, solanaRpcClient)
+    }
+    suspend fun getProductInfoPda(productPda: SolanaPublicKey, solanaRpcClient: SolanaRpcClient): Product? {
+
         val baseInfo = solanaRpcClient.getAccountInfo<ProductBase>(productPda).result?.data
 
         if (baseInfo == null) {
             return null
         }
 
-        val productExtendedPda = getProductExtendedPDA(productId).getOrNull()!!
-        
+        val productExtendedPda = getProductExtendedPDA(baseInfo.id).getOrNull()!!
+
         val extendedInfo =
             solanaRpcClient.getAccountInfo<ProductExtended>(productExtendedPda).result?.data
 
@@ -488,17 +493,57 @@ object ShopUtils {
         return solanaRpcClient.getAccountInfo<SystemConfig>(systemConfigPda).result?.data!!
     }
 
-    suspend fun getMerchantProducts(
+    suspend fun getMerchantInfo(
         merchantPublicKey: SolanaPublicKey,
         solanaRpcClient: SolanaRpcClient
-    ) {
-        val accounts = solanaRpcClient.getProgramAccounts(
-            AppConstants.App.getShopProgramId(),
-            filters = listOf(
-                ProgramAccountsRequest.MemCompare(16, merchantPublicKey.base58())
-            )
-        ).result
+    ): Merchant {
+        val merchantInfoPda = getMerchantInfoPda(merchantPublicKey).getOrNull()!!
+        return solanaRpcClient.getAccountInfo<Merchant>(merchantInfoPda).result?.data!!
+    }
 
-        Log.d(TAG, "getMerchantProducts ${merchantPublicKey.base58()}: ${accounts?.size}")
+    suspend fun getProductPDA(merchantPubkey: SolanaPublicKey, id: ULong): SolanaPublicKey {
+        return ProgramDerivedAddress.find(
+            listOf(
+                "product".toByteArray(),
+                merchantPubkey.bytes,
+                Borsh.encodeToByteArray(id)
+            ),
+            AppConstants.App.getShopProgramId()
+        ).getOrNull()!!
+    }
+
+    suspend fun getMerchantProducts(
+        merchantPublicKey: SolanaPublicKey,
+        solanaRpcClient: SolanaRpcClient,
+        page: Int = 1,
+        pageSize: Int = 10,
+        sortOrder: SortOrder = SortOrder.DESC
+    ): List<Product> {
+//        val accounts = solanaRpcClient.getProgramAccounts(
+//            AppConstants.App.getShopProgramId(),
+//            filters = listOf(
+//                ProgramAccountsRequest.MemCompare(16, merchantPublicKey.base58())
+//            )
+//        ).result
+
+        val productCount = getMerchantInfo(merchantPublicKey, solanaRpcClient).productCount
+
+        val pageInfo = calcPageInfo(page, pageSize, productCount.toInt(), sortOrder)
+        if (productCount.toInt() < pageInfo.first) {
+            return emptyList()
+        }
+        val merchantIdAccountPDA = getMerchantIdPda(merchantPublicKey).getOrNull()!!
+        val activeChunkPda = solanaRpcClient.getAccountInfo<MerchantIdAccount>(merchantIdAccountPDA).result?.data!!.activeChunk
+        val activeChunk = solanaRpcClient.getAccountInfo<IdChunk>(activeChunkPda).result?.data!!
+        val startId = activeChunk.startId - 1UL
+
+        val productList = ArrayList<Product>()
+        for (i in pageInfo.first..pageInfo.second) {
+            val productPda = getProductBasePDA( i.toULong() + startId).getOrNull()!!
+            productList.add(getProductInfoPda(productPda, solanaRpcClient)!!)
+        }
+
+        Log.d(TAG, "getMerchantProducts ${merchantPublicKey.base58()}: ${productList?.size}")
+        return productList
     }
 }
