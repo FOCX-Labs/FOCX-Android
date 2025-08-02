@@ -284,7 +284,11 @@ object ShopUtils {
         val productPda = getProductBasePDA(productId).getOrNull()!!
         return getProductInfoPda(productPda, solanaRpcClient)
     }
-    suspend fun getProductInfoPda(productPda: SolanaPublicKey, solanaRpcClient: SolanaRpcClient): Product? {
+
+    suspend fun getProductInfoPda(
+        productPda: SolanaPublicKey,
+        solanaRpcClient: SolanaRpcClient
+    ): Product? {
 
         val baseInfo = solanaRpcClient.getAccountInfo<ProductBase>(productPda).result?.data
 
@@ -445,7 +449,10 @@ object ShopUtils {
         for (i in pageInfo.first..pageInfo.second) {
             try {
                 val merchantOrderPda =
-                    getMerchantOrderPDA(merchantPubKey, i.toULong()).getOrNull()!!
+                    getMerchantOrderPDA(
+                        merchantPubKey,
+                        i.toULong()
+                    ).getOrNull()!!
                 val orderPda =
                     getMerchantOrder(merchantOrderPda, solanaRpcClient)?.buyerOrderPda!!
                 val order = getOrderInfoByPda(orderPda, solanaRpcClient)
@@ -453,6 +460,9 @@ object ShopUtils {
             } catch (e: Exception) {
                 Log.e(TAG, "getOrdersBySeller", e)
             }
+        }
+        if (sortOrder == SortOrder.DESC) {
+            orderList.reverse()
         }
         return orderList
     }
@@ -481,9 +491,15 @@ object ShopUtils {
         }
         val orderList = ArrayList<Order>()
         for (i in pageInfo.first..pageInfo.second) {
-            val orderPda = getOrderPda(buyerPubkey, i.toULong()).getOrNull()!!
+            val orderPda = getOrderPda(
+                buyerPubkey,
+                i.toULong()
+            ).getOrNull()!!
             val order = getOrderInfoByPda(orderPda, solanaRpcClient)
             orderList.add(order)
+        }
+        if (sortOrder == SortOrder.DESC) {
+            orderList.reverse()
         }
         return orderList
     }
@@ -499,17 +515,6 @@ object ShopUtils {
     ): Merchant {
         val merchantInfoPda = getMerchantInfoPda(merchantPublicKey).getOrNull()!!
         return solanaRpcClient.getAccountInfo<Merchant>(merchantInfoPda).result?.data!!
-    }
-
-    suspend fun getProductPDA(merchantPubkey: SolanaPublicKey, id: ULong): SolanaPublicKey {
-        return ProgramDerivedAddress.find(
-            listOf(
-                "product".toByteArray(),
-                merchantPubkey.bytes,
-                Borsh.encodeToByteArray(id)
-            ),
-            AppConstants.App.getShopProgramId()
-        ).getOrNull()!!
     }
 
     suspend fun getMerchantProducts(
@@ -533,14 +538,19 @@ object ShopUtils {
             return emptyList()
         }
         val merchantIdAccountPDA = getMerchantIdPda(merchantPublicKey).getOrNull()!!
-        val activeChunkPda = solanaRpcClient.getAccountInfo<MerchantIdAccount>(merchantIdAccountPDA).result?.data!!.activeChunk
+        val activeChunkPda =
+            solanaRpcClient.getAccountInfo<MerchantIdAccount>(merchantIdAccountPDA).result?.data!!.activeChunk
         val activeChunk = solanaRpcClient.getAccountInfo<IdChunk>(activeChunkPda).result?.data!!
         val startId = activeChunk.startId - 1UL
 
         val productList = ArrayList<Product>()
         for (i in pageInfo.first..pageInfo.second) {
-            val productPda = getProductBasePDA( i.toULong() + startId).getOrNull()!!
+            val productPda = getProductBasePDA(i.toULong() + startId).getOrNull()!!
             productList.add(getProductInfoPda(productPda, solanaRpcClient)!!)
+        }
+
+        if (sortOrder == SortOrder.DESC) {
+            productList.reverse()
         }
 
         Log.d(TAG, "getMerchantProducts ${merchantPublicKey.base58()}: ${productList?.size}")
