@@ -147,7 +147,7 @@ class ProfileViewModel @Inject constructor(
                         // Convert lamports to SOL (1 SOL = 1,000,000,000 lamports)
                         val solBalance = lamports / 1_000_000_000.0
 
-                        val usdcBalance = solanaTokenBalanceUseCase.getBalanceByOwnerAndMint(publicKey) / 1_000_000_000.0
+                        val usdcBalance = solanaTokenBalanceUseCase.getBalanceByOwnerAndMint(publicKey).toDouble() / 1_000_000_000.0
 
                         val walletBalance = WalletBalance(
                             usdcBalance = usdcBalance,

@@ -489,7 +489,7 @@ fun WalletBalanceCard(
             } else {
                 walletBalance?.let { balance ->
                     Text(
-                        text = "${String.format("%.2f", balance.solBalance)} SOL",
+                        text = "${String.format("%.4f", balance.solBalance)} SOL",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
@@ -501,7 +501,7 @@ fun WalletBalanceCard(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "${String.format("%.2f", balance.usdcBalance)} USDC",
+                            text = "${String.format("%.4f", balance.usdcBalance)} USDC",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary,
