@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
@@ -71,7 +72,7 @@ fun OrderDetailScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val order = state.order
-    
+
     var showConfirmReceiptDialog by remember { mutableStateOf(false) }
     var showDisputeDialog by remember { mutableStateOf(false) }
 
@@ -147,7 +148,7 @@ fun OrderDetailScreen(
                         ShippingAddressCard(order = order)
                     }
                 }
-                
+
                 // Add action buttons for shipped orders
                 if (order.status == OrderManagementStatus.Shipped) {
                     item {
@@ -172,7 +173,7 @@ fun OrderDetailScreen(
             }
         }
     }
-    
+
     // Confirmation dialogs
     if (showConfirmReceiptDialog) {
         AlertDialog(
@@ -183,7 +184,7 @@ fun OrderDetailScreen(
                 TextButton(
                     onClick = {
                         showConfirmReceiptDialog = false
-                        order?.let { 
+                        order?.let {
                             viewModel.confirmReceipt(it.id, it.sellerId, activityResultSender)
                         }
                     }
@@ -198,7 +199,7 @@ fun OrderDetailScreen(
             }
         )
     }
-    
+
     if (showDisputeDialog) {
         AlertDialog(
             onDismissRequest = { showDisputeDialog = false },
@@ -208,7 +209,7 @@ fun OrderDetailScreen(
                 TextButton(
                     onClick = {
                         showDisputeDialog = false
-                        order?.let { 
+                        order?.let {
                             viewModel.initiateDispute(it.id, activityResultSender)
                         }
                     }
@@ -320,7 +321,8 @@ fun OrderStatusCard(order: Order) {
 @Composable
 fun OrderStatusTimeline(order: Order) {
     val statuses = listOf("Pending", "Shipped", "Delivered")
-    val currentStatusIndex = statuses.indexOfFirst { it.lowercase() == order.status.toString().lowercase() }
+    val currentStatusIndex =
+        statuses.indexOfFirst { it.lowercase() == order.status.toString().lowercase() }
 
     Column {
         statuses.forEachIndexed { index, status ->
@@ -373,7 +375,7 @@ fun OrderStatusTimeline(order: Order) {
 @Composable
 fun OrderItemCard(item: OrderItem) {
     val context = LocalContext.current
-    
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp)
@@ -568,23 +570,26 @@ fun OrderActionButtons(
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
-            
+
             Spacer(modifier = Modifier.height(12.dp))
-            
-            Row(
+
+            Column(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Button(
                     onClick = onConfirmReceipt,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     Text("Confirm Receipt")
                 }
-                
+
                 Button(
                     onClick = onDispute,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFFFD700)
+                    )
                 ) {
                     Text("Initiate Dispute")
                 }

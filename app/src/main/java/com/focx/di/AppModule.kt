@@ -296,7 +296,7 @@ object AppModule {
     fun provideMobileWalletAdapter(): MobileWalletAdapter {
         val solanaUri = Uri.parse("https://solana.com")
         val iconUri = Uri.parse("favicon.ico")
-        val identityName = "Focx"
+        val identityName = "FOCX"
 
         return MobileWalletAdapter(
             connectionIdentity = ConnectionIdentity(

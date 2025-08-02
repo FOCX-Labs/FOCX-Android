@@ -125,12 +125,12 @@ fun SellerManagementScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { /* Show filter options */ }) {
-                        Icon(
-                            imageVector = Icons.Default.FilterList,
-                            contentDescription = "Filter"
-                        )
-                    }
+//                    IconButton(onClick = { /* Show filter options */ }) {
+//                        Icon(
+//                            imageVector = Icons.Default.FilterList,
+//                            contentDescription = "Filter"
+//                        )
+//                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface
