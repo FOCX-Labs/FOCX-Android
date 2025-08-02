@@ -136,8 +136,8 @@ class SolanaProductDataSource @Inject constructor(
     }
 
     override suspend fun getProductById(productId: ULong): Flow<Product?> = flow {
-        delay(500)
-        emit(mockProducts.find { it.id == productId })
+        val product = ShopUtils.getProductInfoById(productId, solanaRpcClient)
+        emit(product)
     }
 
     override suspend fun searchProducts(

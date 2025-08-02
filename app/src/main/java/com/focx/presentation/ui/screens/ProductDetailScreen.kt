@@ -1,5 +1,6 @@
 package com.focx.presentation.ui.screens
 
+import android.widget.Toast
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -41,6 +42,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -86,6 +88,7 @@ fun ProductDetailScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val profileState by profileViewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
     var isFavorite by remember { mutableStateOf(false) }
     var selectedQuantity by remember { mutableStateOf(1) }
     var showBuyDialog by remember { mutableStateOf(false) }
@@ -93,6 +96,13 @@ fun ProductDetailScreen(
     // Load user addresses when screen is displayed
     LaunchedEffect(Unit) {
         profileViewModel.loadUserAddressesOnly()
+    }
+
+    // Show toast when there's an error
+    LaunchedEffect(state.error) {
+        state.error?.let { error ->
+            Toast.makeText(context, "Failed to load product: $error", Toast.LENGTH_LONG).show()
+        }
     }
 
     val productIdULong = productId.toULongOrNull()
@@ -109,6 +119,41 @@ fun ProductDetailScreen(
         LaunchedEffect(productIdULong) {
             viewModel.handleIntent(ProductListIntent.LoadProductById(productIdULong.toString()))
         }
+        
+        // Show error state if there's an error
+        if (state.error != null) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = "Failed to load product",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = OnSurface
+                    )
+                    Spacer(modifier = Modifier.height(Spacing.medium))
+                    Text(
+                        text = state.error ?: "Unknown error",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = OnSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(Spacing.large))
+                    TechButton(
+                        text = "Retry",
+                        onClick = {
+                            viewModel.handleIntent(ProductListIntent.LoadProductById(productIdULong.toString()))
+                        },
+                        style = TechButtonStyle.PRIMARY
+                    )
+                }
+            }
+            return
+        }
+        
         // Show loading state while fetching product
         Box(
             modifier = Modifier.fillMaxSize(),
@@ -130,7 +175,28 @@ fun ProductDetailScreen(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
-            Text("Product not found")
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = "Product not found",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = OnSurface
+                )
+                Spacer(modifier = Modifier.height(Spacing.medium))
+                Text(
+                    text = "The product you're looking for doesn't exist or has been removed.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = OnSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(Spacing.large))
+                TechButton(
+                    text = "Go Back",
+                    onClick = onNavigateBack,
+                    style = TechButtonStyle.PRIMARY
+                )
+            }
         }
         return
     }
@@ -329,7 +395,7 @@ fun ProductDetailScreen(
 //                                .fillMaxWidth()
 //                                .padding(vertical = Spacing.small)
 //                        ) {
-//                            Text(
+//                            TextView(
 //                                text = key,
 //                                style = MaterialTheme.typography.bodyMedium,
 //                                color = OnSurfaceVariant,

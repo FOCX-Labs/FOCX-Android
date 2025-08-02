@@ -253,6 +253,7 @@ fun ProductGrid(
     modifier: Modifier = Modifier,
     state: androidx.compose.foundation.lazy.grid.LazyGridState = rememberLazyGridState()
 ) {
+    
     LazyVerticalGrid(
         state = state,
         columns = GridCells.Fixed(2),

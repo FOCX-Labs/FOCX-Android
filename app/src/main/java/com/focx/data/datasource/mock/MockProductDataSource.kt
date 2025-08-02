@@ -27,7 +27,8 @@ class MockProductDataSource : IProductRepository {
 
     override suspend fun getProductById(productId: ULong): Flow<Product?> = flow {
         delay(500)
-        emit(mockProducts.find { it.id == productId })
+        val product = mockProducts.find { it.id == productId }
+        emit(product)
     }
 
     override suspend fun searchProducts(query: String, page: Int, pageSize: Int): Flow<List<Product>> =

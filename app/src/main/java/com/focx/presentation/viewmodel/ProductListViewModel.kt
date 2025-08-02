@@ -151,7 +151,7 @@ class ProductListViewModel @Inject constructor(
 
     private fun loadProductById(productId: String) {
         viewModelScope.launch {
-            _state.value = _state.value.copy(isLoading = true)
+            _state.value = _state.value.copy(isLoading = true, error = null)
             
             getProductByIdUseCase(productId)
                 .catch { exception ->
@@ -170,7 +170,8 @@ class ProductListViewModel @Inject constructor(
                                 _state.value = _state.value.copy(
                                     products = updatedProducts,
                                     filteredProducts = updatedFilteredProducts,
-                                    isLoading = false
+                                    isLoading = false,
+                                    error = null
                                 )
                             } else {
                                 _state.value = _state.value.copy(
@@ -293,6 +294,7 @@ class ProductListViewModel @Inject constructor(
 
         _state.value = _state.value.copy(filteredProducts = filteredProducts)
     }
+
 
     private fun clearFilter() {
         _filterState.value = FilterState()

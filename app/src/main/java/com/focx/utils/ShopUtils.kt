@@ -280,6 +280,7 @@ object ShopUtils {
 
     suspend fun getProductInfoById(productId: ULong, solanaRpcClient: SolanaRpcClient): Product? {
         val productPda = getProductBasePDA(productId).getOrNull()!!
+        
         val baseInfo = solanaRpcClient.getAccountInfo<ProductBase>(productPda).result?.data
 
         if (baseInfo == null) {
@@ -287,6 +288,7 @@ object ShopUtils {
         }
 
         val productExtendedPda = getProductExtendedPDA(productId).getOrNull()!!
+        
         val extendedInfo =
             solanaRpcClient.getAccountInfo<ProductExtended>(productExtendedPda).result?.data
 
@@ -300,17 +302,17 @@ object ShopUtils {
                 ","
             ) else emptyList(), //        val imageUrls: List<String>,
             baseInfo.merchant.base58(), //        val sellerId: String,
-            baseInfo.merchant.base58(), //
-            "", //
-            baseInfo.inventory.toInt(),
-            baseInfo.sales.toInt(),
-            baseInfo.shippingLocation,
+            baseInfo.merchant.base58(), //        val sellerName: String,
+            "General", //        val category: String,
+            baseInfo.inventory.toInt(), //        val stock: Int,
+            baseInfo.sales.toInt(), //        val salesCount: Int = 0,
+            baseInfo.shippingLocation, //        val shippingFrom: String,
             if (extendedInfo != null && extendedInfo.salesRegions.isNotEmpty()) extendedInfo.salesRegions.split(
                 ","
-            ) else emptyList(),
+            ) else emptyList(), //        val shippingTo: List<String>,
             if (extendedInfo != null && extendedInfo.logisticsMethods.isNotEmpty()) extendedInfo.logisticsMethods.split(
                 ","
-            ) else emptyList()
+            ) else emptyList() //        val shippingMethods: List<String>,
         )
 
         return product
