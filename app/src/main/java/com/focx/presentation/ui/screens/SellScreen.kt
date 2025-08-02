@@ -38,6 +38,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -59,6 +60,8 @@ import com.focx.presentation.ui.theme.Spacing
 import com.focx.presentation.viewmodel.SellViewModel
 import com.focx.presentation.viewmodel.SellerRegistrationViewModel
 import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
+import kotlinx.coroutines.delay
+import com.focx.utils.Log
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -86,9 +89,15 @@ fun SellScreen(
         return
     }
 
-    // Load data when screen is displayed or refreshed
+    // Load data when screen is displayed
     LaunchedEffect(Unit) {
         viewModel.loadSellerData()
+    }
+    
+    // Refresh data when screen is re-entered (using a key that changes on navigation)
+    LaunchedEffect(Unit) {
+        Log.d("SellScreen", "Screen entered, refreshing data...")
+        viewModel.refreshData()
     }
 
     Scaffold(
@@ -434,8 +443,13 @@ fun OrderCard(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Order ${order.id}",
-                        style = MaterialTheme.typography.titleMedium,
+                        text = order.items[0].productName,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Text(
+                        text = "Order: ${order.id}",
+                        style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.Medium
                     )
                     Text(

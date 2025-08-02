@@ -76,32 +76,10 @@ class SoldOrderDetailViewModel @Inject constructor(
                 isCurrent = order.status == OrderManagementStatus.Pending
             )
         )
-        
-        // Add "Payment Confirmed" if payment is processed
-        if (order.transactionHash != null) {
-            steps.add(
-                OrderStatusStep(
-                    title = "Payment Confirmed",
-                    description = "Payment successfully processed",
-                    timestamp = formatTimestamp(order.orderDate + 60000), // 1 minute after order
-                    isCompleted = true,
-                    isCurrent = order.status == OrderManagementStatus.Pending
-                )
-            )
-        }
-        
+
         // Add status-specific steps
         when (order.status) {
             OrderManagementStatus.Pending -> {
-                steps.add(
-                    OrderStatusStep(
-                        title = "Processing",
-                        description = "Order is being prepared",
-                        timestamp = formatTimestamp(order.updatedAt),
-                        isCompleted = true,
-                        isCurrent = true
-                    )
-                )
                 steps.add(
                     OrderStatusStep(
                         title = "Shipped",
@@ -124,15 +102,6 @@ class SoldOrderDetailViewModel @Inject constructor(
             OrderManagementStatus.Shipped -> {
                 steps.add(
                     OrderStatusStep(
-                        title = "Processing",
-                        description = "Order was prepared",
-                        timestamp = formatTimestamp(order.updatedAt - 86400000), // 1 day before shipped
-                        isCompleted = true,
-                        isCurrent = false
-                    )
-                )
-                steps.add(
-                    OrderStatusStep(
                         title = "Shipped",
                         description = "Package has been shipped",
                         timestamp = formatTimestamp(order.updatedAt),
@@ -151,15 +120,6 @@ class SoldOrderDetailViewModel @Inject constructor(
                 )
             }
             OrderManagementStatus.Delivered -> {
-                steps.add(
-                    OrderStatusStep(
-                        title = "Processing",
-                        description = "Order was prepared",
-                        timestamp = formatTimestamp(order.orderDate + 3600000), // 1 hour after order
-                        isCompleted = true,
-                        isCurrent = false
-                    )
-                )
                 steps.add(
                     OrderStatusStep(
                         title = "Shipped",
@@ -196,7 +156,7 @@ class SoldOrderDetailViewModel @Inject constructor(
     }
 
     private fun formatTimestamp(timestamp: Long): String {
-        val date = Date(timestamp)
+        val date = Date(timestamp * 1000)
         val formatter = SimpleDateFormat("MMM dd, yyyy 'at' HH:mm", Locale.US)
         return formatter.format(date)
     }

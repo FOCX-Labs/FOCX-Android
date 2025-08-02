@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.LocalShipping
+import androidx.compose.material.icons.filled.MonetizationOn
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Place
@@ -44,16 +45,25 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.focx.presentation.ui.theme.Spacing
 import com.focx.domain.entity.OrderManagementStatus
 import com.focx.presentation.viewmodel.OrderStatusStep
 import com.focx.presentation.viewmodel.SoldOrderDetailViewModel
-
+import android.widget.Toast
+import androidx.compose.material.icons.automirrored.filled.Note
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Note
+import androidx.compose.material.icons.filled.Paid
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -65,15 +75,32 @@ fun SoldOrderDetailScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val order = state.order
+    val context = LocalContext.current
 
     LaunchedEffect(orderId) {
         viewModel.loadOrder(orderId)
+    }
+    
+    // Show success message when tracking number is updated
+    LaunchedEffect(state.order) {
+        state.order?.let { currentOrder ->
+            if (currentOrder.status == OrderManagementStatus.Shipped && currentOrder.trackingNumber != null) {
+                Toast.makeText(context, "Tracking number updated successfully!", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Order $orderId") },
+                title = { 
+                    Text(
+                        text = "Order $orderId",
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    ) 
+                },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
@@ -137,8 +164,8 @@ fun SoldOrderDetailScreen(
                             status = order.status,
                             trackingNumber = order.trackingNumber,
                             estimatedDelivery = order.estimatedDelivery?.let { 
-                                                    java.text.SimpleDateFormat("MMM dd, yyyy", java.util.Locale.US)
-                        .format(java.util.Date(it * 1000))
+                                java.text.SimpleDateFormat("MMM dd, yyyy", java.util.Locale.US)
+                                    .format(java.util.Date(it * 1000))
                             },
                             onAddTrackingNumber = { trackingNumber ->
                                 viewModel.updateTrackingNumber(order.id, trackingNumber, activityResultSender)
@@ -154,7 +181,8 @@ fun SoldOrderDetailScreen(
                                 productName = firstItem.productName,
                                 price = firstItem.unitPrice,
                                 quantity = firstItem.quantity,
-                                totalAmount = firstItem.totalPrice
+                                totalAmount = firstItem.totalPrice,
+                                productImage = firstItem.productImage
                             )
                         }
                     }
@@ -164,16 +192,9 @@ fun SoldOrderDetailScreen(
                         val shippingAddress = order.shippingAddress
                         if (shippingAddress != null) {
                             CustomerInfoCard(
-                                customerName = shippingAddress.recipientName,
-                                customerPhone = shippingAddress.phoneNumber,
-                                shippingAddress = buildString {
-                                    append(shippingAddress.addressLine1)
-                                    if (shippingAddress.addressLine2?.isNotEmpty() == true) {
-                                        append("\n${shippingAddress.addressLine2}")
-                                    }
-                                    append("\n${shippingAddress.city}, ${shippingAddress.state} ${shippingAddress.postalCode}")
-                                    append("\n${shippingAddress.country}")
-                                },
+                                customer = order.buyerId,
+                                shippingAddress = shippingAddress.addressLine1,
+                                note = order.orderNote?: "-",
                                 paymentMethod = order.paymentMethod
                             )
                         }
@@ -348,6 +369,7 @@ fun ProductOrderCard(
     price: Double,
     quantity: Int,
     totalAmount: Double,
+    productImage: String? = null,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -373,28 +395,40 @@ fun ProductOrderCard(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Product Image Placeholder
+                // Product Image
                 Box(
                     modifier = Modifier
                         .size(60.dp)
-                        .clip(RoundedCornerShape(8.dp)),
-                    contentAlignment = Alignment.Center
+                        .clip(RoundedCornerShape(8.dp))
                 ) {
-                    Card(
-                        modifier = Modifier.fillMaxSize(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer
-                        )
-                    ) {
-                        Box(
+                    if (productImage != null && productImage.isNotEmpty()) {
+                        AsyncImage(
+                            model = ImageRequest.Builder(LocalContext.current)
+                                .data(productImage)
+                                .crossfade(true)
+                                .build(),
+                            contentDescription = "Product image",
                             modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = productName.take(2).uppercase(),
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        // Fallback to placeholder
+                        Card(
+                            modifier = Modifier.fillMaxSize(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.primaryContainer
                             )
+                        ) {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = productName.take(2).uppercase(),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            }
                         }
                     }
                 }
@@ -427,9 +461,9 @@ fun ProductOrderCard(
 
 @Composable
 fun CustomerInfoCard(
-    customerName: String,
-    customerPhone: String,
+    customer: String,
     shippingAddress: String,
+    note: String,
     paymentMethod: String,
     modifier: Modifier = Modifier
 ) {
@@ -450,28 +484,28 @@ fun CustomerInfoCard(
                 fontWeight = FontWeight.SemiBold
             )
 
-            Spacer(modifier = Modifier.height(Spacing.medium))
+            Spacer(modifier = Modifier.height(Spacing.small))
 
             CustomerInfoRow(
                 icon = Icons.Default.Person,
-                label = "Customer",
-                value = customerName
+                label = "buyer",
+                value = customer
             )
 
             Spacer(modifier = Modifier.height(Spacing.small))
 
             CustomerInfoRow(
-                icon = Icons.Default.Phone,
-                label = "Phone",
-                value = customerPhone
-            )
-
-            Spacer(modifier = Modifier.height(Spacing.small))
-
-            CustomerInfoRow(
-                icon = Icons.Default.Place,
+                icon = Icons.Default.Home,
                 label = "Address",
                 value = shippingAddress
+            )
+
+            Spacer(modifier = Modifier.height(Spacing.small))
+
+            CustomerInfoRow(
+                icon = Icons.AutoMirrored.Filled.Note,
+                label = "Note",
+                value = note
             )
 
             Spacer(modifier = Modifier.height(Spacing.small))
@@ -480,7 +514,7 @@ fun CustomerInfoCard(
                 verticalAlignment = Alignment.Top
             ) {
                 Icon(
-                    imageVector = Icons.Default.Person, // Using Person as placeholder for payment
+                    imageVector = Icons.Default.Paid,
                     contentDescription = "Payment",
                     modifier = Modifier.size(20.dp),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant

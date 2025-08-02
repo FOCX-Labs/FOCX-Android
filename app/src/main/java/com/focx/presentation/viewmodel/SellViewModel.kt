@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import com.focx.utils.Log
 
 data class SellUiState(
     val isLoading: Boolean = false,
@@ -41,6 +42,7 @@ class SellViewModel @Inject constructor(
     private val CACHE_DURATION = 5 * 60 * 1000L // 5 minutes cache duration
 
     fun loadSellerData(forceRefresh: Boolean = false) {
+        Log.d("SellViewModel", "loadSellerData called with forceRefresh: $forceRefresh")
         val currentTime = System.currentTimeMillis()
         val currentState = _uiState.value
         
@@ -50,6 +52,7 @@ class SellViewModel @Inject constructor(
             currentState.sellerStats != null && 
             currentState.myProducts.isNotEmpty() &&
             (currentTime - currentState.lastRefreshTime) < CACHE_DURATION) {
+            Log.d("SellViewModel", "Using cached data, skipping refresh")
             return // Use cached data
         }
         viewModelScope.launch {
@@ -132,6 +135,7 @@ class SellViewModel @Inject constructor(
     }
 
     fun refreshData() {
+        Log.d("SellViewModel", "refreshData called")
         loadSellerData(forceRefresh = true)
     }
 
