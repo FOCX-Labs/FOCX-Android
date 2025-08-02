@@ -22,6 +22,8 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
@@ -32,10 +34,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.Button
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -45,10 +45,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.focx.domain.entity.Order
 import com.focx.domain.entity.OrderItem
 import com.focx.domain.entity.OrderManagementStatus
@@ -368,6 +372,8 @@ fun OrderStatusTimeline(order: Order) {
 
 @Composable
 fun OrderItemCard(item: OrderItem) {
+    val context = LocalContext.current
+    
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp)
@@ -378,22 +384,40 @@ fun OrderItemCard(item: OrderItem) {
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Product image placeholder
-            Box(
-                modifier = Modifier
-                    .size(60.dp)
-                    .background(
-                        MaterialTheme.colorScheme.surfaceVariant,
-                        RoundedCornerShape(8.dp)
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Image,
+            // Product image
+            if (item.productImage != null && item.productImage.isNotEmpty()) {
+                AsyncImage(
+                    model = ImageRequest.Builder(context)
+                        .data(item.productImage)
+                        .crossfade(true)
+                        .build(),
                     contentDescription = "Product Image",
-                    modifier = Modifier.size(24.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    modifier = Modifier
+                        .size(60.dp)
+                        .background(
+                            MaterialTheme.colorScheme.surfaceVariant,
+                            RoundedCornerShape(8.dp)
+                        ),
+                    contentScale = ContentScale.Crop
                 )
+            } else {
+                // Fallback placeholder
+                Box(
+                    modifier = Modifier
+                        .size(60.dp)
+                        .background(
+                            MaterialTheme.colorScheme.surfaceVariant,
+                            RoundedCornerShape(8.dp)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Image,
+                        contentDescription = "Product Image",
+                        modifier = Modifier.size(24.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.width(12.dp))
@@ -446,13 +470,8 @@ fun OrderSummaryCard(order: Order) {
             Spacer(modifier = Modifier.height(12.dp))
 
             val subtotal = order.items.sumOf { it.totalPrice }
-            val shipping = 9.99 // Default shipping cost
-            val tax = subtotal * 0.08 // 8% tax
 
             SummaryRow("Subtotal", NumberFormat.getCurrencyInstance(Locale.US).format(subtotal))
-            SummaryRow("Shipping", NumberFormat.getCurrencyInstance(Locale.US).format(shipping))
-            SummaryRow("Tax", NumberFormat.getCurrencyInstance(Locale.US).format(tax))
-
             Divider(modifier = Modifier.padding(vertical = 8.dp))
 
             Row(
@@ -523,25 +542,7 @@ fun ShippingAddressCard(order: Order) {
 
             order.shippingAddress?.let { address ->
                 Text(
-                    text = address.recipientName,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium
-                )
-
-                Text(
-                    text = "${address.addressLine1}${if (!address.addressLine2.isNullOrEmpty()) ", ${address.addressLine2}" else ""}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                Text(
-                    text = "${address.city}, ${address.state} ${address.postalCode}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                Text(
-                    text = address.phoneNumber,
+                    text = address.addressLine1,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

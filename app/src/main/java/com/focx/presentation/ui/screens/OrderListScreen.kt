@@ -190,8 +190,9 @@ fun OrderListItem(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                val totalQuantity = order.items.sumOf { it.quantity }
                 Text(
-                    text = "${order.items.size} item${if (order.items.size > 1) "s" else ""}",
+                    text = "$totalQuantity item${if (totalQuantity > 1) "s" else ""}",
                     style = MaterialTheme.typography.bodyMedium
                 )
 

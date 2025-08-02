@@ -300,15 +300,15 @@ object ShopUtils {
                 ","
             ) else emptyList(), //        val imageUrls: List<String>,
             baseInfo.merchant.base58(), //        val sellerId: String,
-            "", //
+            baseInfo.merchant.base58(), //
             "", //
             baseInfo.inventory.toInt(),
             baseInfo.sales.toInt(),
             baseInfo.shippingLocation,
-            if (extendedInfo != null && extendedInfo.salesRegions.isNotEmpty()) extendedInfo.imageVideoUrls.split(
+            if (extendedInfo != null && extendedInfo.salesRegions.isNotEmpty()) extendedInfo.salesRegions.split(
                 ","
             ) else emptyList(),
-            if (extendedInfo != null && extendedInfo.logisticsMethods.isNotEmpty()) extendedInfo.imageVideoUrls.split(
+            if (extendedInfo != null && extendedInfo.logisticsMethods.isNotEmpty()) extendedInfo.logisticsMethods.split(
                 ","
             ) else emptyList()
         )

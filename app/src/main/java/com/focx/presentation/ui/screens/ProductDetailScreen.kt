@@ -310,43 +310,43 @@ fun ProductDetailScreen(
                     Spacer(modifier = Modifier.height(Spacing.large))
 
                     // Specifications
-                    Text(
-                        text = "Specifications",
-                        style = MaterialTheme.typography.titleLarge,
-                        color = OnSurface,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    Spacer(modifier = Modifier.height(Spacing.medium))
-
-                    val specifications = currentProduct.specifications.toList()
-
-                    specifications.forEach { (key, value) ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = Spacing.small)
-                        ) {
-                            Text(
-                                text = key,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = OnSurfaceVariant,
-                                modifier = Modifier.weight(1f)
-                            )
-                            Text(
-                                text = value,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = OnSurface,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-                        if (specifications.last() != key to value) {
-                            HorizontalDivider(
-                                color = OnSurfaceVariant.copy(alpha = 0.1f),
-                                thickness = 1.dp
-                            )
-                        }
-                    }
+//                    Text(
+//                        text = "Specifications",
+//                        style = MaterialTheme.typography.titleLarge,
+//                        color = OnSurface,
+//                        fontWeight = FontWeight.Bold
+//                    )
+//
+//                    Spacer(modifier = Modifier.height(Spacing.medium))
+//
+//                    val specifications = currentProduct.specifications.toList()
+//
+//                    specifications.forEach { (key, value) ->
+//                        Row(
+//                            modifier = Modifier
+//                                .fillMaxWidth()
+//                                .padding(vertical = Spacing.small)
+//                        ) {
+//                            Text(
+//                                text = key,
+//                                style = MaterialTheme.typography.bodyMedium,
+//                                color = OnSurfaceVariant,
+//                                modifier = Modifier.weight(1f)
+//                            )
+//                            Text(
+//                                text = value,
+//                                style = MaterialTheme.typography.bodyMedium,
+//                                color = OnSurface,
+//                                fontWeight = FontWeight.Medium
+//                            )
+//                        }
+//                        if (specifications.last() != key to value) {
+//                            HorizontalDivider(
+//                                color = OnSurfaceVariant.copy(alpha = 0.1f),
+//                                thickness = 1.dp
+//                            )
+//                        }
+//                    }
 
                     // Shipping Info
                     Text(
