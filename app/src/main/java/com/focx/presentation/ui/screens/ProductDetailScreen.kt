@@ -527,6 +527,7 @@ fun ProductDetailScreen(
                     text = "Buy Now",
                     onClick = { showBuyDialog = true },
                     style = TechButtonStyle.PRIMARY,
+                    size = TechButtonSize.MEDIUM,
                     enabled = currentProduct.stock > 0,
                     modifier = Modifier.weight(1f)
                 )
@@ -587,7 +588,7 @@ fun BottomBuyDialog(
                     .navigationBarsPadding()
             ) {
                 Column(
-                    modifier = Modifier.padding(Spacing.large)
+                    modifier = Modifier.padding(Spacing.extraSmall)
                 ) {
                     // Handle bar
                     Box(
@@ -843,19 +844,21 @@ fun BottomBuyDialog(
                             text = "Cancel",
                             onClick = onDismiss,
                             style = TechButtonStyle.OUTLINE,
+                            size = TechButtonSize.MEDIUM,
                             modifier = Modifier.weight(1f)
                         )
                         TechButton(
                             text = "Purchase",
                             onClick = { onConfirmBuy(selectedAddress, orderNote) },
                             style = TechButtonStyle.PRIMARY,
+                            size = TechButtonSize.MEDIUM,
                             modifier = Modifier.weight(1f),
                             enabled = selectedAddress != null
                         )
                     }
                     
                     // Add bottom padding for safe area
-                    Spacer(modifier = Modifier.height(Spacing.large))
+                    Spacer(modifier = Modifier.height(Spacing.small))
                 }
             }
         }
