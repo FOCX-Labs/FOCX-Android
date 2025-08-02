@@ -322,7 +322,6 @@ fun SearchBarWithFilters(
             value = localSearchQuery,
             onValueChange = {
                 localSearchQuery = it
-                onSearch(it)
             },
             modifier = Modifier.fillMaxWidth(),
             placeholder = { Text("Search Products") },
@@ -333,7 +332,26 @@ fun SearchBarWithFilters(
                     Icon(Icons.Default.Search, contentDescription = "Search")
                 }
             },
-            singleLine = true
+            trailingIcon = {
+                if (localSearchQuery.isNotEmpty()) {
+                    androidx.compose.material3.IconButton(
+                        onClick = {
+                            onSearch(localSearchQuery)
+                        }
+                    ) {
+                        Icon(Icons.Default.Search, contentDescription = "Search")
+                    }
+                }
+            },
+            singleLine = true,
+            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                imeAction = androidx.compose.ui.text.input.ImeAction.Search
+            ),
+            keyboardActions = androidx.compose.foundation.text.KeyboardActions(
+                onSearch = {
+                    onSearch(localSearchQuery)
+                }
+            )
         )
 
         Spacer(modifier = Modifier.height(Spacing.medium))

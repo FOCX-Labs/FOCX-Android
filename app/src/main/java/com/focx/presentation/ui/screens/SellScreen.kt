@@ -444,7 +444,7 @@ fun OrderCard(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = order.items[0].productName,
-                        style = MaterialTheme.typography.titleLarge,
+                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Medium
                     )
                     Text(
