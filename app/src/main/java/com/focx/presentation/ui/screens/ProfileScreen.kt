@@ -287,7 +287,7 @@ fun ProfileContent(
             // User Profile Header
             item {
                 UserProfileHeader(
-                    user = uiState.user, onDisconnectWallet = onDisconnectWallet, onRefresh = onRefresh
+                    user = uiState.user, onDisconnectWallet = onDisconnectWallet,
                 )
             }
 
@@ -389,7 +389,6 @@ fun ProfileContent(
 fun UserProfileHeader(
     user: com.focx.domain.entity.User?, 
     onDisconnectWallet: () -> Unit,
-    onRefresh: () -> Unit = {}
 ) {
     val clipboardManager = LocalClipboardManager.current
 
@@ -432,15 +431,6 @@ fun UserProfileHeader(
             }
 
             Spacer(modifier = Modifier.weight(1f))
-
-            // Refresh button
-            IconButton(onClick = onRefresh) {
-                Icon(
-                    imageVector = Icons.Default.Refresh,
-                    contentDescription = "Refresh Data",
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            }
 
             IconButton(onClick = onDisconnectWallet) {
                 Icon(
