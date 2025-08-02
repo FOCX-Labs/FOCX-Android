@@ -15,6 +15,7 @@ import com.focx.data.datasource.local.AccountCacheDataSource
 import com.focx.data.datasource.solana.SolanaMerchantDataSource
 import com.focx.data.datasource.solana.SolanaOrderDataSource
 import com.focx.data.datasource.solana.SolanaProductDataSource
+import com.focx.data.datasource.solana.SolanaFaucetDataSource
 import com.focx.data.networking.KtorHttpDriver
 import com.focx.domain.repository.IGovernanceRepository
 import com.focx.domain.repository.IMerchantRepository
@@ -40,6 +41,7 @@ import com.focx.domain.usecase.GetWalletBalanceUseCase
 import com.focx.domain.usecase.LoginWithWalletUseCase
 import com.focx.domain.usecase.RecentBlockhashUseCase
 import com.focx.domain.usecase.RegisterMerchantUseCase
+import com.focx.domain.usecase.RequestUsdcFaucetUseCase
 import com.focx.domain.usecase.SaveProductUseCase
 import com.focx.domain.usecase.SearchProductsUseCase
 import com.focx.domain.usecase.SolanaAccountBalanceUseCase
@@ -383,5 +385,24 @@ object AppModule {
         solanaWalletConnectUseCase: SolanaWalletConnectUseCase
     ): GetCurrentWalletAddressUseCase {
         return GetCurrentWalletAddressUseCase(solanaWalletConnectUseCase)
+    }
+
+    @Provides
+    @Singleton
+    fun provideSolanaFaucetDataSource(
+        @ApplicationContext context: Context,
+        walletAdapter: MobileWalletAdapter,
+        recentBlockhashUseCase: RecentBlockhashUseCase,
+        solanaRpcClient: SolanaRpcClient
+    ): SolanaFaucetDataSource {
+        return SolanaFaucetDataSource(context, walletAdapter, recentBlockhashUseCase, solanaRpcClient)
+    }
+
+    @Provides
+    @Singleton
+    fun provideRequestUsdcFaucetUseCase(
+        solanaFaucetDataSource: SolanaFaucetDataSource
+    ): RequestUsdcFaucetUseCase {
+        return RequestUsdcFaucetUseCase(solanaFaucetDataSource)
     }
 }

@@ -14,6 +14,7 @@ import com.focx.domain.usecase.GetStakingInfoUseCase
 import com.focx.domain.usecase.GetUserAddressesUseCase
 import com.focx.domain.usecase.GetWalletBalanceUseCase
 import com.focx.domain.usecase.LoginWithWalletUseCase
+import com.focx.domain.usecase.RequestUsdcFaucetUseCase
 import com.focx.domain.usecase.SolanaAccountBalanceUseCase
 import com.focx.domain.usecase.SolanaTokenBalanceUseCase
 import com.focx.domain.usecase.SolanaWalletConnectUseCase
@@ -53,6 +54,7 @@ class ProfileViewModel @Inject constructor(
     private val disconnectWalletUseCase: DisconnectWalletUseCase,
     private val loginWithWalletUseCase: LoginWithWalletUseCase,
     private val solanaWalletConnectUseCase: SolanaWalletConnectUseCase,
+    private val requestUsdcFaucetUseCase: RequestUsdcFaucetUseCase,
     private val addressLocalDataSource: AddressLocalDataSource
 ) : ViewModel() {
 
@@ -417,6 +419,54 @@ class ProfileViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     error = "Failed to set default address: ${e.message}"
+                )
+            }
+        }
+    }
+    
+    /**
+     * Request USDC faucet
+     */
+    fun requestUsdcFaucet(activityResultSender: ActivityResultSender, solAmount: Double) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            
+            val user = _uiState.value.user
+            if (user?.walletAddress == null) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = "Wallet not connected"
+                )
+                return@launch
+            }
+            
+            try {
+                requestUsdcFaucetUseCase(user.walletAddress, activityResultSender, solAmount)
+                    .collect { result ->
+                        result.fold(
+                            onSuccess = { signature ->
+                                Log.d("ProfileViewModel", "USDC faucet successful: $signature")
+                                // Refresh wallet balance after successful faucet
+                                loadWalletData(user.walletAddress)
+                                _uiState.value = _uiState.value.copy(
+                                    isLoading = false,
+                                    error = null
+                                )
+                            },
+                            onFailure = { error ->
+                                Log.e("ProfileViewModel", "USDC faucet failed: ${error.message}")
+                                _uiState.value = _uiState.value.copy(
+                                    isLoading = false,
+                                    error = "USDC faucet failed: ${error.message}"
+                                )
+                            }
+                        )
+                    }
+            } catch (e: Exception) {
+                Log.e("ProfileViewModel", "Exception in requestUsdcFaucet: ${e.message}", e)
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = "USDC faucet failed: ${e.message}"
                 )
             }
         }

@@ -41,6 +41,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -60,6 +63,18 @@ import com.focx.presentation.viewmodel.ProfileViewModel
 import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
 import java.text.NumberFormat
 import java.util.Locale
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.ui.draw.clip
+import com.focx.presentation.ui.components.CardStyle
+import com.focx.presentation.ui.components.TechButton
+import com.focx.presentation.ui.components.TechButtonStyle
+import com.focx.presentation.ui.components.TechCard
+import com.focx.presentation.ui.theme.OnSurface
+import com.focx.presentation.ui.theme.OnSurfaceVariant
 
 @Composable
 fun ProfileScreen(
@@ -69,6 +84,7 @@ fun ProfileScreen(
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    var showFaucetDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         viewModel.loadProfileData()
@@ -82,13 +98,34 @@ fun ProfileScreen(
     } else {
         // Show profile content when user is logged in
         ProfileContent(
-            uiState = uiState, onRefresh = {
+            uiState = uiState, 
+            onRefresh = {
                 viewModel.refresh()
-            }, onDisconnectWallet = {
+            }, 
+            onDisconnectWallet = {
                 viewModel.disconnectWallet()
-            }, onClearError = {
+            }, 
+            onClearError = {
                 viewModel.clearError()
-            }, onNavigateToAddresses = onNavigateToAddresses, onNavigateToOrders = onNavigateToOrders
+            }, 
+            onNavigateToAddresses = onNavigateToAddresses, 
+            onNavigateToOrders = onNavigateToOrders,
+            onRequestUsdcFaucet = {
+                showFaucetDialog = true
+            }
+        )
+    }
+
+    // Faucet Dialog
+    if (showFaucetDialog) {
+        FaucetDialog(
+            onConfirm = { solAmount ->
+                viewModel.requestUsdcFaucet(activityResultSender, solAmount)
+                showFaucetDialog = false
+            },
+            onDismiss = {
+                showFaucetDialog = false
+            }
         )
     }
 }
@@ -217,7 +254,8 @@ fun ProfileContent(
     onDisconnectWallet: () -> Unit,
     onClearError: () -> Unit,
     onNavigateToAddresses: () -> Unit,
-    onNavigateToOrders: () -> Unit
+    onNavigateToOrders: () -> Unit,
+    onRequestUsdcFaucet: () -> Unit = {}
 ) {
     LazyColumn(
         modifier = Modifier
@@ -236,7 +274,9 @@ fun ProfileContent(
         // Wallet Balance Card
         item {
             WalletBalanceCard(
-                walletBalance = uiState.walletBalance, isLoading = uiState.isLoading
+                walletBalance = uiState.walletBalance, 
+                isLoading = uiState.isLoading,
+                onRequestUsdcFaucet = onRequestUsdcFaucet
             )
         }
 
@@ -384,7 +424,9 @@ fun UserProfileHeader(
 
 @Composable
 fun WalletBalanceCard(
-    walletBalance: com.focx.domain.entity.WalletBalance?, isLoading: Boolean
+    walletBalance: com.focx.domain.entity.WalletBalance?, 
+    isLoading: Boolean,
+    onRequestUsdcFaucet: () -> Unit = {}
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)
@@ -415,19 +457,38 @@ fun WalletBalanceCard(
                 walletBalance?.let { balance ->
                     Text(
                         text = "${String.format("%.4f", balance.solBalance)} SOL",
-                        style = MaterialTheme.typography.headlineMedium,
+                        style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
                     )
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    Text(
-                        text = "${String.format("%.4f", balance.usdcBalance)} USDC",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "${String.format("%.4f", balance.usdcBalance)} USDC",
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.weight(1f)
+                        )
+                        
+                        // Show faucet button only in devnet
+                        if (NetworkConfig.getCurrentNetwork().contains("devnet", ignoreCase = true)) {
+                            Button(
+                                onClick = onRequestUsdcFaucet,
+                                modifier = Modifier.height(32.dp),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Text(
+                                    text = "Faucet",
+                                    style = MaterialTheme.typography.labelMedium
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -629,6 +690,131 @@ fun AddressCard(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+        }
+    }
+}
+
+@Composable
+fun FaucetDialog(
+    onConfirm: (Double) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var solAmount by remember { mutableStateOf("") }
+    val usdcAmount = solAmount.toDoubleOrNull()?.let { it * 10000 } ?: 0.0
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false
+        )
+    ) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            TechCard(
+                style = CardStyle.ELEVATED,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(32.dp)
+                    .clip(RoundedCornerShape(16.dp))
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "USDC Faucet",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = OnSurface
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Text(
+                        text = "Exchange Rate: 1 SOL = 10,000 USDC",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = OnSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // SOL Amount Input
+                    OutlinedTextField(
+                        value = solAmount,
+                        onValueChange = { 
+                            // Only allow numbers and decimal point
+                            if (it.isEmpty() || it.matches(Regex("^\\d*\\.?\\d*$"))) {
+                                solAmount = it
+                            }
+                        },
+                        label = { Text("SOL Amount") },
+                        placeholder = { Text("Enter SOL amount") },
+                        modifier = Modifier.fillMaxWidth(),
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Decimal
+                        ),
+                        singleLine = true
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // USDC Amount Display
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer
+                        ),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "You will receive",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                            Text(
+                                text = "${String.format("%.2f", usdcAmount)} USDC",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // Action Buttons
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        TechButton(
+                            text = "Cancel",
+                            onClick = onDismiss,
+                            style = TechButtonStyle.OUTLINE,
+                            modifier = Modifier.weight(1f)
+                        )
+                        TechButton(
+                            text = "Confirm",
+                            onClick = { 
+                                val amount = solAmount.toDoubleOrNull()
+                                if (amount != null && amount > 0) {
+                                    onConfirm(amount)
+                                }
+                            },
+                            style = TechButtonStyle.PRIMARY,
+                            modifier = Modifier.weight(1f),
+                            enabled = solAmount.toDoubleOrNull() != null && solAmount.toDoubleOrNull()!! > 0
+                        )
+                    }
+                }
+            }
         }
     }
 }
