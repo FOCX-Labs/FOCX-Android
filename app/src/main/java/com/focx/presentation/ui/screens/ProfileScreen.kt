@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Logout
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.Button
@@ -38,6 +39,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material.pullrefresh.PullRefreshIndicator
+import androidx.compose.material.pullrefresh.pullRefresh
+import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -75,6 +79,7 @@ import com.focx.presentation.ui.components.TechButtonStyle
 import com.focx.presentation.ui.components.TechCard
 import com.focx.presentation.ui.theme.OnSurface
 import com.focx.presentation.ui.theme.OnSurfaceVariant
+import androidx.compose.material.ExperimentalMaterialApi
 
 @Composable
 fun ProfileScreen(
@@ -247,6 +252,7 @@ fun LoginPromptScreen(
     }
 }
 
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun ProfileContent(
     uiState: com.focx.presentation.viewmodel.ProfileUiState,
@@ -257,56 +263,72 @@ fun ProfileContent(
     onNavigateToOrders: () -> Unit,
     onRequestUsdcFaucet: () -> Unit = {}
 ) {
-    LazyColumn(
+    val pullRefreshState = rememberPullRefreshState(
+        refreshing = uiState.isLoading,
+        onRefresh = onRefresh
+    )
+
+    Column(
         modifier = Modifier
             .fillMaxSize()
             .windowInsetsPadding(WindowInsets.statusBars)
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+            .padding(16.dp)
+            .pullRefresh(pullRefreshState)
     ) {
-        // User Profile Header
-        item {
-            UserProfileHeader(
-                user = uiState.user, onDisconnectWallet = onDisconnectWallet
-            )
-        }
+        PullRefreshIndicator(
+            refreshing = uiState.isLoading,
+            state = pullRefreshState,
+            modifier = Modifier.align(Alignment.CenterHorizontally)
+        )
 
-        // Wallet Balance Card
-        item {
-            WalletBalanceCard(
-                walletBalance = uiState.walletBalance, 
-                isLoading = uiState.isLoading,
-                onRequestUsdcFaucet = onRequestUsdcFaucet
-            )
-        }
+        LazyColumn(
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // User Profile Header
+            item {
+                UserProfileHeader(
+                    user = uiState.user, onDisconnectWallet = onDisconnectWallet, onRefresh = onRefresh
+                )
+            }
 
-        // Staking Info Card
-        item {
-            StakingInfoCard(
-                stakingInfo = uiState.stakingInfo, isLoading = uiState.isLoading
-            )
-        }
+            // Wallet Balance Card
+            item {
+                WalletBalanceCard(
+                    walletBalance = uiState.walletBalance, 
+                    isLoading = uiState.isLoading,
+                    onRequestUsdcFaucet = onRequestUsdcFaucet
+                )
+            }
 
-        // Menu Items
-        item {
-            MenuSection(
-                onNavigateToAddresses = onNavigateToAddresses,
-                onNavigateToOrders = onNavigateToOrders,
-                addressCount = uiState.userAddresses.size
-            )
-        }
+            // Staking Info Card
+            item {
+                StakingInfoCard(
+                    stakingInfo = uiState.stakingInfo, 
+                    isLoading = uiState.isLoading
+                )
+            }
 
-        // Network Config Info at bottom
-        item {
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                modifier = Modifier.fillMaxWidth(),
-                text = NetworkConfig.getCurrentNetwork(),
-                style = MaterialTheme.typography.bodySmall,
-                textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(16.dp))
+            // Menu Items
+            item {
+                MenuSection(
+                    onNavigateToAddresses = onNavigateToAddresses,
+                    onNavigateToOrders = onNavigateToOrders,
+                    addressCount = uiState.userAddresses.size
+                )
+            }
+
+            // Network Config Info at bottom
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    modifier = Modifier.fillMaxWidth(),
+                    text = NetworkConfig.getCurrentNetwork(),
+                    style = MaterialTheme.typography.bodySmall,
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+            }
         }
     }
 
@@ -365,7 +387,9 @@ fun ProfileContent(
 
 @Composable
 fun UserProfileHeader(
-    user: com.focx.domain.entity.User?, onDisconnectWallet: () -> Unit
+    user: com.focx.domain.entity.User?, 
+    onDisconnectWallet: () -> Unit,
+    onRefresh: () -> Unit = {}
 ) {
     val clipboardManager = LocalClipboardManager.current
 
@@ -408,6 +432,15 @@ fun UserProfileHeader(
             }
 
             Spacer(modifier = Modifier.weight(1f))
+
+            // Refresh button
+            IconButton(onClick = onRefresh) {
+                Icon(
+                    imageVector = Icons.Default.Refresh,
+                    contentDescription = "Refresh Data",
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
 
             IconButton(onClick = onDisconnectWallet) {
                 Icon(
@@ -456,8 +489,8 @@ fun WalletBalanceCard(
             } else {
                 walletBalance?.let { balance ->
                     Text(
-                        text = "${String.format("%.4f", balance.solBalance)} SOL",
-                        style = MaterialTheme.typography.headlineSmall,
+                        text = "${String.format("%.2f", balance.solBalance)} SOL",
+                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -468,8 +501,8 @@ fun WalletBalanceCard(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "${String.format("%.4f", balance.usdcBalance)} USDC",
-                            style = MaterialTheme.typography.headlineSmall,
+                            text = "${String.format("%.2f", balance.usdcBalance)} USDC",
+                            style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.weight(1f)
@@ -497,7 +530,8 @@ fun WalletBalanceCard(
 
 @Composable
 fun StakingInfoCard(
-    stakingInfo: com.focx.domain.entity.StakingInfo?, isLoading: Boolean
+    stakingInfo: com.focx.domain.entity.StakingInfo?, 
+    isLoading: Boolean
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)
