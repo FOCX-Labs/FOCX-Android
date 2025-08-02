@@ -46,6 +46,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
@@ -516,6 +518,7 @@ fun BottomBuyDialog(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
+                    .navigationBarsPadding()
             ) {
                 Column(
                     modifier = Modifier.padding(Spacing.large)
@@ -784,6 +787,9 @@ fun BottomBuyDialog(
                             enabled = selectedAddress != null
                         )
                     }
+                    
+                    // Add bottom padding for safe area
+                    Spacer(modifier = Modifier.height(Spacing.large))
                 }
             }
         }

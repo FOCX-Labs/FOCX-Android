@@ -105,7 +105,7 @@ class SolanaProductDataSource @Inject constructor(
     }
 
     private suspend fun getRecommendIds(): List<ULong> {
-        return listOf(490005UL, 670001UL)
+        return listOf(670001UL)
     }
 
 
