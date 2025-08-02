@@ -259,12 +259,14 @@ class SolanaProductDataSource @Inject constructor(
         val nextProductId = getNextProductId(accountPublicKey, merchantIdAccountPDA)
         val productBasePDA = ShopUtils.getProductBasePDA(nextProductId).getOrNull()!!
         val productExtendedPDA = ShopUtils.getProductExtendedPDA(nextProductId).getOrNull()!!
+        val merchantInfoAccountPda = ShopUtils.getMerchantInfoPda(accountPublicKey).getOrNull()!!
 
         val createProductBaseInstruction = genTransactionInstruction(
             listOf(
                 AccountMeta(accountPublicKey, true, true),
                 AccountMeta(globalRootPDA, false, true),
                 AccountMeta(merchantIdAccountPDA, false, true),
+                AccountMeta(merchantInfoAccountPda, false, true),
                 AccountMeta(getActiveChunkPDA(accountPublicKey, merchantIdAccountPDA), false, true),
                 AccountMeta(paymentConfigPDA, false, false),
                 AccountMeta(productBasePDA, false, true),
