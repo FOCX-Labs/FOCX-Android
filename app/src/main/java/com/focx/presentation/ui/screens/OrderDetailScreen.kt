@@ -248,26 +248,28 @@ fun OrderInfoCard(order: Order) {
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.weight(1f)
                 )
+            }
 
-                Surface(
-                    modifier = Modifier
-                        .wrapContentSize(),
-                    shape = RoundedCornerShape(8.dp),
-                    color = when (order.status) {
-                        OrderManagementStatus.Delivered -> Color(0xFF2E7D32)
-                        OrderManagementStatus.Shipped -> Color(0xFF1565C0)
-                        OrderManagementStatus.Pending -> Color(0xFFE65100)
-                        else -> MaterialTheme.colorScheme.onSurfaceVariant
-                    }
-                ) {
-                    Text(
-                        text = order.status.toString(),
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Medium,
-                        color = Color.White
-                    )
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Surface(
+                modifier = Modifier
+                    .wrapContentSize(),
+                shape = RoundedCornerShape(8.dp),
+                color = when (order.status) {
+                    OrderManagementStatus.Delivered -> Color(0xFF2E7D32)
+                    OrderManagementStatus.Shipped -> Color(0xFF1565C0)
+                    OrderManagementStatus.Pending -> Color(0xFF2E7D32)
+                    else -> MaterialTheme.colorScheme.onSurfaceVariant
                 }
+            ) {
+                Text(
+                    text = order.status.toString(),
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = Color.White
+                )
             }
 
             Spacer(modifier = Modifier.height(8.dp))

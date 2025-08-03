@@ -172,8 +172,11 @@ fun OrderListItem(
                     fontWeight = FontWeight.Bold
                 )
 
-                OrderStatusChip(status = order.status)
             }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            OrderStatusChip(status = order.status)
 
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -218,7 +221,7 @@ fun OrderListItem(
 @Composable
 fun OrderStatusChip(status: OrderManagementStatus) {
     val (backgroundColor, textColor) = when (status) {
-        OrderManagementStatus.Pending -> MaterialTheme.colorScheme.secondary to MaterialTheme.colorScheme.onSecondary
+        OrderManagementStatus.Pending -> Color(0xFF4CAF50) to Color.White
         OrderManagementStatus.Shipped -> Color(0xFF2196F3) to Color.White
         OrderManagementStatus.Delivered -> Color(0xFF4CAF50) to Color.White
         OrderManagementStatus.Refunded -> MaterialTheme.colorScheme.error to MaterialTheme.colorScheme.onError

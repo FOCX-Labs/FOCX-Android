@@ -23,7 +23,8 @@ data class SoldOrderDetailState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val isUpdatingTracking: Boolean = false,
-    val trackingUpdateError: String? = null
+    val trackingUpdateError: String? = null,
+    val trackingNumberJustUpdated: Boolean = false
 )
 
 data class OrderStatusStep(
@@ -52,7 +53,8 @@ class SoldOrderDetailViewModel @Inject constructor(
                 val order = getOrderByIdUseCase(orderId)
                 _state.value = _state.value.copy(
                     order = order,
-                    isLoading = false
+                    isLoading = false,
+                    trackingNumberJustUpdated = false
                 )
             } catch (e: Exception) {
                 _state.value = _state.value.copy(
@@ -183,6 +185,10 @@ class SoldOrderDetailViewModel @Inject constructor(
                 val result = updateTrackingNumberUseCase(orderId, trackingNumber, SolanaPublicKey.from(walletAddress), activityResultSender)
                 if (result.isSuccess) {
                     // Reload the order to get updated data
+                    _state.value = _state.value.copy(
+                        isUpdatingTracking = false,
+                        trackingNumberJustUpdated = true
+                    )
                     loadOrder(orderId)
                 } else {
                     _state.value = _state.value.copy(

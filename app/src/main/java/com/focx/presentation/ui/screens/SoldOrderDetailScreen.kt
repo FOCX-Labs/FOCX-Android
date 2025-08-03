@@ -82,11 +82,9 @@ fun SoldOrderDetailScreen(
     }
     
     // Show success message when tracking number is updated
-    LaunchedEffect(state.order) {
-        state.order?.let { currentOrder ->
-            if (currentOrder.status == OrderManagementStatus.Shipped && currentOrder.trackingNumber != null) {
-                Toast.makeText(context, "Tracking number updated successfully!", Toast.LENGTH_SHORT).show()
-            }
+    LaunchedEffect(state.trackingNumberJustUpdated) {
+        if (state.trackingNumberJustUpdated) {
+            Toast.makeText(context, "Tracking number updated successfully!", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -488,7 +486,7 @@ fun CustomerInfoCard(
 
             CustomerInfoRow(
                 icon = Icons.Default.Person,
-                label = "buyer",
+                label = "Buyer",
                 value = customer
             )
 

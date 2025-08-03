@@ -455,7 +455,8 @@ fun OrderCard(
                     Text(
                         text = "Buyer: ${order.buyerId}",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = FontWeight.Medium
                     )
                 }
 
