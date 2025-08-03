@@ -379,9 +379,10 @@ class SolanaOrderDataSource @Inject constructor(
                         AccountMeta(programTokenAccountPDA, false, true),
                         AccountMeta(depositEscrowPda, false, true),
                         AccountMeta(programAuthorityPDA, false, false),
-                        AccountMeta(systemConfig.vaultProgramId, false, true),
+                        AccountMeta(systemConfig.vaultAccount, false, true),
                         AccountMeta(systemConfig.vaultTokenAccount, false, true),
                         AccountMeta(systemConfig.platformTokenAccount, false, true),
+                        AccountMeta(systemConfig.vaultProgramId, false, true),
                         AccountMeta(buyerPubKey, true, true),
                         AccountMeta(
                             SolanaPublicKey.from(AppConstants.App.SPL_TOKEN_PROGRAM_ID),

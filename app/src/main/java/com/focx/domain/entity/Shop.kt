@@ -277,9 +277,9 @@ data class SystemConfig(
     val platformFeeRecipient: SolanaPublicKey,
     val autoConfirmDays: UInt,
     val vaultProgramId: SolanaPublicKey,
+    val vaultAccount: SolanaPublicKey,
     val vaultTokenAccount: SolanaPublicKey,
     val platformTokenAccount: SolanaPublicKey,
-
 )
 
 @Serializable
