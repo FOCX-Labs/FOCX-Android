@@ -28,7 +28,7 @@ class ProductListViewModel @Inject constructor(
     private val getProductByIdUseCase: GetProductByIdUseCase
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow(ProductListState())
+    private val _state = MutableStateFlow(ProductListState(isLoading = true))
     val state: StateFlow<ProductListState> = _state.asStateFlow()
 
     private var currentPage = 1
@@ -151,7 +151,15 @@ class ProductListViewModel @Inject constructor(
 
     private fun refreshProducts() {
         viewModelScope.launch {
-            loadProducts(refresh = true)
+            // Check if there's an active search query
+            val currentSearchQuery = _state.value.searchQuery
+            if (currentSearchQuery.isNotBlank()) {
+                // Refresh search results if there's a search query
+                searchProducts(currentSearchQuery, refresh = true)
+            } else {
+                // Refresh general products if no search query
+                loadProducts(refresh = true)
+            }
             _effect.emit(ProductListEffect.ScrollToTop)
         }
     }
@@ -198,16 +206,21 @@ class ProductListViewModel @Inject constructor(
         }
     }
 
-    private fun searchProducts(query: String) {
+    private fun searchProducts(query: String, refresh: Boolean = false) {
         viewModelScope.launch {
-            _state.value = _state.value.copy(
-                isSearching = true
-            )
+            if (refresh) {
+                // During refresh, only set isRefreshing, don't set isSearching to avoid clearing content
+                _state.value = _state.value.copy(isRefreshing = true)
+            } else {
+                // For new searches, set isSearching to show loading state
+                _state.value = _state.value.copy(isSearching = true)
+            }
 
             if (query.isBlank()) {
                 _state.value = _state.value.copy(
                     filteredProducts = _state.value.products,
-                    isSearching = false
+                    isSearching = false,
+                    isRefreshing = false
                 )
                 return@launch
             }
@@ -218,12 +231,14 @@ class ProductListViewModel @Inject constructor(
                         onSuccess = { products ->
                             _state.value = _state.value.copy(
                                 filteredProducts = products,
-                                isSearching = false
+                                isSearching = false,
+                                isRefreshing = false
                             )
                         },
                         onFailure = { exception ->
                             _state.value = _state.value.copy(
                                 isSearching = false,
+                                isRefreshing = false,
                                 error = exception.message ?: "Search failed"
                             )
                         }

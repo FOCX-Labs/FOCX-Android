@@ -151,8 +151,22 @@ fun ProductListScreen(
                 // Content
                 Box(modifier = Modifier.pullRefresh(pullRefreshState)) {
                     when {
-                        // 显示搜索loading状态
-                        state.isSearching && state.searchQuery.isNotBlank() -> {
+                        // Show loading state for initial page load or when refreshing with no products
+                        state.isLoading && state.products.isEmpty() -> {
+                            ShimmerProductGrid(
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+                        
+                        // Show loading state for refresh with no products
+                        state.isRefreshing && state.products.isEmpty() -> {
+                            ShimmerProductGrid(
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+                        
+                        // Show search loading state only for new searches, not during refresh
+                        state.isSearching && state.searchQuery.isNotBlank() && !state.isRefreshing -> {
                             Box(
                                 modifier = Modifier.fillMaxSize(),
                                 contentAlignment = Alignment.Center
@@ -171,12 +185,6 @@ fun ProductListScreen(
                                 }
                             }
                         }
-                        
-                        (state.isLoading || state.isRefreshing) && state.products.isEmpty() -> {
-                            ShimmerProductGrid(
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        }
 
                         state.error != null && state.products.isEmpty() && !state.isRefreshing -> {
                             ErrorState(
@@ -186,6 +194,22 @@ fun ProductListScreen(
                             )
                         }
 
+                        // Show empty state for search results
+                        state.searchQuery.isNotBlank() && state.filteredProducts.isEmpty() && !state.isSearching && !state.isRefreshing -> {
+                            EmptyState(
+                                title = "No search results found",
+                                subtitle = "Try different keywords or browse all products",
+                                icon = androidx.compose.material.icons.Icons.Default.SearchOff,
+                                actionText = "Browse All",
+                                onActionClick = {
+                                    viewModel.handleIntent(ProductListIntent.UpdateSearchQuery(""))
+                                    viewModel.handleIntent(ProductListIntent.LoadProducts)
+                                },
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+
+                        // Show empty state for general browsing
                         state.products.isEmpty() && !state.isRefreshing && !state.isSearching -> {
                             EmptyState(
                                 title = "No products found",
@@ -200,7 +224,8 @@ fun ProductListScreen(
                             )
                         }
 
-                        else -> {
+                        // Show product grid when we have products or when not in any loading state
+                        state.products.isNotEmpty() || (!state.isLoading && !state.isRefreshing && !state.isSearching) -> {
                             ProductGrid(
                                 products = if (filterState.selectedSortOption != SortOption.RELEVANCE) state.filteredProducts else state.products,
                                 onProductClick = onProductClick,
