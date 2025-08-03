@@ -131,15 +131,6 @@ class SolanaFaucetDataSource @Inject constructor(
         val userTokenData = solanaRpcClient.getAccountInfo(userTokenAccount).result?.data
 
         if (userTokenData == null) {
-            val rentExemptionAmount = 2039280L
-//            val createAccountIx = SystemProgram.createAccount(
-//                userPublicKey,
-//                userTokenAccount,
-//                rentExemptionAmount,
-//                165,
-//                SolanaPublicKey.from(AppConstants.App.SPL_TOKEN_PROGRAM_ID)
-//            )
-
             val createTokenAccountInstruction = genTransactionInstruction(
                 listOf(
                     AccountMeta(userPublicKey, isSigner = true, isWritable = true),
@@ -155,15 +146,10 @@ class SolanaFaucetDataSource @Inject constructor(
                         SolanaPublicKey.from(AppConstants.App.SPL_TOKEN_PROGRAM_ID),
                         false,
                         false
-                    ), // token sysvar
-                    AccountMeta(
-                        SolanaPublicKey.from("SysvarRent111111111111111111111111111111111"),
-                        false,
-                        false
-                    ) // rent program
+                    )
                 ),
                 byteArrayOf(0),
-                SolanaPublicKey.from(AppConstants.App.SPL_TOKEN_PROGRAM_ID)
+                SolanaPublicKey.from(AppConstants.App.ASSOCIATED_TOKEN_PROGRAM_ID)
             )
             instructions.add(createTokenAccountInstruction)
         }
