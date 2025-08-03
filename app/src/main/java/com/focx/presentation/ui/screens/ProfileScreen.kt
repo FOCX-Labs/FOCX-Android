@@ -569,7 +569,7 @@ fun StakingInfoCard(
 
                         Column {
                             Text(
-                                text = "Rewards",
+                                text = "Staked",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )

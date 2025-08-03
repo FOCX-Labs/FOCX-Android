@@ -511,21 +511,6 @@ fun VaultInformationCard() {
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-
-            Spacer(modifier = Modifier.height(Spacing.medium))
-
-            Text(
-                text = "Cumulative Earnings",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
-            )
-
-            Text(
-                text = "$42.5",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF4CAF50)
-            )
         }
     }
 }
