@@ -401,7 +401,7 @@ fun OrderItemCard(item: OrderItem) {
                             MaterialTheme.colorScheme.surfaceVariant,
                             RoundedCornerShape(8.dp)
                         ),
-                    contentScale = ContentScale.Crop
+                    contentScale = ContentScale.Fit
                 )
             } else {
                 // Fallback placeholder

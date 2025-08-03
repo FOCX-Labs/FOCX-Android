@@ -268,7 +268,7 @@ fun ProductManagementCard(
                                 .build(),
                             contentDescription = "Product image",
                             modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
+                            contentScale = ContentScale.Fit
                         )
                     } else {
                         // Fallback to placeholder

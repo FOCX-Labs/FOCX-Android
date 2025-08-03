@@ -256,7 +256,7 @@ fun ProductDetailScreen(
                             modifier = Modifier
                                 .fillMaxSize()
                                 .clip(RoundedCornerShape(bottomStart = 16.dp, bottomEnd = 16.dp)),
-                            contentScale = ContentScale.Crop
+                            contentScale = ContentScale.Fit
                         )
                     }
 
@@ -623,7 +623,7 @@ fun BottomBuyDialog(
                             modifier = Modifier
                                 .size(60.dp)
                                 .clip(RoundedCornerShape(8.dp)),
-                            contentScale = ContentScale.Crop
+                            contentScale = ContentScale.Fit
                         )
 
                         Spacer(modifier = Modifier.width(Spacing.medium))

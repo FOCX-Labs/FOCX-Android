@@ -354,7 +354,7 @@ fun ProductSellerCard(
                     .fillMaxWidth()
                     .height(120.dp)
                     .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
-                contentScale = ContentScale.Crop
+                contentScale = ContentScale.Fit
             )
 
             Column(
