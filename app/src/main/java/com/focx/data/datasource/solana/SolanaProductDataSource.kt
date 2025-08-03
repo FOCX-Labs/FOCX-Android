@@ -122,11 +122,11 @@ class SolanaProductDataSource @Inject constructor(
             1010007UL,
             1010008UL,
             1010009UL,
-            10100010UL,
-            10100011UL,
-            10100012UL,
-            10100013UL,
-            10100014UL
+            1010010UL,
+            1010011UL,
+            1010012UL,
+            1010013UL,
+            1010014UL
         )
     }
 

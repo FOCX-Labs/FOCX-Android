@@ -102,7 +102,8 @@ class ProductListViewModel @Inject constructor(
             if (refresh) {
                 currentPage = 1
                 isLastPage = false
-                _state.value = _state.value.copy(products = emptyList(), filteredProducts = emptyList())
+                // Don't clear products immediately during refresh, wait for API response
+                _state.value = _state.value.copy(isRefreshing = true)
             } else {
                 _state.value = _state.value.copy(isLoading = true)
             }
@@ -122,7 +123,13 @@ class ProductListViewModel @Inject constructor(
                             if (newProducts.isEmpty()) {
                                 isLastPage = true
                             } else {
-                                val currentProducts = if (refresh) newProducts else _state.value.products + newProducts
+                                val currentProducts = if (refresh) {
+                                    // For refresh, replace products with new data from API
+                                    newProducts
+                                } else {
+                                    // For pagination, append new products
+                                    _state.value.products + newProducts
+                                }
                                 _state.value = _state.value.copy(
                                     products = currentProducts,
                                     filteredProducts = currentProducts
