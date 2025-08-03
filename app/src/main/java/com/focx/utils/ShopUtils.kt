@@ -282,7 +282,11 @@ object ShopUtils {
 
     suspend fun getProductInfoById(productId: ULong, solanaRpcClient: SolanaRpcClient): Product? {
         val productPda = getProductBasePDA(productId).getOrNull()!!
-        return getProductInfoPda(productPda, solanaRpcClient)
+        val result = getProductInfoPda(productPda, solanaRpcClient)
+        if (result == null) {
+            Log.w(TAG, "getProductInfoById: product not found, productId: $productId, productPda: ${productPda.base58()}")
+        }
+        return result
     }
 
     suspend fun getProductInfoPda(
@@ -293,6 +297,7 @@ object ShopUtils {
         val baseInfo = solanaRpcClient.getAccountInfo<ProductBase>(productPda).result?.data
 
         if (baseInfo == null) {
+            Log.w(TAG, "getProductInfoPda: base info not found, productPda: ${productPda.base58()}")
             return null
         }
 
