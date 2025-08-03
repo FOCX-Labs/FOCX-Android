@@ -294,8 +294,8 @@ object AppModule {
     @Provides
     @Singleton
     fun provideMobileWalletAdapter(): MobileWalletAdapter {
-        val solanaUri = Uri.parse("https://solana.com")
-        val iconUri = Uri.parse("favicon.ico")
+        val solanaUri = Uri.parse("https://focx-labs.github.io")
+        val iconUri = Uri.parse("/assets/icon.png")
         val identityName = "FOCX"
 
         return MobileWalletAdapter(
