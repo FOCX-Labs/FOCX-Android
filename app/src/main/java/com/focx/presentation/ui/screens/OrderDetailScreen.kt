@@ -1,6 +1,7 @@
 package com.focx.presentation.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -27,8 +29,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -233,7 +235,7 @@ fun OrderInfoCard(order: Order) {
         shape = RoundedCornerShape(12.dp)
     ) {
         Column(
-            modifier = Modifier.padding(16.dp)
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -242,29 +244,28 @@ fun OrderInfoCard(order: Order) {
             ) {
                 Text(
                     text = "Order ${order.id}",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f)
                 )
 
                 Surface(
+                    modifier = Modifier
+                        .wrapContentSize(),
+                    shape = RoundedCornerShape(8.dp),
                     color = when (order.status) {
-                        OrderManagementStatus.Delivered -> Color(0xFF4CAF50).copy(alpha = 0.1f)
-                        OrderManagementStatus.Shipped -> Color(0xFF2196F3).copy(alpha = 0.1f)
-                        OrderManagementStatus.Pending -> Color(0xFFFF9800).copy(alpha = 0.1f)
-                        else -> MaterialTheme.colorScheme.surfaceVariant
-                    },
-                    shape = RoundedCornerShape(12.dp)
+                        OrderManagementStatus.Delivered -> Color(0xFF2E7D32)
+                        OrderManagementStatus.Shipped -> Color(0xFF1565C0)
+                        OrderManagementStatus.Pending -> Color(0xFFE65100)
+                        else -> MaterialTheme.colorScheme.onSurfaceVariant
+                    }
                 ) {
                     Text(
                         text = order.status.toString(),
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                         style = MaterialTheme.typography.labelMedium,
-                        color = when (order.status) {
-                            OrderManagementStatus.Delivered -> Color(0xFF4CAF50)
-                            OrderManagementStatus.Shipped -> Color(0xFF2196F3)
-                            OrderManagementStatus.Pending -> Color(0xFFFF9800)
-                            else -> MaterialTheme.colorScheme.onSurfaceVariant
-                        }
+                        fontWeight = FontWeight.Medium,
+                        color = Color.White
                     )
                 }
             }
@@ -387,7 +388,7 @@ fun OrderItemCard(item: OrderItem) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Product image
-            if (item.productImage != null && item.productImage.isNotEmpty()) {
+            if (item.productImage.isNotEmpty()) {
                 AsyncImage(
                     model = ImageRequest.Builder(context)
                         .data(item.productImage)
@@ -474,7 +475,7 @@ fun OrderSummaryCard(order: Order) {
             val subtotal = order.items.sumOf { it.totalPrice }
 
             SummaryRow("Subtotal", NumberFormat.getCurrencyInstance(Locale.US).format(subtotal))
-            Divider(modifier = Modifier.padding(vertical = 8.dp))
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),

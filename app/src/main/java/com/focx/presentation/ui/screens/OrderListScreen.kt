@@ -167,7 +167,7 @@ fun OrderListItem(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Order ${order.id}",
+                    text = order.items[0].productName,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
@@ -178,7 +178,7 @@ fun OrderListItem(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                                        text = SimpleDateFormat("MMM dd, yyyy", Locale.US).format(order.orderDate * 1000),
+                text = SimpleDateFormat("MMM dd, yyyy", Locale.US).format(order.orderDate * 1000),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -204,15 +204,13 @@ fun OrderListItem(
                 )
             }
 
-            if (order.items.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-                Text(
-                    text = order.items.first().productName + if (order.items.size > 1) " and ${order.items.size - 1} more" else "",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+            Text(
+                text = "Order: ${order.id}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
