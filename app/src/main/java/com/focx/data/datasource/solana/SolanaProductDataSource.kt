@@ -42,7 +42,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import javax.inject.Inject
-import kotlin.ULong
 
 class SolanaProductDataSource @Inject constructor(
     private val context: Context,
@@ -81,18 +80,24 @@ class SolanaProductDataSource @Inject constructor(
         pageSize: Int,
         keyword: String? = null,
         priceRange: Pair<ULong, ULong>? = null,
-        salesRange: Pair<UInt, UInt>? = null): List<Product> {
+        salesRange: Pair<UInt, UInt>? = null
+    ): List<Product> {
         val ids = ArrayList<ULong>()
-        if(!TextUtils.isEmpty(keyword)) {
+        if (!TextUtils.isEmpty(keyword)) {
             ids.addAll(searchByKeywordFormChain(keyword!!))
         }
-        if(priceRange != null) {
+        if (priceRange != null) {
             ids.addAll(searchByPriceRangeFormChain(priceRange))
         }
-        if(salesRange != null) {
+        if (salesRange != null) {
             ids.addAll(searchBySalesRangeFormChain(salesRange))
         }
-        val distinctIds = if(ids.isEmpty()) getRecommendIds() else ids.distinct()
+
+        if (keyword == null && priceRange == null && salesRange == null) {
+            ids.addAll(getRecommendIds())
+        }
+
+        val distinctIds = ids.distinct()
 
 
         val start = (page - 1) * pageSize
@@ -100,12 +105,13 @@ class SolanaProductDataSource @Inject constructor(
         if (start >= distinctIds.size) {
             return emptyList()
         } else {
-            return distinctIds.subList(start, end).mapNotNull { id -> ShopUtils.getProductInfoById(id, solanaRpcClient) }
+            return distinctIds.subList(start, end)
+                .mapNotNull { id -> ShopUtils.getProductInfoById(id, solanaRpcClient) }
         }
     }
 
-    private suspend fun getRecommendIds(): List<ULong> {
-        return listOf(670001UL)
+    private fun getRecommendIds(): List<ULong> {
+        return listOf(670001UL, 1010000UL, 1010001UL, 1010002UL, 1010003UL, 1010005UL, 1010006UL)
     }
 
 
@@ -114,7 +120,8 @@ class SolanaProductDataSource @Inject constructor(
         val keywordShardPda = ShopUtils.getTargetShardPda(keyword).getOrNull()!!
 
         val keywordRoot = solanaRpcClient.getAccountInfo<KeywordRoot>(keywordRootPda).result?.data
-        val result = solanaRpcClient.getAccountInfo<KeywordShard>(keywordShardPda).result?.data?.productIds
+        val result =
+            solanaRpcClient.getAccountInfo<KeywordShard>(keywordShardPda).result?.data?.productIds
 
         return result ?: emptyList()
     }
@@ -122,7 +129,8 @@ class SolanaProductDataSource @Inject constructor(
     private suspend fun searchByPriceRangeFormChain(priceRange: Pair<ULong, ULong>): List<ULong> {
         val priceIndexPda = ShopUtils.getPriceIndexPDA(priceRange).getOrNull()!!
 
-        val result = solanaRpcClient.getAccountInfo<PriceIndexNode>(priceIndexPda).result?.data?.productIds
+        val result =
+            solanaRpcClient.getAccountInfo<PriceIndexNode>(priceIndexPda).result?.data?.productIds
 
         return result ?: emptyList()
     }
@@ -130,7 +138,8 @@ class SolanaProductDataSource @Inject constructor(
     private suspend fun searchBySalesRangeFormChain(salesRange: Pair<UInt, UInt>): List<ULong> {
         val salesIndexPda = ShopUtils.getSalesIndexPDA(salesRange).getOrNull()!!
 
-        val result = solanaRpcClient.getAccountInfo<SalesIndexNode>(salesIndexPda).result?.data?.productIds
+        val result =
+            solanaRpcClient.getAccountInfo<SalesIndexNode>(salesIndexPda).result?.data?.productIds
 
         return result ?: emptyList()
     }
@@ -144,7 +153,7 @@ class SolanaProductDataSource @Inject constructor(
         try {
             Log.d(TAG, "Getting merchant products for: $merchantAddress")
             val merchantPublicKey = SolanaPublicKey.from(merchantAddress)
-            
+
             val products = ShopUtils.getMerchantProducts(merchantPublicKey, solanaRpcClient)
             emit(Result.success(products))
         } catch (e: Exception) {
