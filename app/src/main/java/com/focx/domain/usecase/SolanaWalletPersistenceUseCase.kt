@@ -57,5 +57,13 @@ class SolanaWalletPersistenceUseCase @Inject constructor(
         connection = NotConnected
     }
 
+    /**
+     * Force clear the in-memory connection state
+     * This ensures that the next getWalletConnection() call will read from SharedPreferences
+     */
+    fun forceClearMemoryConnection() {
+        connection = NotConnected
+    }
+
 
 }

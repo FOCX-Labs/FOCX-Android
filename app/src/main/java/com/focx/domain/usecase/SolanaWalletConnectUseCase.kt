@@ -18,7 +18,6 @@ sealed class WalletConnectResult {
     object NoWalletFound : WalletConnectResult()
 }
 
-@Singleton
 class SolanaWalletConnectUseCase @Inject constructor(
     private val walletAdapter: MobileWalletAdapter,
     private val persistenceUseCase: SolanaWalletPersistenceUseCase,
@@ -27,6 +26,14 @@ class SolanaWalletConnectUseCase @Inject constructor(
 
     suspend fun connect(activityResultSender: ActivityResultSender): WalletConnectResult {
         return try {
+            // Clear any existing connection and cached auth token before connecting
+            // This ensures we get fresh authentication from the current Solflare account
+            Log.d("SolanaWalletConnectUseCase", "Clearing existing connection before connecting")
+            disconnect()
+            
+            // Clear the wallet adapter's cached auth token
+            walletAdapter.authToken = null
+            
             when (val result = walletAdapter.signIn(
                 activityResultSender,
                 SignInWithSolana.Payload("focx.com", "Sign in to Focx")
@@ -37,6 +44,8 @@ class SolanaWalletConnectUseCase @Inject constructor(
                         result.authResult.accountLabel ?: "",
                         result.authResult.authToken
                     )
+
+                    Log.d("SolanaWalletConnectUseCase", "New connection established for address: ${currentConn.publicKey.base58()}")
 
                     persistenceUseCase.persistConnection(
                         currentConn.publicKey, currentConn.accountLabel, currentConn.authToken
@@ -65,7 +74,11 @@ class SolanaWalletConnectUseCase @Inject constructor(
     }
 
     fun disconnect() {
+        Log.d("SolanaWalletConnectUseCase", "Disconnecting wallet and clearing cached data")
         persistenceUseCase.clearConnection()
+        persistenceUseCase.forceClearMemoryConnection()
+        // Clear the wallet adapter's cached auth token
+        walletAdapter.authToken = null
     }
 
     fun getStoredConnection(): com.focx.domain.entity.WalletConnection {

@@ -95,6 +95,14 @@ fun ProfileScreen(
         viewModel.loadProfileData()
     }
 
+    // Force refresh when connecting wallet to ensure we get the latest account
+    LaunchedEffect(uiState.isWalletConnected) {
+        if (uiState.isWalletConnected && uiState.user != null) {
+            // Refresh wallet data to ensure we have the latest information
+            viewModel.refresh()
+        }
+    }
+
     if (uiState.user == null) {
         // Show login prompt when user is not logged in
         LoginPromptScreen(onConnectWallet = {

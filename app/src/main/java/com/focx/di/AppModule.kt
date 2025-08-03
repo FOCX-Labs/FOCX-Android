@@ -292,7 +292,6 @@ object AppModule {
     }
 
     @Provides
-    @Singleton
     fun provideMobileWalletAdapter(): MobileWalletAdapter {
         val solanaUri = Uri.parse("https://focx-labs.github.io")
         val iconUri = Uri.parse("/assets/icon.png")
@@ -316,7 +315,6 @@ object AppModule {
     }
 
     @Provides
-    @Singleton
     fun provideSolanaWalletConnectUseCase(
         walletAdapter: MobileWalletAdapter,
         persistenceUseCase: SolanaWalletPersistenceUseCase,

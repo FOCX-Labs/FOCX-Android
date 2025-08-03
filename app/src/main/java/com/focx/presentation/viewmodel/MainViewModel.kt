@@ -70,7 +70,14 @@ class MainViewModel @Inject constructor(
 
     fun connect(sender: ActivityResultSender) {
         viewModelScope.launch {
-            _state.value.copy(isLoading = true).updateViewState()
+            // Clear any existing connection state before connecting
+            _state.value.copy(
+                isLoading = true,
+                canTransact = false,
+                userAddress = "",
+                userLabel = "",
+                isConnected = false
+            ).updateViewState()
 
             when (val result = solanaWalletConnectUseCase.connect(sender)) {
                 is WalletConnectResult.Success -> {

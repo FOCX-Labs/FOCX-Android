@@ -252,6 +252,15 @@ class ProfileViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
 
             try {
+                // Clear any existing user state before connecting to ensure fresh connection
+                Log.d("ProfileViewModel", "Clearing existing user state before connecting wallet")
+                _uiState.value = _uiState.value.copy(
+                    user = null,
+                    isWalletConnected = false,
+                    walletBalance = null,
+                    stakingInfo = null
+                )
+                
                 when (val result = solanaWalletConnectUseCase.connect(activityResultSender)) {
                     is WalletConnectResult.Success -> {
                         val user = result.user
