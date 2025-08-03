@@ -42,6 +42,7 @@ import com.focx.domain.usecase.LoginWithWalletUseCase
 import com.focx.domain.usecase.RecentBlockhashUseCase
 import com.focx.domain.usecase.RegisterMerchantUseCase
 import com.focx.domain.usecase.RequestUsdcFaucetUseCase
+import com.focx.domain.usecase.DeleteProductUseCase
 import com.focx.domain.usecase.SaveProductUseCase
 import com.focx.domain.usecase.SearchProductsUseCase
 import com.focx.domain.usecase.SolanaAccountBalanceUseCase
@@ -121,6 +122,13 @@ object AppModule {
         productRepository: IProductRepository
     ): UpdateProductUseCase {
         return UpdateProductUseCase(productRepository)
+    }
+
+    @Provides
+    fun provideDeleteProductUseCase(
+        productRepository: IProductRepository
+    ): DeleteProductUseCase {
+        return DeleteProductUseCase(productRepository)
     }
 
     @Provides

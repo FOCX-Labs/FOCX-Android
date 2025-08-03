@@ -5,6 +5,9 @@ import androidx.lifecycle.viewModelScope
 import com.focx.domain.usecase.GetProductsUseCase
 import com.focx.domain.usecase.SearchProductsUseCase
 import com.focx.domain.usecase.GetProductByIdUseCase
+import com.focx.domain.usecase.GetCurrentWalletAddressUseCase
+import com.focx.domain.usecase.UpdateProductUseCase
+import com.focx.domain.usecase.DeleteProductUseCase
 import com.focx.presentation.intent.ProductListIntent
 import com.focx.presentation.state.FilterState
 import com.focx.presentation.state.ProductListState
@@ -25,7 +28,10 @@ import javax.inject.Inject
 class ProductListViewModel @Inject constructor(
     private val getProductsUseCase: GetProductsUseCase,
     private val searchProductsUseCase: SearchProductsUseCase,
-    private val getProductByIdUseCase: GetProductByIdUseCase
+    private val getProductByIdUseCase: GetProductByIdUseCase,
+    private val getCurrentWalletAddressUseCase: GetCurrentWalletAddressUseCase,
+    private val updateProductUseCase: UpdateProductUseCase,
+    private val deleteProductUseCase: DeleteProductUseCase
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(ProductListState(isLoading = true))
@@ -407,6 +413,45 @@ class ProductListViewModel @Inject constructor(
             filteredProducts = _state.value.products,
             selectedCategory = "All"
         )
+    }
+
+    fun getCurrentWalletAddress(): String? {
+        return getCurrentWalletAddressUseCase.execute()
+    }
+
+    fun updateProduct(product: com.focx.domain.entity.Product, activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender) {
+        viewModelScope.launch {
+            val walletAddress = getCurrentWalletAddressUseCase.execute()
+            if (walletAddress != null) {
+                try {
+                    updateProductUseCase(product, walletAddress, activityResultSender)
+                    // Refresh products after update
+                    handleIntent(ProductListIntent.RefreshProducts)
+                } catch (e: Exception) {
+                    _effect.emit(ProductListEffect.ShowMessage("Failed to update product: ${e.message}"))
+                }
+            } else {
+                _effect.emit(ProductListEffect.ShowMessage("Wallet not connected"))
+            }
+        }
+    }
+
+    fun deleteProduct(productId: ULong, activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender) {
+        viewModelScope.launch {
+            val walletAddress = getCurrentWalletAddressUseCase.execute()
+            if (walletAddress != null) {
+                try {
+                    deleteProductUseCase(productId, walletAddress, activityResultSender)
+                    // Refresh products after deletion
+                    handleIntent(ProductListIntent.RefreshProducts)
+                    _effect.emit(ProductListEffect.ShowMessage("Product deleted successfully"))
+                } catch (e: Exception) {
+                    _effect.emit(ProductListEffect.ShowMessage("Failed to delete product: ${e.message}"))
+                }
+            } else {
+                _effect.emit(ProductListEffect.ShowMessage("Wallet not connected"))
+            }
+        }
     }
 }
 

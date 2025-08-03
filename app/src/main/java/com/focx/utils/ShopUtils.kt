@@ -282,14 +282,14 @@ object ShopUtils {
 
     suspend fun getProductInfoById(productId: ULong, solanaRpcClient: SolanaRpcClient): Product? {
         val productPda = getProductBasePDA(productId).getOrNull()!!
-        val result = getProductInfoPda(productPda, solanaRpcClient)
+        val result = getProductInfoByPda(productPda, solanaRpcClient)
         if (result == null) {
             Log.w(TAG, "getProductInfoById: product not found, productId: $productId, productPda: ${productPda.base58()}")
         }
         return result
     }
 
-    suspend fun getProductInfoPda(
+    suspend fun getProductInfoByPda(
         productPda: SolanaPublicKey,
         solanaRpcClient: SolanaRpcClient
     ): Product? {
@@ -551,7 +551,12 @@ object ShopUtils {
         val productList = ArrayList<Product>()
         for (i in pageInfo.first..pageInfo.second) {
             val productPda = getProductBasePDA(i.toULong() + startId).getOrNull()!!
-            productList.add(getProductInfoPda(productPda, solanaRpcClient)!!)
+            val product = getProductInfoByPda(productPda, solanaRpcClient)
+            if (product == null) {
+                Log.w(TAG, "getMerchantProducts: product not found, index: $i, productId: ${i.toULong() + startId}, productPda: ${productPda.base58()}")
+                continue
+            }
+            productList.add(product)
         }
 
         if (sortOrder == SortOrder.DESC) {

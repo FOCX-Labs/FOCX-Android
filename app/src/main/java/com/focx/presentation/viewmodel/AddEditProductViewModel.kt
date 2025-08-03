@@ -75,10 +75,14 @@ class AddEditProductViewModel @Inject constructor(
                                     formData = ProductFormData(
                                         name = product.name,
                                         description = product.description,
-                                        price = (product.price.toDouble() / 1000000).toString(), // Convert from micro units
+                                        price = (product.price.toDouble() / AppConstants.App.TOKEN_DECIMAL).toString(), // Convert from nano units
+                                        currency = product.currency,
                                         category = product.category,
                                         stock = product.stock.toString(),
                                         images = product.imageUrls,
+                                        keywords = product.keywords,
+                                        salesRegions = product.shippingTo,
+                                        shippingOrigin = product.shippingFrom,
                                         shippingOptions = product.shippingMethods
                                     ),
                                     originalProduct = product
@@ -141,7 +145,7 @@ class AddEditProductViewModel @Inject constructor(
                     id = (productId?.toULongOrNull() ?: generateProductId()),
                     name = formData.name,
                     description = formData.description,
-                    price = (formData.price.toDoubleOrNull()?.times(AppConstants.App.TOKEN_DECIMAL)?.toULong() ?: 0UL), // Convert to micro units
+                    price = (formData.price.toDoubleOrNull()?.times(AppConstants.App.TOKEN_DECIMAL)?.toULong() ?: 0UL), // Convert to nano units
                     imageUrls = formData.images,
                     sellerId = walletAddress,
                     sellerName = "Default Seller", // TODO: Get from user profile

@@ -64,3 +64,25 @@ data class AddProductToSalesIndex(
     val productId: ULong,
     val sales: UInt
 )
+
+@Serializable
+data class DeleteProduct(
+    val productId: ULong,
+    val hardDelete: Boolean,
+    val force: Boolean
+)
+
+@Serializable
+data class UpdateProduct(
+    val productId: ULong,
+    val name: String,
+    val description: String,
+    val price: ULong,
+    val keyword: List<String>,
+    val inventory: ULong,
+    val paymentToken: SolanaPublicKey,
+    val imageVideoUrls: List<String>,
+    val shippingLocation: String,
+    val salesRegions: List<String>,
+    val logisticsMethods: List<String>
+)

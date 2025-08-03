@@ -138,6 +138,9 @@ fun FocxNavigation(activityResultSender: ActivityResultSender) {
                             }
                         }
                     },
+                    onEditProduct = { productId ->
+                        navController.navigate("edit_product/$productId")
+                    },
                     activityResultSender = activityResultSender
                 )
             }
@@ -223,7 +226,8 @@ fun FocxNavigation(activityResultSender: ActivityResultSender) {
                         viewModel.handleIntent(AddEditProductIntent.SaveProduct(activityResultSender))
                         // Don't call popBackStack here, let ViewModel handle navigation
                     },
-                    activityResultSender = activityResultSender
+                    activityResultSender = activityResultSender,
+                    viewModel = viewModel
                 )
             }
 
@@ -260,7 +264,8 @@ fun FocxNavigation(activityResultSender: ActivityResultSender) {
                         viewModel.handleIntent(AddEditProductIntent.SaveProduct(activityResultSender))
                         // Don't call popBackStack here, let ViewModel handle navigation
                     },
-                    activityResultSender = activityResultSender
+                    activityResultSender = activityResultSender,
+                    viewModel = viewModel
                 )
             }
 

@@ -18,8 +18,8 @@ object NetworkConfig {
     private const val SOLANA_MAINNET_RPC_URL = "https://api.mainnet-beta.solana.com"
 
     //  private   const val SOLANA_DEVNET_RPC_URL = "https://api.devnet.solana.com"
-    private const val SOLANA_DEVNET_RPC_URL =
-        "https://rpc.ankr.com/solana_devnet/f317351e099431c4ac1057fa591c6835f7d13e305b4a7f0ceaf7868555cb20e4"
+    private const val SOLANA_DEVNET_RPC_URL = "https://api.devnet.solana.com"
+//        "https://rpc.ankr.com/solana_devnet/f317351e099431c4ac1057fa591c6835f7d13e305b4a7f0ceaf7868555cb20e4"
 
     //   private  const val SOLANA_DEVNET_RPC_URL =
 //        "https://nameless-empty-general.solana-devnet.quiknode.pro/c58c56b52dd7081f9b7a5c48eeaefe1e097aaa48"

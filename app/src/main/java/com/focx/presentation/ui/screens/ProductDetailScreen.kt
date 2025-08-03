@@ -22,6 +22,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -44,6 +46,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -81,6 +84,7 @@ fun ProductDetailScreen(
     productId: String,
     onNavigateBack: () -> Unit,
     onBuyProduct: (Product, Int, UserAddress?, String, com.solana.mobilewalletadapter.clientlib.ActivityResultSender) -> Unit,
+    onEditProduct: (String) -> Unit,
     activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender,
     modifier: Modifier = Modifier,
     viewModel: ProductListViewModel = hiltViewModel(),
@@ -92,6 +96,7 @@ fun ProductDetailScreen(
     var isFavorite by remember { mutableStateOf(false) }
     var selectedQuantity by remember { mutableStateOf(1) }
     var showBuyDialog by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
     
     // Load user addresses when screen is displayed
     LaunchedEffect(Unit) {
@@ -168,6 +173,12 @@ fun ProductDetailScreen(
     val currentProduct = state.products.find { it.id == productIdULong } 
         ?: state.filteredProducts.find { it.id == productIdULong }
         ?: product
+    
+    // Check if current user is the seller of this product
+    val currentWalletAddress = viewModel.getCurrentWalletAddress()
+    val isCurrentUserSeller = currentProduct?.let { product ->
+        currentWalletAddress == product.sellerId
+    } ?: false
     
     if (currentProduct == null) {
         // Show error state if product still not found
@@ -489,54 +500,82 @@ fun ProductDetailScreen(
             color = SurfaceDark,
             shadowElevation = 8.dp
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(Spacing.medium),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.medium),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Quantity Selector
+            if (isCurrentUserSeller && currentProduct != null) {
+                // Seller actions - Edit and Delete buttons
                 Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(Spacing.medium),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.medium),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    TechIconButton(
-                        icon = androidx.compose.material.icons.Icons.Default.Remove,
-                        onClick = { if (selectedQuantity > 1) selectedQuantity-- },
+                    TechButton(
+                        text = "Edit",
+                        onClick = { onEditProduct(productId) },
                         style = TechButtonStyle.OUTLINE,
-                        enabled = selectedQuantity > 1
+                        size = TechButtonSize.MEDIUM,
+                        modifier = Modifier.weight(1f)
                     )
-
-                    Text(
-                        text = selectedQuantity.toString(),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = OnSurface,
-                        modifier = Modifier.padding(horizontal = Spacing.medium)
-                    )
-
-                    TechIconButton(
-                        icon = androidx.compose.material.icons.Icons.Default.Add,
-                        onClick = { if (selectedQuantity < currentProduct.stock) selectedQuantity++ },
-                        style = TechButtonStyle.OUTLINE,
-                        enabled = selectedQuantity < currentProduct.stock
+                    
+                    TechButton(
+                        text = "Delete",
+                        onClick = { showDeleteDialog = true },
+                        style = TechButtonStyle.PRIMARY,
+                        size = TechButtonSize.MEDIUM,
+                        modifier = Modifier.weight(1f)
                     )
                 }
+            } else if (currentProduct != null) {
+                // Buyer actions - Quantity selector and Buy button
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(Spacing.medium),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.medium),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Quantity Selector
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        TechIconButton(
+                            icon = androidx.compose.material.icons.Icons.Default.Remove,
+                            onClick = { if (selectedQuantity > 1) selectedQuantity-- },
+                            style = TechButtonStyle.OUTLINE,
+                            enabled = selectedQuantity > 1
+                        )
 
-                // Buy Now Button
-                TechButton(
-                    text = "Buy Now",
-                    onClick = { showBuyDialog = true },
-                    style = TechButtonStyle.PRIMARY,
-                    size = TechButtonSize.MEDIUM,
-                    enabled = currentProduct.stock > 0,
-                    modifier = Modifier.weight(1f)
-                )
+                        Text(
+                            text = selectedQuantity.toString(),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = OnSurface,
+                            modifier = Modifier.padding(horizontal = Spacing.medium)
+                        )
+
+                        TechIconButton(
+                            icon = androidx.compose.material.icons.Icons.Default.Add,
+                            onClick = { if (selectedQuantity < currentProduct.stock) selectedQuantity++ },
+                            style = TechButtonStyle.OUTLINE,
+                            enabled = selectedQuantity < currentProduct.stock
+                        )
+                    }
+
+                    // Buy Now Button
+                    TechButton(
+                        text = "Buy Now",
+                        onClick = { showBuyDialog = true },
+                        style = TechButtonStyle.PRIMARY,
+                        size = TechButtonSize.MEDIUM,
+                        enabled = currentProduct.stock > 0,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
             }
         }
     }
 
-    // Buy Dialog
-    if (showBuyDialog) {
+    // Buy Dialog - only show for buyers
+    if (showBuyDialog && isCurrentUserSeller != true && currentProduct != null) {
         BottomBuyDialog(
             product = currentProduct,
             quantity = selectedQuantity,
@@ -552,6 +591,88 @@ fun ProductDetailScreen(
                 showBuyDialog = false
             }
         )
+    }
+
+    // Delete Confirmation Dialog
+    if (showDeleteDialog && currentProduct != null) {
+        DeleteConfirmationDialog(
+            productName = currentProduct.name,
+            onConfirmDelete = {
+                viewModel.deleteProduct(currentProduct.id, activityResultSender)
+                showDeleteDialog = false
+            },
+            onDismiss = {
+                showDeleteDialog = false
+            }
+        )
+    }
+}
+
+@Composable
+fun DeleteConfirmationDialog(
+    productName: String,
+    onConfirmDelete: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    Dialog(
+        onDismissRequest = onDismiss
+    ) {
+        TechCard(
+            style = CardStyle.ELEVATED,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(Spacing.medium)
+        ) {
+            Column(
+                modifier = Modifier.padding(Spacing.large),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "Delete Product",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = OnSurface,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(modifier = Modifier.height(Spacing.medium))
+
+                Text(
+                    text = "Are you sure you want to delete \"$productName\"?",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = OnSurface,
+                    textAlign = TextAlign.Center
+                )
+
+                Text(
+                    text = "This action cannot be undone.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = OnSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(Spacing.large))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.medium)
+                ) {
+                    TechButton(
+                        text = "Cancel",
+                        onClick = onDismiss,
+                        style = TechButtonStyle.OUTLINE,
+                        size = TechButtonSize.MEDIUM,
+                        modifier = Modifier.weight(1f)
+                    )
+                    TechButton(
+                        text = "Delete",
+                        onClick = onConfirmDelete,
+                        style = TechButtonStyle.PRIMARY,
+                        size = TechButtonSize.MEDIUM,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+        }
     }
 }
 

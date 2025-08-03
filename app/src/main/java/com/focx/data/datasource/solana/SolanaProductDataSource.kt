@@ -11,6 +11,7 @@ import com.focx.domain.entity.AddProductToPriceIndex
 import com.focx.domain.entity.AddProductToSalesIndex
 import com.focx.domain.entity.CreateProductBase
 import com.focx.domain.entity.CreateProductExtended
+import com.focx.domain.entity.DeleteProduct
 import com.focx.domain.entity.IdChunk
 import com.focx.domain.entity.KeywordRoot
 import com.focx.domain.entity.KeywordShard
@@ -18,6 +19,7 @@ import com.focx.domain.entity.MerchantIdAccount
 import com.focx.domain.entity.PriceIndexNode
 import com.focx.domain.entity.Product
 import com.focx.domain.entity.SalesIndexNode
+import com.focx.domain.entity.UpdateProduct
 import com.focx.domain.repository.IProductRepository
 import com.focx.domain.usecase.RecentBlockhashUseCase
 import com.focx.utils.Log
@@ -41,6 +43,8 @@ import com.solana.transaction.TransactionInstruction
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import javax.inject.Inject
 
 class SolanaProductDataSource @Inject constructor(
@@ -234,7 +238,7 @@ class SolanaProductDataSource @Inject constructor(
 
                 instructions.forEach { ix -> builder.addInstruction(ix) }
                 val recentBlockhash = try {
-                    kotlinx.coroutines.withTimeout(NetworkConfig.READ_TIMEOUT_MS) {
+                    withTimeout(NetworkConfig.READ_TIMEOUT_MS) {
                         recentBlockhashUseCase()
                     }
                 } catch (e: Exception) {
@@ -363,7 +367,7 @@ class SolanaProductDataSource @Inject constructor(
         accountPublicKey: SolanaPublicKey
     ): List<TransactionInstruction> {
         return keywords.map { keyword ->
-            kotlinx.coroutines.runBlocking {
+            runBlocking {
                 val keywordRootPda = ShopUtils.getKeywordRootPda(keyword).getOrNull()!!
                 val targetSharedPda = ShopUtils.getTargetShardPda(keyword).getOrNull()!!
 
@@ -474,11 +478,69 @@ class SolanaProductDataSource @Inject constructor(
         accountPublicKey: String,
         activityResultSender: ActivityResultSender
     ) {
-        // TODO: Implement actual Solana transaction for updating product
-        delay(500)
-        val index = products.indexOfFirst { it.id == product.id }
-        if (index != -1) {
-            products[index] = product
+        try {
+            Log.d(TAG, "Starting updateProduct for product: ${product.name}")
+            val result = walletAdapter.transact(activityResultSender) { authResult ->
+                Log.d(
+                    TAG, "updateProduct authResult.authToken:${authResult.authToken}"
+                )
+
+                val builder = Message.Builder()
+                val instruction = genUpdateProductInstruction(product, accountPublicKey)
+
+                builder.addInstruction(instruction)
+                val recentBlockhash = try {
+                    withTimeout(NetworkConfig.READ_TIMEOUT_MS) {
+                        recentBlockhashUseCase()
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to get recent blockhash: ${e.message}", e)
+                    throw Exception("Failed to get recent blockhash: ${e.message}", e)
+                }
+                val message = builder.setRecentBlockhash(recentBlockhash).build()
+
+                val transaction = Transaction(message)
+
+                Log.d(TAG, "signAndSendTransactions (updateProduct): before")
+                val signResult = signAndSendTransactions(
+                    arrayOf(transaction.serialize())
+                )
+                Log.d(TAG, "signAndSendTransactions (updateProduct): $signResult")
+                signResult
+            }
+
+            when (result) {
+                is TransactionResult.Success -> {
+                    val signature = result.successPayload?.signatures?.first()
+                    if (signature != null) {
+                        Log.d(
+                            TAG,
+                            "Product updated successfully: ${Base58.encodeToString(signature)}"
+                        )
+                        // Update local list only after successful blockchain transaction
+                        val index = products.indexOfFirst { it.id == product.id }
+                        if (index != -1) {
+                            products[index] = product
+                        }
+                    } else {
+                        Log.e(TAG, "No signature returned from updateProduct transaction")
+                        throw Exception("No signature returned from transaction")
+                    }
+                }
+
+                is TransactionResult.NoWalletFound -> {
+                    Log.e(TAG, "No wallet found for updateProduct")
+                    throw Exception("No wallet found")
+                }
+
+                is TransactionResult.Failure -> {
+                    Log.e(TAG, "updateProduct failed: ${result.e.message}")
+                    throw Exception("Transaction failed: ${result.e.message}")
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "updateProduct exception:", e)
+            throw Exception("Failed to update product: ${e.message}")
         }
     }
 
@@ -487,9 +549,137 @@ class SolanaProductDataSource @Inject constructor(
         accountPublicKey: String,
         activityResultSender: ActivityResultSender
     ) {
-        // TODO: Implement actual Solana transaction for deleting product
-        delay(500)
-        products.removeAll { it.id == productId }
+        try {
+            Log.d(TAG, "Starting deleteProduct for productId: $productId")
+            val result = walletAdapter.transact(activityResultSender) { authResult ->
+                Log.d(
+                    TAG, "deleteProduct authResult.authToken:${authResult.authToken}"
+                )
+
+                val builder = Message.Builder()
+                val instruction = genDeleteProductInstruction(
+                    productId,
+                    SolanaPublicKey.from(accountPublicKey)
+                )
+                builder.addInstruction(instruction)
+                val recentBlockhash = try {
+                    withTimeout(NetworkConfig.READ_TIMEOUT_MS) {
+                        recentBlockhashUseCase()
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to get recent blockhash: ${e.message}", e)
+                    throw Exception("Failed to get recent blockhash: ${e.message}", e)
+                }
+                val message = builder.setRecentBlockhash(recentBlockhash).build()
+
+                val transaction = Transaction(message)
+
+                Log.d(TAG, "signAndSendTransactions (deleteProduct): before")
+                val signResult = signAndSendTransactions(
+                    arrayOf(transaction.serialize())
+                )
+                Log.d(TAG, "signAndSendTransactions (deleteProduct): $signResult")
+                signResult
+            }
+
+            when (result) {
+                is TransactionResult.Success -> {
+                    val signature = result.successPayload?.signatures?.first()
+                    if (signature != null) {
+                        Log.d(
+                            TAG,
+                            "Product deleted successfully: ${Base58.encodeToString(signature)}"
+                        )
+                        // Remove from local list only after successful blockchain transaction
+                        products.removeAll { it.id == productId }
+                    } else {
+                        Log.e(TAG, "No signature returned from deleteProduct transaction")
+                        throw Exception("No signature returned from transaction")
+                    }
+                }
+
+                is TransactionResult.NoWalletFound -> {
+                    Log.e(TAG, "No wallet found for deleteProduct")
+                    throw Exception("No wallet found")
+                }
+
+                is TransactionResult.Failure -> {
+                    Log.e(TAG, "deleteProduct failed: ${result.e.message}")
+                    throw Exception("Transaction failed: ${result.e.message}")
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "deleteProduct exception:", e)
+            throw Exception("Failed to delete product: ${e.message}")
+        }
+    }
+
+    private suspend fun genUpdateProductInstruction(
+        product: Product,
+        accountPublicKey: String
+    ): TransactionInstruction {
+        val accountPublicKey = SolanaPublicKey.from(accountPublicKey)
+        val productBasePDA = ShopUtils.getProductBasePDA(product.id).getOrNull()!!
+        val productExtendedPDA = ShopUtils.getProductExtendedPDA(product.id).getOrNull()!!
+
+
+        return genTransactionInstruction(
+            listOf(
+                AccountMeta(accountPublicKey, true, true),
+                AccountMeta(productBasePDA, false, true),
+                AccountMeta(productExtendedPDA, false, true),
+                AccountMeta(ShopUtils.getPaymentPda().getOrNull()!!, false, false),
+                AccountMeta(SystemProgram.PROGRAM_ID, false, false)
+            ),
+            Borsh.encodeToByteArray(
+                AnchorInstructionSerializer("update_product"),
+                UpdateProduct(
+                    productId = product.id,
+                    name = product.name,
+                    description = product.description,
+                    price = product.price,
+                    keyword = product.keywords,
+                    inventory = product.stock.toULong(),
+                    paymentToken = AppConstants.App.getMint(),
+                    imageVideoUrls = product.imageUrls,
+                    shippingLocation = product.shippingFrom,
+                    salesRegions = product.shippingTo,
+                    logisticsMethods = product.shippingMethods
+                )
+            )
+        )
+    }
+
+
+    private suspend fun genDeleteProductInstruction(
+        productId: ULong,
+        accountPublicKey: SolanaPublicKey
+    ): TransactionInstruction {
+        return genTransactionInstruction(
+            listOf(
+                AccountMeta(accountPublicKey, true, true),
+                AccountMeta(
+                    ShopUtils.getMerchantInfoPda(accountPublicKey).getOrNull()!!,
+                    false,
+                    true
+                ),
+                AccountMeta(
+                    ShopUtils.getProductBasePDA(productId).getOrNull()!!,
+                    false,
+                    true
+                ),
+                AccountMeta(accountPublicKey, true, true),
+                AccountMeta(SystemProgram.PROGRAM_ID, false, false)
+            ),
+            Borsh.encodeToByteArray(
+                AnchorInstructionSerializer("delete_product"),
+                DeleteProduct(
+                    productId = productId,
+                    hardDelete = true,
+                    force = false
+                )
+            )
+        )
     }
 
 }

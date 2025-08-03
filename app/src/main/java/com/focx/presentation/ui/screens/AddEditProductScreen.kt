@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -40,10 +41,12 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -57,6 +60,8 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.focx.presentation.ui.theme.FocxTheme
 import com.focx.presentation.ui.theme.Spacing
+import com.focx.presentation.viewmodel.AddEditProductViewModel
+import com.focx.presentation.state.AddEditProductState
 
 data class ProductFormData(
     val name: String = "",
@@ -78,31 +83,29 @@ fun AddEditProductScreen(
     productId: String? = null,
     onBackClick: () -> Unit,
     onSaveClick: (ProductFormData, com.solana.mobilewalletadapter.clientlib.ActivityResultSender) -> Unit,
-    activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender
+    activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender,
+    viewModel: AddEditProductViewModel? = null
 ) {
     val context = LocalContext.current
     val isEditMode = productId != null
+    
+    // Use ViewModel state if provided, otherwise use local state
+    val state = viewModel?.state?.collectAsState()?.value ?: AddEditProductState()
     var formData by remember {
         mutableStateOf(
-            if (isEditMode) {
-
-                ProductFormData(
-                    name = "iPhone 15 Pro Max  Apple",
-                    description = "Latest iPhone with titanium design and advanced camera system",
-                    price = "1199.99",
-                    currency = "USDC",
-                    category = "Electronics",
-                    stock = "25",
-                    images = listOf("image1.jpg", "image2.jpg"),
-                    keywords = listOf("iPhone", "Apple", "Smartphone"),
-                    salesRegions = listOf("North America", "Europe"),
-                    shippingOrigin = "Shenzhen, China",
-                    shippingOptions = listOf("Standard", "Express")
-                )
+            if (isEditMode && state.formData != ProductFormData()) {
+                state.formData
             } else {
                 ProductFormData()
             }
         )
+    }
+
+    // Update formData when state changes (for edit mode)
+    LaunchedEffect(state.formData) {
+        if (isEditMode && state.formData != ProductFormData()) {
+            formData = state.formData
+        }
     }
 
     var newShippingOption by remember { mutableStateOf("") }
@@ -131,6 +134,17 @@ fun AddEditProductScreen(
             formData.salesRegions.isNotEmpty() &&
             formData.shippingOrigin.isNotBlank()
 
+    // Show loading state
+    if (state.isLoading) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator()
+        }
+        return
+    }
+
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
@@ -149,9 +163,16 @@ fun AddEditProductScreen(
                 actions = {
                     TextButton(
                         onClick = { onSaveClick(formData, activityResultSender) },
-                        enabled = isFormValid
+                        enabled = isFormValid && !state.isSaving
                     ) {
-                        Text(if (isEditMode) "Update" else "Save")
+                        if (state.isSaving) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Text(if (isEditMode) "Update" else "Save")
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -171,7 +192,6 @@ fun AddEditProductScreen(
                 Spacer(modifier = Modifier.height(Spacing.small))
             }
 
-
             item {
                 Text(
                     text = "Product Images *",
@@ -180,8 +200,6 @@ fun AddEditProductScreen(
                 )
                 Spacer(modifier = Modifier.height(Spacing.small))
 
-
-                
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(Spacing.small)
                 ) {
@@ -210,7 +228,6 @@ fun AddEditProductScreen(
                     }
                 }
             }
-
 
             item {
                 Text(
