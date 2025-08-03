@@ -354,55 +354,55 @@ fun SearchBarWithFilters(
             )
         )
 
-        Spacer(modifier = Modifier.height(Spacing.medium))
-
-        // Filter/Sort Buttons
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceAround,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            TextButton(onClick = {
-                selectedSort = "Recommended"
-                onSortChange(null)
-            }) {
-                Text("Recommended", color = if (selectedSort == "Recommended") Primary else OnSurfaceVariant)
-            }
-            TextButton(onClick = {
-                selectedSort = "Sales"
-                salesDescending = !salesDescending
-                onSortChange(if (salesDescending) SortOption.BEST_SELLING else SortOption.LEAST_SELLING)
-            }) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Sales", color = if (selectedSort == "Sales") Primary else OnSurfaceVariant)
-                    Icon(
-                        imageVector = if (salesDescending) Icons.Default.ArrowDownward else Icons.Default.ArrowUpward,
-                        contentDescription = "Sort by sales",
-                        tint = if (selectedSort == "Sales") Primary else OnSurfaceVariant
-                    )
-                }
-            }
-            TextButton(onClick = {
-                selectedSort = "Price"
-                priceAscending = !priceAscending
-                onSortChange(if (priceAscending) SortOption.PRICE_LOW_TO_HIGH else SortOption.PRICE_HIGH_TO_LOW)
-            }) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Price", color = if (selectedSort == "Price") Primary else OnSurfaceVariant)
-                    Icon(
-                        imageVector = if (priceAscending) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward,
-                        contentDescription = "Sort by price",
-                        tint = if (selectedSort == "Price") Primary else OnSurfaceVariant
-                    )
-                }
-            }
-            TextButton(onClick = onFilterClick) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Filter", color = OnSurfaceVariant)
-                    Icon(Icons.Default.FilterList, contentDescription = "Filter", tint = OnSurfaceVariant)
-                }
-            }
-        }
+//        Spacer(modifier = Modifier.height(Spacing.medium))
+//
+//        // Filter/Sort Buttons
+//        Row(
+//            modifier = Modifier.fillMaxWidth(),
+//            horizontalArrangement = Arrangement.SpaceAround,
+//            verticalAlignment = Alignment.CenterVertically
+//        ) {
+//            TextButton(onClick = {
+//                selectedSort = "Recommended"
+//                onSortChange(null)
+//            }) {
+//                Text("Recommended", color = if (selectedSort == "Recommended") Primary else OnSurfaceVariant)
+//            }
+//            TextButton(onClick = {
+//                selectedSort = "Sales"
+//                salesDescending = !salesDescending
+//                onSortChange(if (salesDescending) SortOption.BEST_SELLING else SortOption.LEAST_SELLING)
+//            }) {
+//                Row(verticalAlignment = Alignment.CenterVertically) {
+//                    Text("Sales", color = if (selectedSort == "Sales") Primary else OnSurfaceVariant)
+//                    Icon(
+//                        imageVector = if (salesDescending) Icons.Default.ArrowDownward else Icons.Default.ArrowUpward,
+//                        contentDescription = "Sort by sales",
+//                        tint = if (selectedSort == "Sales") Primary else OnSurfaceVariant
+//                    )
+//                }
+//            }
+//            TextButton(onClick = {
+//                selectedSort = "Price"
+//                priceAscending = !priceAscending
+//                onSortChange(if (priceAscending) SortOption.PRICE_LOW_TO_HIGH else SortOption.PRICE_HIGH_TO_LOW)
+//            }) {
+//                Row(verticalAlignment = Alignment.CenterVertically) {
+//                    Text("Price", color = if (selectedSort == "Price") Primary else OnSurfaceVariant)
+//                    Icon(
+//                        imageVector = if (priceAscending) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward,
+//                        contentDescription = "Sort by price",
+//                        tint = if (selectedSort == "Price") Primary else OnSurfaceVariant
+//                    )
+//                }
+//            }
+//            TextButton(onClick = onFilterClick) {
+//                Row(verticalAlignment = Alignment.CenterVertically) {
+//                    Text("Filter", color = OnSurfaceVariant)
+//                    Icon(Icons.Default.FilterList, contentDescription = "Filter", tint = OnSurfaceVariant)
+//                }
+//            }
+//        }
     }
 }
 
