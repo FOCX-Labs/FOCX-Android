@@ -127,6 +127,47 @@ class SolanaFaucetDataSource @Inject constructor(
         val faucetTokenAccount = ShopUtils.getAssociatedTokenAddress(faucetPda).getOrNull()!!
         val faucetAuthority = SolanaPublicKey.from("DjBk7pZfKTnvHg1nhowR6HzTJpVijgoWzZTArm7Yra6X")
 
+        val instructions = ArrayList<TransactionInstruction>()
+        val userTokenData = solanaRpcClient.getAccountInfo(userTokenAccount).result?.data
+
+        if (userTokenData == null) {
+            val rentExemptionAmount = 2039280L
+//            val createAccountIx = SystemProgram.createAccount(
+//                userPublicKey,
+//                userTokenAccount,
+//                rentExemptionAmount,
+//                165,
+//                SolanaPublicKey.from(AppConstants.App.SPL_TOKEN_PROGRAM_ID)
+//            )
+
+            val createTokenAccountInstruction = genTransactionInstruction(
+                listOf(
+                    AccountMeta(userPublicKey, isSigner = true, isWritable = true),
+                    AccountMeta(userTokenAccount, isSigner = false, isWritable = true),
+                    AccountMeta(userPublicKey, isSigner = true, isWritable = true),
+                    AccountMeta(usdcMint, isSigner = false, isWritable = false),
+                    AccountMeta(
+                        SystemProgram.PROGRAM_ID,
+                        false,
+                        false
+                    ), // system program,
+                    AccountMeta(
+                        SolanaPublicKey.from(AppConstants.App.SPL_TOKEN_PROGRAM_ID),
+                        false,
+                        false
+                    ), // token sysvar
+                    AccountMeta(
+                        SolanaPublicKey.from("SysvarRent111111111111111111111111111111111"),
+                        false,
+                        false
+                    ) // rent program
+                ),
+                byteArrayOf(0),
+                SolanaPublicKey.from(AppConstants.App.SPL_TOKEN_PROGRAM_ID)
+            )
+            instructions.add(createTokenAccountInstruction)
+        }
+
 
         // USDC faucet instruction - simplified version without ATA creation
         val faucetInstruction = genTransactionInstruction(
@@ -150,8 +191,9 @@ class SolanaFaucetDataSource @Inject constructor(
             ),
             SolanaPublicKey.from(PROGRAM_ID)
         )
+        instructions.add(faucetInstruction)
 
-        return listOf(faucetInstruction)
+        return instructions
     }
 }
 
