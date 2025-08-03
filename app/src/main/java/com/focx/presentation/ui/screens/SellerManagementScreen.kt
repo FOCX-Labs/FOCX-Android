@@ -332,11 +332,11 @@ fun ProductManagementCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                ProductStat(
-                    label = "Sales",
-                    value = product.salesCount.toString(),
-                    color = Color(0xFF4CAF50)
-                )
+//                ProductStat(
+//                    label = "Sales",
+//                    value = product.salesCount.toString(),
+//                    color = Color(0xFF4CAF50)
+//                )
                 ProductStat(
                     label = "Stock",
                     value = product.stock.toString(),

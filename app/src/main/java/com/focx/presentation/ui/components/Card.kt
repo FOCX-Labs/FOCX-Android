@@ -227,11 +227,11 @@ fun ProductCard(
             Spacer(modifier = Modifier.height(4.dp))
 
             // Sales info
-            Text(
-                text = "Sales: ${product.salesCount}",
-                style = MaterialTheme.typography.bodySmall,
-                color = OnSurfaceVariant.copy(alpha = 0.8f)
-            )
+//            Text(
+//                text = "Sales: ${product.salesCount}",
+//                style = MaterialTheme.typography.bodySmall,
+//                color = OnSurfaceVariant.copy(alpha = 0.8f)
+//            )
 
             Spacer(modifier = Modifier.height(8.dp))
 
