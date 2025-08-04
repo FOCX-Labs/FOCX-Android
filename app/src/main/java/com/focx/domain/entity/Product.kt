@@ -75,14 +75,14 @@ data class DeleteProduct(
 @Serializable
 data class UpdateProduct(
     val productId: ULong,
-    val name: String,
-    val description: String,
-    val price: ULong,
-    val keyword: List<String>,
-    val inventory: ULong,
-    val paymentToken: SolanaPublicKey,
-    val imageVideoUrls: List<String>,
-    val shippingLocation: String,
-    val salesRegions: List<String>,
-    val logisticsMethods: List<String>
+    val name: String? = null,
+    val description: String? = null,
+    val price: ULong? = null,
+    val keywords: List<String>? = null,
+    val inventory: ULong? = null,
+    val paymentToken: SolanaPublicKey? = null,
+    val imageVideoUrls: List<String>? = null,
+    val shippingLocation: String? = null,
+    val salesRegions: List<String>? = null,
+    val logisticsMethods: List<String>? = null
 )
