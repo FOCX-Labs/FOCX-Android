@@ -53,6 +53,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavController
+import androidx.navigation.compose.currentBackStackEntryAsState
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.focx.domain.entity.Product
@@ -69,12 +71,19 @@ fun SellerManagementScreen(
     onProductClick: (String) -> Unit,
     onEditProductClick: (String) -> Unit,
     merchantAddress: String?,
+    navController: NavController,
     viewModel: SellerManagementViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var searchQuery by remember { mutableStateOf("") }
     var selectedFilter by remember { mutableStateOf("All") }
+    
+    // Get current back stack entry to access saved state
+    val currentBackStackEntry by navController.currentBackStackEntryAsState()
+    
+    // State to track if we need to refresh
+    var shouldRefresh by remember { mutableStateOf(false) }
 
     // Debug log for merchant address
     LaunchedEffect(merchantAddress) {
@@ -88,6 +97,37 @@ fun SellerManagementScreen(
             viewModel.loadMerchantProducts(address)
         } ?: run {
             Log.w("SellerManagementScreen", "merchantAddress is null, cannot load products")
+        }
+    }
+
+    // Check for refresh flag and trigger refresh
+    LaunchedEffect(Unit) {
+        Log.d("SellerManagementScreen", "Checking for refresh flag on screen activation")
+        kotlinx.coroutines.delay(300) // Give navigation state time to update
+        
+        val refreshFlag = currentBackStackEntry?.savedStateHandle?.get<Boolean>("refresh_products") ?: false
+        Log.d("SellerManagementScreen", "Refresh flag found: $refreshFlag, merchantAddress: $merchantAddress")
+        
+        if (refreshFlag && merchantAddress != null) {
+            Log.d("SellerManagementScreen", "Triggering refresh due to flag")
+            viewModel.refresh(merchantAddress)
+            currentBackStackEntry?.savedStateHandle?.remove<Boolean>("refresh_products")
+            Log.d("SellerManagementScreen", "Refresh completed and flag cleared")
+        }
+    }
+
+    // Additional check when currentBackStackEntry changes
+    LaunchedEffect(currentBackStackEntry) {
+        Log.d("SellerManagementScreen", "currentBackStackEntry changed: ${currentBackStackEntry?.destination?.route}")
+        
+        val refreshFlag = currentBackStackEntry?.savedStateHandle?.get<Boolean>("refresh_products") ?: false
+        Log.d("SellerManagementScreen", "BackStackEntry change - refresh flag: $refreshFlag, merchantAddress: $merchantAddress")
+        
+        if (refreshFlag && merchantAddress != null) {
+            Log.d("SellerManagementScreen", "Triggering refresh due to backStackEntry change")
+            viewModel.refresh(merchantAddress)
+            currentBackStackEntry?.savedStateHandle?.remove<Boolean>("refresh_products")
+            Log.d("SellerManagementScreen", "Refresh completed and flag cleared from backStackEntry change")
         }
     }
 

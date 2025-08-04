@@ -77,6 +77,9 @@ import com.focx.presentation.viewmodel.ProductListViewModel
 import com.focx.presentation.viewmodel.ProfileViewModel
 import com.focx.presentation.intent.ProductListIntent
 import com.focx.utils.ShopUtils
+import androidx.navigation.NavController
+import androidx.navigation.compose.currentBackStackEntryAsState
+import android.util.Log
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -87,6 +90,7 @@ fun ProductDetailScreen(
     onBuyProduct: (Product, Int, UserAddress?, String, com.solana.mobilewalletadapter.clientlib.ActivityResultSender) -> Unit,
     onEditProduct: (String) -> Unit,
     activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender,
+    navController: NavController,
     modifier: Modifier = Modifier,
     viewModel: ProductListViewModel = hiltViewModel(),
     profileViewModel: ProfileViewModel = hiltViewModel()
@@ -99,9 +103,24 @@ fun ProductDetailScreen(
     var showBuyDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     
+    // Get current back stack entry to access saved state
+    val currentBackStackEntry by navController.currentBackStackEntryAsState()
+    
     // Load user addresses when screen is displayed
     LaunchedEffect(Unit) {
         profileViewModel.loadUserAddressesOnly()
+    }
+
+    // Check for refresh flag and reload product data
+    LaunchedEffect(currentBackStackEntry) {
+        val refreshFlag = currentBackStackEntry?.savedStateHandle?.get<Boolean>("refresh_product_detail") ?: false
+        if (refreshFlag) {
+            Log.d("ProductDetailScreen", "Refreshing product detail due to navigation flag")
+            // Reload the specific product
+            viewModel.handleIntent(ProductListIntent.LoadProductById(productId))
+            // Don't clear the flag immediately, let the product loading logic handle it
+            Log.d("ProductDetailScreen", "Product detail refresh initiated")
+        }
     }
 
     // Show toast when there's an error
@@ -117,13 +136,31 @@ fun ProductDetailScreen(
         return
     }
     
-    var product = state.products.find { it.id == productIdULong } 
-        ?: state.filteredProducts.find { it.id == productIdULong }
+    // Get product from state, but force reload if refresh flag was set
+    val refreshFlagWasSet = currentBackStackEntry?.savedStateHandle?.get<Boolean>("refresh_product_detail") ?: false
+    var product = if (!refreshFlagWasSet) {
+        state.products.find { it.id == productIdULong } 
+            ?: state.filteredProducts.find { it.id == productIdULong }
+    } else {
+        null // Force reload when refresh flag is set
+    }
     
-    // If product not found locally, try to load it
+    // Debug log for product data
+    LaunchedEffect(product) {
+        Log.d("ProductDetailScreen", "Product data updated: ${product?.name}, price: ${product?.price}")
+    }
+    
+    // If product not found locally or refresh flag was set, try to load it
     if (product == null) {
-        LaunchedEffect(productIdULong) {
+        LaunchedEffect(productIdULong, refreshFlagWasSet) {
+            Log.d("ProductDetailScreen", "Loading product by ID: $productIdULong, refresh flag was set: $refreshFlagWasSet")
             viewModel.handleIntent(ProductListIntent.LoadProductById(productIdULong.toString()))
+        }
+        
+        // Clear refresh flag after initiating the load
+        if (refreshFlagWasSet) {
+            currentBackStackEntry?.savedStateHandle?.remove<Boolean>("refresh_product_detail")
+            Log.d("ProductDetailScreen", "Refresh flag cleared after initiating load")
         }
         
         // Show error state if there's an error
@@ -170,7 +207,7 @@ fun ProductDetailScreen(
         return
     }
     
-    // Re-check for product after loading
+    // Re-check for product after loading, always get the latest from state
     val currentProduct = state.products.find { it.id == productIdULong } 
         ?: state.filteredProducts.find { it.id == productIdULong }
         ?: product

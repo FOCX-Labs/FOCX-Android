@@ -71,6 +71,7 @@ class SellerManagementViewModel @Inject constructor(
     }
 
     fun refresh(merchantAddress: String) {
+        Log.d("SellerManagementViewModel", "Refreshing merchant products for address: $merchantAddress")
         loadMerchantProducts(merchantAddress)
     }
 } 

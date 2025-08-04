@@ -38,6 +38,7 @@ import com.focx.presentation.ui.screens.OrderListScreen
 import com.focx.presentation.viewmodel.OrderViewModel
 import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
 import com.focx.utils.Log
+import com.focx.presentation.viewmodel.SellerManagementViewModel
 
 // Full screen routes configuration
 private val fullScreenRoutes = setOf(
@@ -152,7 +153,8 @@ fun FocxNavigation(activityResultSender: ActivityResultSender) {
                     onEditProduct = { productId ->
                         navController.navigate("edit_product/$productId")
                     },
-                    activityResultSender = activityResultSender
+                    activityResultSender = activityResultSender,
+                    navController = navController
                 )
             }
 
@@ -168,6 +170,7 @@ fun FocxNavigation(activityResultSender: ActivityResultSender) {
             // Seller Management
             composable("seller_dashboard") {
                 val profileViewModel: ProfileViewModel = hiltViewModel()
+                val sellerManagementViewModel: SellerManagementViewModel = hiltViewModel()
                 val profileState by profileViewModel.uiState.collectAsStateWithLifecycle()
                 
                 // Ensure ProfileViewModel loads data
@@ -190,7 +193,9 @@ fun FocxNavigation(activityResultSender: ActivityResultSender) {
                     onEditProductClick = { productId ->
                         navController.navigate("edit_product/$productId")
                     },
-                    merchantAddress = profileState.user?.walletAddress
+                    merchantAddress = profileState.user?.walletAddress,
+                    navController = navController,
+                    viewModel = sellerManagementViewModel
                 )
             }
 
@@ -214,6 +219,9 @@ fun FocxNavigation(activityResultSender: ActivityResultSender) {
                     viewModel.effect.collect { effect ->
                         when (effect) {
                             is AddEditProductEffect.NavigateBack -> {
+                                // Navigate back with refresh flag only when saving is successful
+                                Log.d("FocxNavigation", "Setting refresh flag for add_product")
+                                navController.previousBackStackEntry?.savedStateHandle?.set("refresh_products", true)
                                 navController.popBackStack()
                             }
                             is AddEditProductEffect.ShowMessage -> {
@@ -228,6 +236,7 @@ fun FocxNavigation(activityResultSender: ActivityResultSender) {
                 AddEditProductScreen(
                     productId = null, 
                     onBackClick = {
+                        // Don't set refresh flag when user manually goes back
                         navController.popBackStack()
                     }, 
                     onSaveClick = { productData, activityResultSender ->
@@ -252,6 +261,17 @@ fun FocxNavigation(activityResultSender: ActivityResultSender) {
                     viewModel.effect.collect { effect ->
                         when (effect) {
                             is AddEditProductEffect.NavigateBack -> {
+                                // Navigate back with refresh flag only when saving is successful
+                                Log.d("FocxNavigation", "Setting refresh flag for edit_product")
+                                navController.previousBackStackEntry?.savedStateHandle?.set("refresh_products", true)
+                                
+                                // Also set refresh flag for product detail if we're coming from there
+                                val previousRoute = navController.previousBackStackEntry?.destination?.route
+                                if (previousRoute?.startsWith("product_detail") == true) {
+                                    Log.d("FocxNavigation", "Setting refresh flag for product_detail")
+                                    navController.previousBackStackEntry?.savedStateHandle?.set("refresh_product_detail", true)
+                                }
+                                
                                 navController.popBackStack()
                             }
                             is AddEditProductEffect.ShowMessage -> {
@@ -266,6 +286,7 @@ fun FocxNavigation(activityResultSender: ActivityResultSender) {
                 AddEditProductScreen(
                     productId = productId, 
                     onBackClick = {
+                        // Don't set refresh flag when user manually goes back
                         navController.popBackStack()
                     }, 
                     onSaveClick = { productData, activityResultSender ->

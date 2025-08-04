@@ -1,5 +1,6 @@
 package com.focx.presentation.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.focx.domain.usecase.GetProductsUseCase
@@ -171,11 +172,13 @@ class ProductListViewModel @Inject constructor(
     }
 
     private fun loadProductById(productId: String) {
+        Log.d("ProductListViewModel", "Loading product by ID: $productId")
         viewModelScope.launch {
             _state.value = _state.value.copy(isLoading = true, error = null)
             
             getProductByIdUseCase(productId)
                 .catch { exception ->
+                    Log.e("ProductListViewModel", "Error loading product by ID: ${exception.message}")
                     _state.value = _state.value.copy(
                         isLoading = false,
                         error = exception.message ?: "Failed to load product"
@@ -185,16 +188,20 @@ class ProductListViewModel @Inject constructor(
                     result.fold(
                         onSuccess = { product ->
                             if (product != null) {
+                                Log.d("ProductListViewModel", "Successfully loaded product: ${product.name}, price: ${product.price}")
                                 // Add the product to both products and filteredProducts lists
                                 val updatedProducts = (_state.value.products + product).distinctBy { it.id }
                                 val updatedFilteredProducts = (_state.value.filteredProducts + product).distinctBy { it.id }
+                                Log.d("ProductListViewModel", "Updated products list size: ${updatedProducts.size}, filtered products size: ${updatedFilteredProducts.size}")
                                 _state.value = _state.value.copy(
                                     products = updatedProducts,
                                     filteredProducts = updatedFilteredProducts,
                                     isLoading = false,
                                     error = null
                                 )
+                                Log.d("ProductListViewModel", "State updated with new product data")
                             } else {
+                                Log.w("ProductListViewModel", "Product not found for ID: $productId")
                                 _state.value = _state.value.copy(
                                     isLoading = false,
                                     error = "Product not found"
@@ -202,6 +209,7 @@ class ProductListViewModel @Inject constructor(
                             }
                         },
                         onFailure = { exception ->
+                            Log.e("ProductListViewModel", "Failed to load product by ID: ${exception.message}")
                             _state.value = _state.value.copy(
                                 isLoading = false,
                                 error = exception.message ?: "Failed to load product"
