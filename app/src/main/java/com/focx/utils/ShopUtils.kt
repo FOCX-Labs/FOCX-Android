@@ -326,7 +326,10 @@ object ShopUtils {
             ) else emptyList(), //        val shippingTo: List<String>,
             if (extendedInfo != null && extendedInfo.logisticsMethods.isNotEmpty()) extendedInfo.logisticsMethods.split(
                 ","
-            ) else emptyList() //        val shippingMethods: List<String>,
+            ) else emptyList(), //        val shippingMethods: List<String>,
+            keywords = if (extendedInfo != null && baseInfo.keywords.isNotEmpty()) baseInfo.keywords.split(
+                ","
+            ) else emptyList(),
         )
 
         return product
