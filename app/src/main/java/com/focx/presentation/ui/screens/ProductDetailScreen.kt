@@ -82,6 +82,7 @@ import com.focx.utils.ShopUtils
 @Composable
 fun ProductDetailScreen(
     productId: String,
+    isEditMode: Boolean = false,
     onNavigateBack: () -> Unit,
     onBuyProduct: (Product, Int, UserAddress?, String, com.solana.mobilewalletadapter.clientlib.ActivityResultSender) -> Unit,
     onEditProduct: (String) -> Unit,
@@ -500,8 +501,8 @@ fun ProductDetailScreen(
             color = SurfaceDark,
             shadowElevation = 8.dp
         ) {
-            if (isCurrentUserSeller && currentProduct != null) {
-                // Seller actions - Edit and Delete buttons
+            if (isEditMode && currentProduct != null) {
+                // Edit mode actions - Edit and Delete buttons
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -575,7 +576,7 @@ fun ProductDetailScreen(
     }
 
     // Buy Dialog - only show for buyers
-    if (showBuyDialog && isCurrentUserSeller != true && currentProduct != null) {
+    if (showBuyDialog && !isEditMode && currentProduct != null) {
         BottomBuyDialog(
             product = currentProduct,
             quantity = selectedQuantity,

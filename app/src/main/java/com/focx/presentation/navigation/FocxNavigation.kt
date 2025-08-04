@@ -123,11 +123,22 @@ fun FocxNavigation(activityResultSender: ActivityResultSender) {
                 )
             }
 
-            composable("product_detail/{productId}") { backStackEntry ->
+            composable(
+                route = "product_detail/{productId}?isEditMode={isEditMode}",
+                arguments = listOf(
+                    navArgument("productId") { type = NavType.StringType },
+                    navArgument("isEditMode") { 
+                        type = NavType.BoolType 
+                        defaultValue = false
+                    }
+                )
+            ) { backStackEntry ->
                 val productId = backStackEntry.arguments?.getString("productId") ?: ""
+                val isEditMode = backStackEntry.arguments?.getBoolean("isEditMode") ?: false
                 val orderViewModel: OrderViewModel = hiltViewModel()
                 ProductDetailScreen(
                     productId = productId,
+                    isEditMode = isEditMode,
                     onNavigateBack = { navController.popBackStack() },
                     onBuyProduct = { product, quantity, selectedAddress, orderNote, activityResultSender ->
                         orderViewModel.buyProduct(product, quantity.toUInt(), selectedAddress, orderNote, activityResultSender) { result ->
@@ -174,7 +185,7 @@ fun FocxNavigation(activityResultSender: ActivityResultSender) {
                         navController.navigate("add_product")
                     }, 
                     onProductClick = { productId ->
-                        navController.navigate("product_detail/$productId")
+                        navController.navigate("product_detail/$productId?isEditMode=true")
                     }, 
                     onEditProductClick = { productId ->
                         navController.navigate("edit_product/$productId")
