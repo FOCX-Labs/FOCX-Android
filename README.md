@@ -10,6 +10,9 @@ The Android application for the Fully On-Chain e-commerce platform built on Sola
 - **Governance**: Proposal management and voting system
 - **Profile**: Wallet management and user settings
 
+## Supported Wallet
+- Solflare
+
 ## Solana Smart Contract Repo
 - **Buy & Sell**: https://github.com/FOCX-Labs/shop
 - **Earn**: https://github.com/FOCX-Labs/vault
