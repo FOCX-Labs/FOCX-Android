@@ -638,7 +638,7 @@ class SolanaProductDataSource @Inject constructor(
                     name = product.name,
                     description = product.description,
                     price = product.price,
-                    keyword = product.keywords,
+                    keywords = product.keywords,
                     inventory = product.stock.toULong(),
                     paymentToken = AppConstants.App.getMint(),
                     imageVideoUrls = product.imageUrls,
