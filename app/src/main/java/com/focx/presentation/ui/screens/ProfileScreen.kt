@@ -528,7 +528,7 @@ fun WalletBalanceCard(
 
 @Composable
 fun StakingInfoCard(
-    stakingInfo: com.focx.domain.entity.StakingInfo?, 
+    stakingInfo: com.focx.domain.entity.VaultDepositor?, 
     isLoading: Boolean
 ) {
     Card(
@@ -557,18 +557,18 @@ fun StakingInfoCard(
             if (isLoading) {
                 CircularProgressIndicator(modifier = Modifier.size(24.dp))
             } else {
-                stakingInfo?.let { staking ->
+                stakingInfo?.let { vaultDepositor ->
                     Row(
                         modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Column {
                             Text(
-                                text = "APR",
+                                text = "Total Staked",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
-                                text = "${staking.stakingApr}%",
+                                text = "${vaultDepositor.totalStaked.toDouble() / 1_000_000_000.0} USDC",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFF4CAF50)
@@ -577,17 +577,23 @@ fun StakingInfoCard(
 
                         Column {
                             Text(
-                                text = "Staked",
+                                text = "Total Rewards",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
-                                text = "${NumberFormat.getCurrencyInstance(Locale.US).format(staking.stakingRewards)}",
+                                text = "${vaultDepositor.totalRewardsClaimed.toDouble() / 1_000_000_000.0} USDC",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold
                             )
                         }
                     }
+                } ?: run {
+                    Text(
+                        text = "No staking information available",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
         }

@@ -1,6 +1,6 @@
 package com.focx.data.datasource.mock
 
-import com.focx.domain.entity.StakingInfo
+import com.focx.domain.entity.VaultDepositor
 import com.focx.domain.entity.Transaction
 import com.focx.domain.entity.TransactionStatus
 import com.focx.domain.entity.TransactionType
@@ -28,7 +28,7 @@ class MockWalletDataSource @Inject constructor() : IWalletRepository {
         emit(getSampleTransactions())
     }
 
-    override suspend fun getStakingInfo(address: String): Flow<StakingInfo> = flow {
+    override suspend fun getStakingInfo(address: String): Flow<VaultDepositor?> = flow {
         delay(100) // Reduce delay for better responsiveness
         emit(getSampleStakingInfo())
     }
@@ -89,16 +89,9 @@ class MockWalletDataSource @Inject constructor() : IWalletRepository {
         )
     }
 
-    private fun getSampleStakingInfo(): StakingInfo {
-        return StakingInfo(
-            totalStaked = 2570.25,
-            availableToStake = 12850.50,
-            stakingRewards = 125.75,
-            stakingApr = 8.5,
-            unstakingPeriod = 7, // 7 days
-            lastStakeDate = System.currentTimeMillis() - (3 * 24 * 60 * 60 * 1000), // 3 days ago
-            nextRewardDate = System.currentTimeMillis() + (4 * 24 * 60 * 60 * 1000) // 4 days from now
-        )
+    private fun getSampleStakingInfo(): VaultDepositor? {
+        // Return null for mock data to simulate no staking info
+        return null
     }
 
     private fun getSampleTransactions(): List<Transaction> {

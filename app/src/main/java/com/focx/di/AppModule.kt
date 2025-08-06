@@ -16,6 +16,8 @@ import com.focx.data.datasource.solana.SolanaMerchantDataSource
 import com.focx.data.datasource.solana.SolanaOrderDataSource
 import com.focx.data.datasource.solana.SolanaProductDataSource
 import com.focx.data.datasource.solana.SolanaFaucetDataSource
+import com.focx.data.datasource.solana.SolanaWalletRepository
+import com.focx.data.datasource.solana.SolanaVaultDataSource
 import com.focx.data.networking.KtorHttpDriver
 import com.focx.domain.repository.IGovernanceRepository
 import com.focx.domain.repository.IMerchantRepository
@@ -203,8 +205,10 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideWalletRepository(): IWalletRepository {
-        return MockWalletDataSource()
+    fun provideWalletRepository(
+        vaultDataSource: SolanaVaultDataSource
+    ): IWalletRepository {
+        return SolanaWalletRepository(vaultDataSource)
     }
 
     @Provides
@@ -430,5 +434,16 @@ object AppModule {
         productDataSource: SolanaProductDataSource
     ): GetMerchantProductsUseCase {
         return GetMerchantProductsUseCase(productDataSource)
+    }
+
+    @Provides
+    @Singleton
+    fun provideSolanaVaultDataSource(
+        @ApplicationContext context: Context,
+        walletAdapter: MobileWalletAdapter,
+        recentBlockhashUseCase: RecentBlockhashUseCase,
+        solanaRpcClient: SolanaRpcClient
+    ): SolanaVaultDataSource {
+        return SolanaVaultDataSource(context, walletAdapter, recentBlockhashUseCase, solanaRpcClient)
     }
 }

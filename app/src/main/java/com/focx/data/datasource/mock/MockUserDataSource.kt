@@ -1,7 +1,7 @@
 package com.focx.data.datasource.mock
 
 import com.focx.domain.entity.NotificationSettings
-import com.focx.domain.entity.StakingInfo
+import com.focx.domain.entity.VaultDepositor
 import com.focx.domain.entity.User
 import com.focx.domain.entity.UserAddress
 import com.focx.domain.entity.UserPreferences
@@ -113,7 +113,7 @@ class MockUserDataSource @Inject constructor() : IUserRepository {
                 0.0,
                 0.0
             ), // Default empty balance, will be updated by ProfileViewModel
-            stakingInfo = getSampleStakingInfo(),
+            stakingInfo = null, // VaultDepositor is now nullable
             addresses = getSampleAddresses(),
             preferences = getSamplePreferences()
         )
@@ -121,16 +121,9 @@ class MockUserDataSource @Inject constructor() : IUserRepository {
 
     // Removed getSampleWalletBalance - now handled by real Solana wallet integration
 
-    private fun getSampleStakingInfo(): StakingInfo {
-        return StakingInfo(
-            totalStaked = 500.0,
-            availableToStake = 750.75,
-            stakingRewards = 25.5,
-            stakingApr = 8.5,
-            unstakingPeriod = 7,
-            lastStakeDate = System.currentTimeMillis() - 86400000L * 5, // 5 days ago
-            nextRewardDate = System.currentTimeMillis() + 86400000L * 2 // 2 days from now
-        )
+    private fun getSampleStakingInfo(): VaultDepositor? {
+        // Return null for mock data to simulate no staking info
+        return null
     }
 
     private fun getSampleAddresses(): List<UserAddress> {
