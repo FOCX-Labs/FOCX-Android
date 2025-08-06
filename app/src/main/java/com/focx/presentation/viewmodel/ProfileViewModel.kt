@@ -3,7 +3,7 @@ package com.focx.presentation.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.focx.domain.entity.Connected
-import com.focx.domain.entity.StakingInfo
+import com.focx.domain.entity.VaultDepositor
 import com.focx.domain.entity.User
 import com.focx.domain.entity.UserAddress
 import com.focx.domain.entity.WalletBalance
@@ -36,7 +36,7 @@ data class ProfileUiState(
     val isLoading: Boolean = false,
     val user: User? = null,
     val walletBalance: WalletBalance? = null,
-    val stakingInfo: StakingInfo? = null,
+    val stakingInfo: VaultDepositor? = null,
     val userAddresses: List<UserAddress> = emptyList(),
     val isWalletConnected: Boolean = false,
     val error: String? = null

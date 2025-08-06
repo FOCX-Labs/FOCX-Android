@@ -12,6 +12,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.pullrefresh.PullRefreshIndicator
+import androidx.compose.material.pullrefresh.pullRefresh
+import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -32,6 +36,7 @@ import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -44,39 +49,93 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.focx.domain.entity.StakeActivity
+import com.focx.domain.entity.VaultDepositor
+import com.focx.domain.entity.Vault
 import com.focx.presentation.ui.theme.FocxTheme
 import com.focx.presentation.ui.theme.Spacing
+import com.focx.presentation.viewmodel.EarnViewModel
+import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
 
-data class StakeActivity(
-    val type: String,
-    val amount: String,
-    val date: String,
-    val isStake: Boolean
-)
-
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
-fun EarnScreen() {
+fun EarnScreen(
+    activityResultSender: ActivityResultSender,
+    viewModel: EarnViewModel = hiltViewModel()
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var selectedTab by remember { mutableIntStateOf(0) }
     var stakeAmount by remember { mutableStateOf("") }
     var unstakeAmount by remember { mutableStateOf("") }
 
     val tabs = listOf("Stake", "Unstake")
 
-    val recentActivities = listOf(
-        StakeActivity("Stake", "$1000", "August 15, 2023", true),
-        StakeActivity("Withdraw Stake", "$500", "May 10, 2023", false)
-    )
+    // Load earn data when screen is first displayed
+    LaunchedEffect(Unit) {
+        viewModel.loadEarnData()
+    }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = Spacing.medium),
-            verticalArrangement = Arrangement.spacedBy(Spacing.medium)
-        ) {
+        if (uiState.isLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+                contentAlignment = Alignment.Center
+            ) {
+                androidx.compose.material3.CircularProgressIndicator()
+            }
+        } else if (uiState.error != null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Error",
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = uiState.error ?: "Unknown error",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(
+                        onClick = { viewModel.loadEarnData() }
+                    ) {
+                        Text("Retry")
+                    }
+                }
+            }
+        } else {
+            val pullRefreshState = rememberPullRefreshState(
+                refreshing = uiState.isLoading,
+                onRefresh = { viewModel.loadEarnData() }
+            )
+            
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .pullRefresh(pullRefreshState)
+            ) {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = Spacing.medium),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.medium)
+                ) {
             item {
                 Spacer(modifier = Modifier.height(Spacing.small))
             }
@@ -92,14 +151,19 @@ fun EarnScreen() {
                     ) {
                         EarnStatCard(
                             title = "Total Value Locked",
-                            value = "$850K",
-                            subtitle = "+2.7% from last week",
+                            value = uiState.vault?.let { "${String.format("%.0fK", it.totalAssets.toDouble() / 1_000_000_000.0 / 1000)}" } ?: "$0K",
+                            subtitle = "USDC",
                             subtitleColor = Color(0xFF4CAF50),
                             modifier = Modifier.weight(1f)
                         )
                         EarnStatCard(
                             title = "Current APY",
-                            value = "8.5 %",
+                            value = uiState.vault?.let { 
+                                val apy = if (it.totalShares > 0UL) {
+                                    (it.totalRewards.toDouble() / it.totalAssets.toDouble()) * 100
+                                } else 0.0
+                                "${String.format("%.1f", apy)}%"
+                            } ?: "0.0%",
                             subtitle = "30-day average",
                             subtitleColor = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.weight(1f)
@@ -111,15 +175,15 @@ fun EarnScreen() {
                     ) {
                         EarnStatCard(
                             title = "Total Stakers",
-                            value = "1,234",
+                            value = uiState.vault?.totalShares?.toString() ?: "0",
                             subtitle = "Active participants",
                             subtitleColor = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.weight(1f)
                         )
                         EarnStatCard(
                             title = "My Position",
-                            value = "$5,000",
-                            subtitle = "+39% growth",
+                            value = uiState.stakingInfo?.let { "${it.totalStaked.toDouble() / 1_000_000_000.0} USDC" } ?: "0 USDC",
+                            subtitle = "",
                             subtitleColor = Color(0xFF4CAF50),
                             modifier = Modifier.weight(1f)
                         )
@@ -163,12 +227,32 @@ fun EarnScreen() {
                         when (selectedTab) {
                             0 -> StakeTab(
                                 amount = stakeAmount,
-                                onAmountChange = { stakeAmount = it }
+                                onAmountChange = { stakeAmount = it },
+                                stakingInfo = uiState.stakingInfo,
+                                onStakeClick = { amount ->
+                                    amount.toDoubleOrNull()?.let { doubleAmount ->
+                                        if (doubleAmount > 0) {
+                                            // Convert USDC amount to smallest unit (1 USDC = 1,000,000 units)
+                                            val usdcAmount = (doubleAmount * 1_000_000).toULong()
+                                            viewModel.stakeUsdc(usdcAmount, activityResultSender)
+                                        }
+                                    }
+                                }
                             )
 
                             1 -> UnstakeTab(
                                 amount = unstakeAmount,
-                                onAmountChange = { unstakeAmount = it }
+                                onAmountChange = { unstakeAmount = it },
+                                stakingInfo = uiState.stakingInfo,
+                                onUnstakeClick = { amount ->
+                                    amount.toDoubleOrNull()?.let { doubleAmount ->
+                                        if (doubleAmount > 0) {
+                                            // Convert USDC amount to smallest unit (1 USDC = 1,000,000 units)
+                                            val usdcAmount = (doubleAmount * 1_000_000).toULong()
+                                            viewModel.unstakeUsdc(usdcAmount, activityResultSender)
+                                        }
+                                    }
+                                }
                             )
                         }
                     }
@@ -177,16 +261,24 @@ fun EarnScreen() {
 
             // Vault Information
             item {
-                VaultInformationCard()
+                VaultInformationCard(vault = uiState.vault)
             }
 
             // Recent Activity
             item {
-                RecentActivityCard(activities = recentActivities)
+                RecentActivityCard(activities = uiState.stakeActivities)
             }
 
             item {
                 Spacer(modifier = Modifier.height(80.dp))
+            }
+        }
+                
+                PullRefreshIndicator(
+                    refreshing = uiState.isLoading,
+                    state = pullRefreshState,
+                    modifier = Modifier.align(Alignment.TopCenter)
+                )
             }
         }
     }
@@ -237,7 +329,9 @@ fun EarnStatCard(
 @Composable
 fun StakeTab(
     amount: String,
-    onAmountChange: (String) -> Unit
+    onAmountChange: (String) -> Unit,
+    stakingInfo: VaultDepositor?,
+    onStakeClick: (String) -> Unit
 ) {
     Column {
         Text(
@@ -268,7 +362,7 @@ fun StakeTab(
             Spacer(modifier = Modifier.padding(horizontal = 8.dp))
 
             TextButton(
-                onClick = { onAmountChange("10000") }
+                onClick = { onAmountChange("1000") }
             ) {
                 Text("Max")
             }
@@ -277,7 +371,7 @@ fun StakeTab(
         Spacer(modifier = Modifier.height(Spacing.small))
 
         Text(
-            text = "Balance: 10,000 USDC",
+            text = "Balance: ${stakingInfo?.totalStaked?.let { it / 1_000_000UL } ?: 0UL} USDC",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -289,11 +383,11 @@ fun StakeTab(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
-                text = "Estimated APY:",
+                text = "Total Staked:",
                 style = MaterialTheme.typography.bodyMedium
             )
             Text(
-                text = "8.5%",
+                text = "${stakingInfo?.totalStaked?.let { it.toDouble() / 1_000_000_000.0 } ?: 0.0} USDC",
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color(0xFF4CAF50),
                 fontWeight = FontWeight.SemiBold
@@ -303,11 +397,12 @@ fun StakeTab(
         Spacer(modifier = Modifier.height(Spacing.medium))
 
         Button(
-            onClick = { /* Handle stake */ },
+            onClick = { onStakeClick(amount) },
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.primary
-            )
+            ),
+            enabled = amount.isNotEmpty() && amount.toDoubleOrNull() != null
         ) {
             Text("Stake USDC")
         }
@@ -317,7 +412,9 @@ fun StakeTab(
 @Composable
 fun UnstakeTab(
     amount: String,
-    onAmountChange: (String) -> Unit
+    onAmountChange: (String) -> Unit,
+    stakingInfo: VaultDepositor?,
+    onUnstakeClick: (String) -> Unit
 ) {
     Column {
         Text(
@@ -348,7 +445,7 @@ fun UnstakeTab(
             Spacer(modifier = Modifier.padding(horizontal = 8.dp))
 
             TextButton(
-                onClick = { onAmountChange("5000") }
+                onClick = { onAmountChange("500") }
             ) {
                 Text("Max")
             }
@@ -357,7 +454,7 @@ fun UnstakeTab(
         Spacer(modifier = Modifier.height(Spacing.small))
 
         Text(
-            text = "Staked: 5,000 USDC",
+            text = "Staked: ${stakingInfo?.totalStaked?.let { it / 1_000_000UL } ?: 0UL} USDC",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -403,11 +500,12 @@ fun UnstakeTab(
         Spacer(modifier = Modifier.height(Spacing.medium))
 
         Button(
-            onClick = { /* Handle unstake */ },
+            onClick = { onUnstakeClick(amount) },
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.primary
-            )
+            ),
+            enabled = amount.isNotEmpty() && amount.toDoubleOrNull() != null
         ) {
             Text("Request Unstake")
         }
@@ -415,7 +513,7 @@ fun UnstakeTab(
 }
 
 @Composable
-fun VaultInformationCard() {
+fun VaultInformationCard(vault: Vault?) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -463,7 +561,7 @@ fun VaultInformationCard() {
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Text(
-                    text = "50%",
+                    text = "${vault?.let { (it.managementFee.toDouble() / 100.0).toInt() } ?: 0}%",
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -478,7 +576,7 @@ fun VaultInformationCard() {
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Text(
-                    text = "50%",
+                    text = "${vault?.let { (100.0 - it.managementFee.toDouble() / 100.0).toInt() } ?: 0}%",
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -587,10 +685,14 @@ fun ActivityItem(
     }
 }
 
+// Note: Preview is disabled because EarnScreen requires ActivityResultSender
+// which cannot be properly mocked in preview context
+/*
 @Preview(showBackground = true, backgroundColor = 0xFF1A1A1A)
 @Composable
 fun EarnScreenPreview() {
     FocxTheme(darkTheme = true) {
-        EarnScreen()
+        EarnScreen(activityResultSender = ActivityResultSender(Activity()))
     }
 }
+*/

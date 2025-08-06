@@ -38,12 +38,3 @@ enum class TransactionStatus {
     FAILED
 }
 
-data class StakingInfo(
-    val totalStaked: Double,
-    val availableToStake: Double,
-    val stakingRewards: Double,
-    val stakingApr: Double,
-    val unstakingPeriod: Int, // days
-    val lastStakeDate: Long,
-    val nextRewardDate: Long
-)

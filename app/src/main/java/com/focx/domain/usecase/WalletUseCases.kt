@@ -1,6 +1,6 @@
 package com.focx.domain.usecase
 
-import com.focx.domain.entity.StakingInfo
+import com.focx.domain.entity.VaultDepositor
 import com.focx.domain.entity.Transaction
 import com.focx.domain.entity.WalletBalance
 import com.focx.domain.repository.IWalletRepository
@@ -40,10 +40,10 @@ class GetTransactionHistoryUseCase @Inject constructor(
 class GetStakingInfoUseCase @Inject constructor(
     private val walletRepository: IWalletRepository
 ) {
-    suspend operator fun invoke(address: String): Flow<Result<StakingInfo>> {
+    suspend operator fun invoke(address: String): Flow<Result<VaultDepositor?>> {
         return walletRepository.getStakingInfo(address)
-            .map { stakingInfo ->
-                Result.success(stakingInfo)
+            .map { vaultDepositor ->
+                Result.success(vaultDepositor)
             }
             .catch { exception ->
                 emit(Result.failure(exception))
