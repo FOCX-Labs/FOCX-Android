@@ -22,6 +22,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -233,7 +234,7 @@ fun EarnScreen(
                                     amount.toDoubleOrNull()?.let { doubleAmount ->
                                         if (doubleAmount > 0) {
                                             // Convert USDC amount to smallest unit (1 USDC = 1,000,000 units)
-                                            val usdcAmount = (doubleAmount * 1_000_000).toULong()
+                                            val usdcAmount = (doubleAmount * 1_000_000_000).toULong()
                                             viewModel.stakeUsdc(usdcAmount, activityResultSender)
                                         }
                                     }
@@ -244,12 +245,12 @@ fun EarnScreen(
                                 amount = unstakeAmount,
                                 onAmountChange = { unstakeAmount = it },
                                 stakingInfo = uiState.stakingInfo,
-                                onUnstakeClick = { amount ->
+                                onRequestUnstakeClick = { amount ->
                                     amount.toDoubleOrNull()?.let { doubleAmount ->
                                         if (doubleAmount > 0) {
                                             // Convert USDC amount to smallest unit (1 USDC = 1,000,000 units)
-                                            val usdcAmount = (doubleAmount * 1_000_000).toULong()
-                                            viewModel.unstakeUsdc(usdcAmount, activityResultSender)
+                                            val usdcAmount = (doubleAmount * 1_000_000_000).toULong()
+                                            viewModel.requestUnstakeUsdc(usdcAmount, activityResultSender)
                                         }
                                     }
                                 }
@@ -280,6 +281,43 @@ fun EarnScreen(
                     modifier = Modifier.align(Alignment.TopCenter)
                 )
             }
+        }
+
+        // Initialize Vault Depositor Confirmation Dialog
+        if (uiState.showInitializeVaultDepositorDialog) {
+            AlertDialog(
+                onDismissRequest = { viewModel.dismissInitializeVaultDepositorDialog() },
+                title = {
+                    Text(
+                        text = "Initialize Vault Depositor",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                },
+                text = {
+                    Text(
+                        text = "You need to initialize your vault depositor account before staking. This is a one-time setup that creates your staking account on the blockchain. Would you like to proceed?",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                },
+                confirmButton = {
+                    Button(
+                        onClick = { viewModel.confirmInitializeVaultDepositor(activityResultSender) },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        )
+                    ) {
+                        Text("Initialize")
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = { viewModel.dismissInitializeVaultDepositorDialog() }
+                    ) {
+                        Text("Cancel")
+                    }
+                }
+            )
         }
     }
 }
@@ -414,7 +452,7 @@ fun UnstakeTab(
     amount: String,
     onAmountChange: (String) -> Unit,
     stakingInfo: VaultDepositor?,
-    onUnstakeClick: (String) -> Unit
+    onRequestUnstakeClick: (String) -> Unit
 ) {
     Column {
         Text(
@@ -454,7 +492,7 @@ fun UnstakeTab(
         Spacer(modifier = Modifier.height(Spacing.small))
 
         Text(
-            text = "Staked: ${stakingInfo?.totalStaked?.let { it / 1_000_000UL } ?: 0UL} USDC",
+            text = "Staked: ${stakingInfo?.totalStaked?.let { it / 1_000_000_000UL } ?: 0UL} USDC",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -500,7 +538,7 @@ fun UnstakeTab(
         Spacer(modifier = Modifier.height(Spacing.medium))
 
         Button(
-            onClick = { onUnstakeClick(amount) },
+            onClick = { onRequestUnstakeClick(amount) },
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.primary

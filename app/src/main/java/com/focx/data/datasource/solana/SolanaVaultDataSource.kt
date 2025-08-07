@@ -225,7 +225,7 @@ class SolanaVaultDataSource @Inject constructor(
                 Log.d(TAG, "Unstake USDC authResult.authToken: ${authResult.authToken}")
 
                 val builder = Message.Builder()
-                val instructions = genUnstakeInstructions(accountPublicKey, amount)
+                val instructions = genRequestUnstakeInstructions(accountPublicKey, amount)
 
                 instructions.forEach { ix -> builder.addInstruction(ix) }
 
@@ -275,6 +275,70 @@ class SolanaVaultDataSource @Inject constructor(
         } catch (e: Exception) {
             Log.e(TAG, "Unstake exception:", e)
             emit(Result.failure(Exception("Failed to unstake USDC: ${e.message}")))
+        }
+    }
+
+    suspend fun initializeVaultDepositor(
+        accountPublicKey: String,
+        activityResultSender: ActivityResultSender
+    ): Flow<Result<String>> = flow {
+        try {
+            Log.d(TAG, "Initializing vault depositor for account: $accountPublicKey")
+
+            val result = walletAdapter.transact(activityResultSender) { authResult ->
+                Log.d(TAG, "Initialize vault depositor authResult.authToken: ${authResult.authToken}")
+
+                val builder = Message.Builder()
+                val instructions = genInitializeVaultDepositorInstructions(accountPublicKey)
+
+                instructions.forEach { ix -> builder.addInstruction(ix) }
+
+                val recentBlockhash = try {
+                    withTimeout(NetworkConfig.READ_TIMEOUT_MS) {
+                        recentBlockhashUseCase()
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to get recent blockhash: ${e.message}", e)
+                    throw Exception("Failed to get recent blockhash: ${e.message}", e)
+                }
+
+                val message = builder.setRecentBlockhash(recentBlockhash).build()
+                val transaction = Transaction(message)
+
+                Log.d(TAG, "signAndSendTransactions (initialize): before")
+                val signResult = signAndSendTransactions(
+                    arrayOf(transaction.serialize())
+                )
+                Log.d(TAG, "signAndSendTransactions (initialize): $signResult")
+                signResult
+            }
+
+            when (result) {
+                is TransactionResult.Success -> {
+                    val signature = result.successPayload?.signatures?.first()
+                    if (signature != null) {
+                        val signatureString = Base58.encodeToString(signature)
+                        Log.d(TAG, "Initialize vault depositor successful: $signatureString")
+                        emit(Result.success(signatureString))
+                    } else {
+                        Log.e(TAG, "No signature returned from initialize transaction")
+                        emit(Result.failure(Exception("No signature returned from transaction")))
+                    }
+                }
+
+                is TransactionResult.NoWalletFound -> {
+                    Log.e(TAG, "No wallet found for initialize")
+                    emit(Result.failure(Exception("No wallet found")))
+                }
+
+                is TransactionResult.Failure -> {
+                    Log.e(TAG, "Initialize failed: ${result.e.message}")
+                    emit(Result.failure(Exception("Transaction failed: ${result.e.message}")))
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Initialize exception:", e)
+            emit(Result.failure(Exception("Failed to initialize vault depositor: ${e.message}")))
         }
     }
 
@@ -357,31 +421,6 @@ class SolanaVaultDataSource @Inject constructor(
 
         val instructions = ArrayList<TransactionInstruction>()
 
-        val stakingInfo = getStakingInfoFromChain(accountPublicKey)
-        if (stakingInfo == null) {
-            val createAccount = genTransactionInstruction(
-                listOf(
-                    AccountMeta(vaultPda, false, false),
-                    AccountMeta(vaultDepositorPda, false, true),
-                    AccountMeta(userPublicKey, true, true),
-                    AccountMeta(SystemProgram.PROGRAM_ID, false, false),
-                    AccountMeta(
-                        SolanaPublicKey.from("SysvarRent111111111111111111111111111111111"),
-                        false,
-                        false
-                    ),
-                ),
-                Borsh.encodeToByteArray(
-                    AnchorInstructionSerializer("initialize_vault_depositor"),
-                    Unit
-                ),
-                AppConstants.App.getVaultProgramId()
-
-            )
-
-            instructions.add(createAccount)
-        }
-
         val userTokenAccount = ShopUtils.getAssociatedTokenAddress(userPublicKey).getOrNull()!!
 
         val stakeInstruction = genTransactionInstruction(
@@ -399,7 +438,7 @@ class SolanaVaultDataSource @Inject constructor(
             ),
             Borsh.encodeToByteArray(
                 AnchorInstructionSerializer("stake"),
-                amount * 1_000_000_000UL
+                amount
             ),
             AppConstants.App.getVaultProgramId()
         )
@@ -424,8 +463,9 @@ class SolanaVaultDataSource @Inject constructor(
             ),
             Borsh.encodeToByteArray(
                 AnchorInstructionSerializer("request_unstake"),
-                amount * 1_000_000_000UL
-            )
+                amount
+            ),
+            AppConstants.App.getVaultProgramId()
         )
 
         return listOf(unstakeInstruction)
@@ -459,10 +499,41 @@ class SolanaVaultDataSource @Inject constructor(
             Borsh.encodeToByteArray(
                 AnchorInstructionSerializer("unstake"),
                 Unit
-            )
+            ),
+            AppConstants.App.getVaultProgramId()
         )
 
         return listOf(unstakeInstruction)
+    }
+
+    private suspend fun genInitializeVaultDepositorInstructions(
+        accountPublicKey: String
+    ): List<TransactionInstruction> {
+        val userPublicKey = SolanaPublicKey.from(accountPublicKey)
+        val vaultPda = VaultUtils.getVaultPda()
+        val vaultDepositorPda = VaultUtils.getVaultDepositorPda(userPublicKey)
+
+        val initializeInstruction = genTransactionInstruction(
+            listOf(
+                AccountMeta(vaultPda, false, false),
+                AccountMeta(vaultDepositorPda, false, true),
+                AccountMeta(userPublicKey, true, true),
+                AccountMeta(SystemProgram.PROGRAM_ID, false, false),
+                AccountMeta(
+                    SolanaPublicKey.from("SysvarRent111111111111111111111111111111111"),
+                    false,
+                    false
+                ),
+            ),
+            Borsh.encodeToByteArray(
+                AnchorInstructionSerializer("initialize_vault_depositor"),
+                Unit
+            ),
+            AppConstants.App.getVaultProgramId()
+
+        )
+
+        return listOf(initializeInstruction)
     }
 }
 

@@ -7,7 +7,8 @@ import kotlinx.serialization.Serializable
 data class UnstakeRequest(
     val shares: ULong, // Number of shares to unstake
     val requestTime: Long, // When the unstake request was made
-    val assetPerShareAtRequest: ULong // Asset amount per share at request time (scaled by PRECISION)
+    val assetPerShareAtRequest: ULong, // Asset amount per share at request time (scaled by PRECISION)
+    val assetPerShareAtRequest2: ULong // Asset amount per share at request time (scaled by PRECISION)
 )
 
 @Serializable
@@ -57,8 +58,9 @@ data class VaultDepositor(
     val authority: SolanaPublicKey, // The depositor's authority
     val shares: ULong, // The depositor's shares
     val rewardsDebt: ULong, // The depositor's rewards debt (for reward calculation)
+    val rewardsDebt2: ULong, // The depositor's rewards debt (for reward calculation)
     val lastRewardsClaim: Long, // Last time rewards were claimed
-    val unstakeRequest: UnstakeRequest?, // Unstake request
+    val unstakeRequest: UnstakeRequest, // Unstake request
     val totalStaked: ULong, // Total amount staked
     val totalUnstaked: ULong, // Total amount unstaked
     val totalRewardsClaimed: ULong, // Total rewards claimed

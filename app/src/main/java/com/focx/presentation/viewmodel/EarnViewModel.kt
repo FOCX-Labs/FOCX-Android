@@ -9,8 +9,9 @@ import com.focx.domain.usecase.GetCurrentWalletAddressUseCase
 import com.focx.domain.usecase.GetStakeActivitiesUseCase
 import com.focx.domain.usecase.GetStakingInfoUseCase
 import com.focx.domain.usecase.GetVaultInfoUseCase
+import com.focx.domain.usecase.InitializeVaultDepositorUseCase
 import com.focx.domain.usecase.StakeUsdcUseCase
-import com.focx.domain.usecase.UnstakeUsdcUseCase
+import com.focx.domain.usecase.RequestUnstakeUsdcUseCase
 import com.focx.utils.Log
 import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -24,10 +25,12 @@ import javax.inject.Inject
 data class EarnUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
-            val vault: Vault? = null,
+    val vault: Vault? = null,
     val stakingInfo: VaultDepositor? = null,
     val stakeActivities: List<StakeActivity> = emptyList(),
-    val userWalletAddress: String? = null
+    val userWalletAddress: String? = null,
+    val showInitializeVaultDepositorDialog: Boolean = false,
+    val pendingStakeAmount: ULong? = null
 )
 
 @HiltViewModel
@@ -36,7 +39,8 @@ class EarnViewModel @Inject constructor(
     private val getStakingInfoUseCase: GetStakingInfoUseCase,
     private val getStakeActivitiesUseCase: GetStakeActivitiesUseCase,
     private val stakeUsdcUseCase: StakeUsdcUseCase,
-    private val unstakeUsdcUseCase: UnstakeUsdcUseCase,
+    private val requestUnstakeUsdcUseCase: RequestUnstakeUsdcUseCase,
+    private val initializeVaultDepositorUseCase: InitializeVaultDepositorUseCase,
     private val getCurrentWalletAddressUseCase: GetCurrentWalletAddressUseCase
 ) : ViewModel() {
 
@@ -126,6 +130,27 @@ class EarnViewModel @Inject constructor(
             return
         }
 
+        // Check if VaultDepositor is null, if so show confirmation dialog
+        if (_uiState.value.stakingInfo == null) {
+            _uiState.value = _uiState.value.copy(
+                showInitializeVaultDepositorDialog = true,
+                pendingStakeAmount = amount
+            )
+            return
+        }
+
+        performStakeUsdc(amount, activityResultSender)
+    }
+
+    private fun performStakeUsdc(amount: ULong, activityResultSender: ActivityResultSender) {
+        val walletAddress = _uiState.value.userWalletAddress
+        if (walletAddress == null) {
+            _uiState.value = _uiState.value.copy(
+                error = "Wallet not connected"
+            )
+            return
+        }
+
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
 
@@ -161,7 +186,7 @@ class EarnViewModel @Inject constructor(
         }
     }
 
-    fun unstakeUsdc(amount: ULong, activityResultSender: ActivityResultSender) {
+    fun requestUnstakeUsdc(amount: ULong, activityResultSender: ActivityResultSender) {
         val walletAddress = _uiState.value.userWalletAddress
         if (walletAddress == null) {
             _uiState.value = _uiState.value.copy(
@@ -174,7 +199,7 @@ class EarnViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
 
             try {
-                unstakeUsdcUseCase(walletAddress, amount, activityResultSender)
+                requestUnstakeUsdcUseCase(walletAddress, amount, activityResultSender)
                     .collect { result ->
                         result.fold(
                             onSuccess = { signature ->
@@ -211,5 +236,62 @@ class EarnViewModel @Inject constructor(
 
     fun refresh() {
         loadEarnData()
+    }
+
+    fun dismissInitializeVaultDepositorDialog() {
+        _uiState.value = _uiState.value.copy(
+            showInitializeVaultDepositorDialog = false,
+            pendingStakeAmount = null
+        )
+    }
+
+    fun confirmInitializeVaultDepositor(activityResultSender: ActivityResultSender) {
+        val walletAddress = _uiState.value.userWalletAddress
+        val pendingAmount = _uiState.value.pendingStakeAmount
+        
+        if (walletAddress == null || pendingAmount == null) {
+            _uiState.value = _uiState.value.copy(
+                error = "Invalid state for initialization"
+            )
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+
+            try {
+                initializeVaultDepositorUseCase(walletAddress, activityResultSender)
+                    .collect { result ->
+                        result.fold(
+                            onSuccess = { signature ->
+                                Log.d("EarnViewModel", "Initialize vault depositor successful: $signature")
+                                // After successful initialization, proceed with stake
+                                performStakeUsdc(pendingAmount, activityResultSender)
+                                _uiState.value = _uiState.value.copy(
+                                    showInitializeVaultDepositorDialog = false,
+                                    pendingStakeAmount = null
+                                )
+                            },
+                            onFailure = { error ->
+                                Log.e("EarnViewModel", "Initialize vault depositor failed: ${error.message}")
+                                _uiState.value = _uiState.value.copy(
+                                    isLoading = false,
+                                    error = "Initialize vault depositor failed: ${error.message}",
+                                    showInitializeVaultDepositorDialog = false,
+                                    pendingStakeAmount = null
+                                )
+                            }
+                        )
+                    }
+            } catch (e: Exception) {
+                Log.e("EarnViewModel", "Exception in confirmInitializeVaultDepositor: ${e.message}", e)
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = "Initialize vault depositor failed: ${e.message}",
+                    showInitializeVaultDepositorDialog = false,
+                    pendingStakeAmount = null
+                )
+            }
+        }
     }
 } 
