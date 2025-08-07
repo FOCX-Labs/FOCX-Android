@@ -9,7 +9,6 @@ import com.focx.data.constants.PreferencesConstants
 import com.focx.data.datasource.mock.MockGovernanceDataSource
 import com.focx.data.datasource.mock.MockSellerDataSource
 import com.focx.data.datasource.mock.MockUserDataSource
-import com.focx.data.datasource.mock.MockWalletDataSource
 import com.focx.data.datasource.local.AddressLocalDataSource
 import com.focx.data.datasource.local.AccountCacheDataSource
 import com.focx.data.datasource.solana.SolanaMerchantDataSource
@@ -36,11 +35,16 @@ import com.focx.domain.usecase.GetOrdersBySellerUseCase
 import com.focx.domain.usecase.GetProductByIdUseCase
 import com.focx.domain.usecase.GetProductsUseCase
 import com.focx.domain.usecase.GetSellerStatsUseCase
+import com.focx.domain.usecase.GetStakeActivitiesUseCase
 import com.focx.domain.usecase.GetStakingInfoUseCase
 import com.focx.domain.usecase.GetUserAddressesUseCase
+import com.focx.domain.usecase.GetVaultInfoUseCase
 import com.focx.domain.usecase.GetUserProfileUseCase
 import com.focx.domain.usecase.GetWalletBalanceUseCase
+import com.focx.domain.usecase.InitializeVaultDepositorUseCase
 import com.focx.domain.usecase.LoginWithWalletUseCase
+import com.focx.domain.usecase.StakeUsdcUseCase
+import com.focx.domain.usecase.RequestUnstakeUsdcUseCase
 import com.focx.domain.usecase.RecentBlockhashUseCase
 import com.focx.domain.usecase.RegisterMerchantUseCase
 import com.focx.domain.usecase.RequestUsdcFaucetUseCase
@@ -56,7 +60,6 @@ import com.focx.domain.usecase.VoteOnProposalUseCase
 import com.focx.domain.usecase.GetMerchantProductsUseCase
 import com.solana.mobilewalletadapter.clientlib.ConnectionIdentity
 import com.solana.mobilewalletadapter.clientlib.MobileWalletAdapter
-import com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient
 import com.solana.rpc.SolanaRpcClient
 import dagger.Module
 import dagger.Provides
@@ -244,6 +247,41 @@ object AppModule {
         walletRepository: IWalletRepository
     ): GetStakingInfoUseCase {
         return GetStakingInfoUseCase(walletRepository)
+    }
+
+    @Provides
+    fun provideInitializeVaultDepositorUseCase(
+        vaultDataSource: SolanaVaultDataSource
+    ): InitializeVaultDepositorUseCase {
+        return InitializeVaultDepositorUseCase(vaultDataSource)
+    }
+
+    @Provides
+    fun provideStakeUsdcUseCase(
+        vaultDataSource: SolanaVaultDataSource
+    ): StakeUsdcUseCase {
+        return StakeUsdcUseCase(vaultDataSource)
+    }
+
+    @Provides
+    fun provideUnstakeUsdcUseCase(
+        vaultDataSource: SolanaVaultDataSource
+    ): RequestUnstakeUsdcUseCase {
+        return RequestUnstakeUsdcUseCase(vaultDataSource)
+    }
+
+    @Provides
+    fun provideGetVaultInfoUseCase(
+        vaultDataSource: SolanaVaultDataSource
+    ): GetVaultInfoUseCase {
+        return GetVaultInfoUseCase(vaultDataSource)
+    }
+
+    @Provides
+    fun provideGetStakeActivitiesUseCase(
+        vaultDataSource: SolanaVaultDataSource
+    ): GetStakeActivitiesUseCase {
+        return GetStakeActivitiesUseCase(vaultDataSource)
     }
 
     @Provides

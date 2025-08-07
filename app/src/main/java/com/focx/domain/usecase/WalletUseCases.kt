@@ -82,3 +82,22 @@ class DisconnectWalletUseCase @Inject constructor(
         return walletRepository.disconnectWallet()
     }
 }
+
+class ClaimRewardsUseCase @Inject constructor(
+    private val walletRepository: IWalletRepository
+) {
+    suspend operator fun invoke(): Result<String> {
+        return walletRepository.claimRewards()
+    }
+}
+
+class InitializeVaultDepositorUseCase @Inject constructor(
+    private val vaultDataSource: com.focx.data.datasource.solana.SolanaVaultDataSource
+) {
+    suspend operator fun invoke(
+        accountPublicKey: String,
+        activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender
+    ): kotlinx.coroutines.flow.Flow<Result<String>> {
+        return vaultDataSource.initializeVaultDepositor(accountPublicKey, activityResultSender)
+    }
+}

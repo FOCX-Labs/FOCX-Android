@@ -5,7 +5,7 @@ import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 
-class UnstakeUsdcUseCase @Inject constructor(
+class RequestUnstakeUsdcUseCase @Inject constructor(
     private val vaultDataSource: SolanaVaultDataSource
 ) {
     suspend operator fun invoke(
@@ -13,6 +13,6 @@ class UnstakeUsdcUseCase @Inject constructor(
         amount: ULong,
         activityResultSender: ActivityResultSender
     ): Flow<Result<String>> {
-        return vaultDataSource.unstakeUsdc(accountPublicKey, amount, activityResultSender)
+        return vaultDataSource.requestUnstake(accountPublicKey, amount, activityResultSender)
     }
 } 
