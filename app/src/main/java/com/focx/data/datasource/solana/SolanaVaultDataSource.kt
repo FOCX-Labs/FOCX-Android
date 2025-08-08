@@ -213,7 +213,7 @@ class SolanaVaultDataSource @Inject constructor(
         }
     }
 
-    suspend fun unstakeUsdc(
+    suspend fun unstake(
         accountPublicKey: String,
         amount: ULong,
         activityResultSender: ActivityResultSender
@@ -225,7 +225,7 @@ class SolanaVaultDataSource @Inject constructor(
                 Log.d(TAG, "Unstake USDC authResult.authToken: ${authResult.authToken}")
 
                 val builder = Message.Builder()
-                val instructions = genRequestUnstakeInstructions(accountPublicKey, amount)
+                val instructions = genUnstakeInstructions(accountPublicKey, amount)
 
                 instructions.forEach { ix -> builder.addInstruction(ix) }
 
@@ -377,7 +377,7 @@ class SolanaVaultDataSource @Inject constructor(
             rewardsPerShare = 8500000UL, // 8.5% APY
             rewardsPerShare2 = 8500000UL, // 8.5% APY
             lastRewardsUpdate = System.currentTimeMillis(),
-            unstakeLockupPeriod = 86400L, // 24 hours
+            unstakeLockupPeriod = 1209600L, // 14 days (14 * 24 * 60 * 60 = 1209600 seconds)
             managementFee = 5000UL, // 50% (5000 basis points)
             minStakeAmount = 1000000UL, // 1 USDC minimum
             maxTotalAssets = 1000000000000UL, // 1M USDC max

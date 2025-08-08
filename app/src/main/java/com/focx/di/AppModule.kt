@@ -45,6 +45,7 @@ import com.focx.domain.usecase.InitializeVaultDepositorUseCase
 import com.focx.domain.usecase.LoginWithWalletUseCase
 import com.focx.domain.usecase.StakeUsdcUseCase
 import com.focx.domain.usecase.RequestUnstakeUsdcUseCase
+import com.focx.domain.usecase.UnstakeUsdcUseCase
 import com.focx.domain.usecase.RecentBlockhashUseCase
 import com.focx.domain.usecase.RegisterMerchantUseCase
 import com.focx.domain.usecase.RequestUsdcFaucetUseCase
@@ -264,10 +265,17 @@ object AppModule {
     }
 
     @Provides
-    fun provideUnstakeUsdcUseCase(
+    fun provideRequestUnstakeUsdcUseCase(
         vaultDataSource: SolanaVaultDataSource
     ): RequestUnstakeUsdcUseCase {
         return RequestUnstakeUsdcUseCase(vaultDataSource)
+    }
+
+    @Provides
+    fun provideUnstakeUsdcUseCase(
+        vaultDataSource: SolanaVaultDataSource
+    ): UnstakeUsdcUseCase {
+        return UnstakeUsdcUseCase(vaultDataSource)
     }
 
     @Provides
