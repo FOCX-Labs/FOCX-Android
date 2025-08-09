@@ -10,11 +10,13 @@ import com.focx.domain.usecase.GetStakeActivitiesUseCase
 import com.focx.domain.usecase.GetStakingInfoUseCase
 import com.focx.domain.usecase.GetVaultInfoUseCase
 import com.focx.domain.usecase.InitializeVaultDepositorUseCase
+import com.focx.domain.usecase.SolanaTokenBalanceUseCase
 import com.focx.domain.usecase.StakeUsdcUseCase
 import com.focx.domain.usecase.RequestUnstakeUsdcUseCase
 import com.focx.domain.usecase.UnstakeUsdcUseCase
 import com.focx.utils.Log
 import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
+import com.solana.publickey.SolanaPublicKey
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -31,7 +33,8 @@ data class EarnUiState(
     val stakeActivities: List<StakeActivity> = emptyList(),
     val userWalletAddress: String? = null,
     val showInitializeVaultDepositorDialog: Boolean = false,
-    val pendingStakeAmount: ULong? = null
+    val pendingStakeAmount: ULong? = null,
+    val usdcBalance: Long = 0L
 )
 
 @HiltViewModel
@@ -43,7 +46,8 @@ class EarnViewModel @Inject constructor(
     private val requestUnstakeUsdcUseCase: RequestUnstakeUsdcUseCase,
     private val unstakeUsdcUseCase: UnstakeUsdcUseCase,
     private val initializeVaultDepositorUseCase: InitializeVaultDepositorUseCase,
-    private val getCurrentWalletAddressUseCase: GetCurrentWalletAddressUseCase
+    private val getCurrentWalletAddressUseCase: GetCurrentWalletAddressUseCase,
+    private val solanaTokenBalanceUseCase: SolanaTokenBalanceUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(EarnUiState())
@@ -110,6 +114,17 @@ class EarnViewModel @Inject constructor(
                             )
                         }
                     )
+                }
+
+                // Load USDC balance
+                try {
+                    val userPublicKey = SolanaPublicKey.from(walletAddress)
+                    val balance = solanaTokenBalanceUseCase.getBalanceByOwnerAndMint(userPublicKey)
+                    _uiState.value = _uiState.value.copy(usdcBalance = balance)
+                    Log.d("EarnViewModel", "USDC balance loaded: $balance")
+                } catch (e: Exception) {
+                    Log.e("EarnViewModel", "Failed to load USDC balance: ${e.message}", e)
+                    // Don't set error for balance failure, just log it
                 }
 
                 _uiState.value = _uiState.value.copy(isLoading = false)

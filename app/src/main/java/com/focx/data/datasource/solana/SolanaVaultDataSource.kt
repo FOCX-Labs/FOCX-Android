@@ -485,7 +485,7 @@ class SolanaVaultDataSource @Inject constructor(
 
         val unstakeInstruction = genTransactionInstruction(
             listOf(
-                AccountMeta(vaultPda, true, true),
+                AccountMeta(vaultPda, false, true),
                 AccountMeta(vaultDepositorPda, false, true),
                 AccountMeta(vaultTokenAccountPda, false, true),
                 AccountMeta(userTokenAccount, false, true),
