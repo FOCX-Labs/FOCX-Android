@@ -237,6 +237,7 @@ fun EarnScreen(
                                         amount = stakeAmount,
                                         onAmountChange = { stakeAmount = it },
                                         stakingInfo = uiState.stakingInfo,
+                                        usdcBalance = uiState.usdcBalance,
                                         onStakeClick = { amount ->
                                             amount.toDoubleOrNull()?.let { doubleAmount ->
                                                 if (doubleAmount > 0) {
@@ -396,6 +397,7 @@ fun StakeTab(
     amount: String,
     onAmountChange: (String) -> Unit,
     stakingInfo: VaultDepositor?,
+    usdcBalance: Long,
     onStakeClick: (String) -> Unit
 ) {
     Column {
@@ -427,7 +429,10 @@ fun StakeTab(
             Spacer(modifier = Modifier.padding(horizontal = 8.dp))
 
             TextButton(
-                onClick = { onAmountChange("1000") }
+                onClick = { 
+                    val maxAmount = usdcBalance.toDouble() / 1_000_000_000.0
+                    onAmountChange(String.format("%.2f", maxAmount))
+                }
             ) {
                 Text("Max")
             }
@@ -435,11 +440,21 @@ fun StakeTab(
 
         Spacer(modifier = Modifier.height(Spacing.small))
 
-        Text(
-            text = "Balance: ${stakingInfo?.totalStaked?.let { it / 1_000_000UL } ?: 0UL} USDC",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = "Balance:",
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Text(
+                text = " ${String.format("%.2f", usdcBalance.toDouble() / 1_000_000_000.0)} USDC",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color(0xFF4CAF50),
+                fontWeight = FontWeight.SemiBold
+            )
+        }
 
         Spacer(modifier = Modifier.height(Spacing.small))
 
