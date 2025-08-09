@@ -311,7 +311,8 @@ fun ProfileContent(
             // Staking Info Card
             item {
                 StakingInfoCard(
-                    stakingInfo = uiState.stakingInfo, 
+                    stakingInfo = uiState.stakingInfo,
+                    userAssetValue = uiState.userAssetValue,
                     isLoading = uiState.isLoading
                 )
             }
@@ -528,7 +529,8 @@ fun WalletBalanceCard(
 
 @Composable
 fun StakingInfoCard(
-    stakingInfo: com.focx.domain.entity.VaultDepositor?, 
+    stakingInfo: com.focx.domain.entity.VaultDepositor?,
+    userAssetValue: String,
     isLoading: Boolean
 ) {
     Card(
@@ -568,7 +570,7 @@ fun StakingInfoCard(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
-                                text = "${vaultDepositor.totalStaked.toDouble() / 1_000_000_000.0} USDC",
+                                text = "$userAssetValue USDC",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFF4CAF50)
@@ -582,7 +584,7 @@ fun StakingInfoCard(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
-                                text = "${vaultDepositor.totalRewardsClaimed.toDouble() / 1_000_000_000.0} USDC",
+                                text = "${String.format("%.2f", vaultDepositor.totalRewardsClaimed.toDouble() / 1_000_000_000.0)} USDC",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold
                             )

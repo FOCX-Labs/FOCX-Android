@@ -198,4 +198,56 @@ object VaultUtils {
         return activeDepositors
     }
 
+    /**
+     * Calculate user asset value based on vault and depositor data
+     * Uses the same logic as the contract - available_assets and active_shares
+     * Uses BigInteger to avoid overflow and improve precision
+     * @param vault Vault entity containing vault information
+     * @param vaultDepositor VaultDepositor entity containing user's depositor information
+     * @return User's asset value in USDC with 2 decimal places (e.g., "123.45")
+     */
+    fun getUserAssetValue(vault: Vault?, vaultDepositor: VaultDepositor?): String {
+        if (vault == null || vaultDepositor == null) {
+            return "0.00"
+        }
+        
+        val userShares = vaultDepositor.shares
+        val totalShares = vault.totalShares
+        val totalAssets = vault.totalAssets
+        
+        // Use same logic as contract - available_assets and active_shares
+        val pendingUnstakeShares = vault.pendingUnstakeShares
+        val reservedAssets = vault.reservedAssets
+        val availableAssets = totalAssets - reservedAssets
+        val activeShares = totalShares - pendingUnstakeShares
+
+        var userAssetValue = 0UL
+        if (activeShares > 0UL && userShares > 0UL) {
+            // Use BigInteger to avoid overflow and improve precision
+            val userSharesBig = java.math.BigInteger.valueOf(userShares.toLong())
+            val availableAssetsBig = java.math.BigInteger.valueOf(availableAssets.toLong())
+            val activeSharesBig = java.math.BigInteger.valueOf(activeShares.toLong())
+            
+            // Calculate: (userShares * availableAssets) / activeShares
+            val numerator = userSharesBig.multiply(availableAssetsBig)
+            val result = numerator.divide(activeSharesBig)
+            
+            // Convert back to ULong, ensuring it doesn't exceed ULong.MAX_VALUE
+            userAssetValue = result.toLong().toULong()
+        }
+
+        // Convert from lamports to USDC (divide by 1e9) and format to 2 decimal places
+        val userAssetValueUsdc = userAssetValue.toDouble() / 1e9
+        val formattedValue = String.format("%.2f", userAssetValueUsdc)
+
+        Log.d(TAG, "user asset value calculation:")
+        Log.d(TAG, "user shares: $userShares")
+        Log.d(TAG, "available assets: ${availableAssets.toDouble() / 1e9} USDC")
+        Log.d(TAG, "active shares: $activeShares")
+        Log.d(TAG, "asset value: $formattedValue USDC")
+        Log.d(TAG, "current share value: ${if (activeShares > 0UL) String.format("%.9f", availableAssets.toDouble() / activeShares.toDouble()) else "0"} USDC/share")
+
+        return formattedValue
+    }
+
 }
