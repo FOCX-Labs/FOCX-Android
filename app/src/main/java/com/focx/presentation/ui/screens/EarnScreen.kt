@@ -235,6 +235,7 @@ fun EarnScreen(
                                     0 -> StakeTab(
                                         amount = stakeAmount,
                                         onAmountChange = { stakeAmount = it },
+                                        vault = uiState.vault,
                                         stakingInfo = uiState.stakingInfo,
                                         usdcBalance = uiState.usdcBalance,
                                         onStakeClick = { amount ->
@@ -395,6 +396,7 @@ fun EarnStatCard(
 fun StakeTab(
     amount: String,
     onAmountChange: (String) -> Unit,
+    vault: Vault?,
     stakingInfo: VaultDepositor?,
     usdcBalance: Long,
     onStakeClick: (String) -> Unit
@@ -466,7 +468,7 @@ fun StakeTab(
                 style = MaterialTheme.typography.bodyMedium
             )
             Text(
-                text = "${stakingInfo?.totalStaked?.let { it.toDouble() / 1_000_000_000.0 } ?: 0.0} USDC",
+                text = "${VaultUtils.getUserAssetValue(vault, stakingInfo)} USDC",
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color(0xFF4CAF50),
                 fontWeight = FontWeight.SemiBold
@@ -535,7 +537,7 @@ fun UnstakeTab(
         Spacer(modifier = Modifier.height(Spacing.small))
 
         Text(
-            text = "Staked: ${stakingInfo?.totalStaked?.let { it / 1_000_000_000UL } ?: 0UL} USDC",
+            text = "Staked: ${VaultUtils.getUserAssetValue(vault,stakingInfo)} USDC",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )

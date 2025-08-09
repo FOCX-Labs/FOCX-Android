@@ -12,6 +12,7 @@ import com.focx.domain.usecase.DisconnectWalletUseCase
 import com.focx.domain.usecase.GetCurrentUserUseCase
 import com.focx.domain.usecase.GetStakingInfoUseCase
 import com.focx.domain.usecase.GetUserAddressesUseCase
+import com.focx.domain.usecase.GetVaultInfoWithStakersUseCase
 import com.focx.domain.usecase.GetWalletBalanceUseCase
 import com.focx.domain.usecase.LoginWithWalletUseCase
 import com.focx.domain.usecase.RequestUsdcFaucetUseCase
@@ -30,13 +31,17 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import com.focx.data.datasource.local.AddressLocalDataSource
+import com.focx.domain.entity.Vault
 import com.focx.utils.ShopUtils
+import com.focx.utils.VaultUtils
 
 data class ProfileUiState(
     val isLoading: Boolean = false,
     val user: User? = null,
     val walletBalance: WalletBalance? = null,
     val stakingInfo: VaultDepositor? = null,
+    val vault: Vault? = null,
+    val userAssetValue: String = "0.00",
     val userAddresses: List<UserAddress> = emptyList(),
     val isWalletConnected: Boolean = false,
     val error: String? = null
@@ -50,6 +55,7 @@ class ProfileViewModel @Inject constructor(
     private val solanaAccountBalanceUseCase: SolanaAccountBalanceUseCase,
     private val solanaTokenBalanceUseCase: SolanaTokenBalanceUseCase,
     private val getStakingInfoUseCase: GetStakingInfoUseCase,
+    private val getVaultInfoWithStakersUseCase: GetVaultInfoWithStakersUseCase,
     private val connectWalletUseCase: ConnectWalletUseCase,
     private val disconnectWalletUseCase: DisconnectWalletUseCase,
     private val loginWithWalletUseCase: LoginWithWalletUseCase,
@@ -196,6 +202,9 @@ class ProfileViewModel @Inject constructor(
                         result.fold(
                             onSuccess = { stakingInfo ->
                                 _uiState.value = _uiState.value.copy(stakingInfo = stakingInfo)
+                                
+                                // Calculate user asset value after both vault and staking info are available
+                                calculateAndUpdateUserAssetValue()
                             },
                             onFailure = { error ->
                                 Log.e("ProfileViewModel", "Failed to load staking info: ${error.message}")
@@ -207,9 +216,35 @@ class ProfileViewModel @Inject constructor(
                     }
                 }
 
-                // Wait for both jobs to complete, then set loading to false
+                val vaultJob = launch {
+                    getVaultInfoWithStakersUseCase(walletAddress).catch { e ->
+                        Log.e("ProfileViewModel", "Vault info flow error: ${e.message}")
+                        _uiState.value = _uiState.value.copy(
+                            error = "Failed to load vault info: ${e.message}"
+                        )
+                    }.collect { result ->
+                        result.fold(
+                            onSuccess = { vaultInfoWithStakers ->
+                                val vault = vaultInfoWithStakers.vault
+                                _uiState.value = _uiState.value.copy(vault = vault)
+                                
+                                // Calculate user asset value after both vault and staking info are available
+                                calculateAndUpdateUserAssetValue()
+                            },
+                            onFailure = { error ->
+                                Log.e("ProfileViewModel", "Failed to load vault info: ${error.message}")
+                                _uiState.value = _uiState.value.copy(
+                                    error = "Failed to load vault info: ${error.message}"
+                                )
+                            }
+                        )
+                    }
+                }
+
+                // Wait for all jobs to complete, then set loading to false
                 balanceJob.join()
                 stakingJob.join()
+                vaultJob.join()
                 _uiState.value = _uiState.value.copy(isLoading = false)
 
             } catch (e: Exception) {
@@ -219,6 +254,18 @@ class ProfileViewModel @Inject constructor(
                     error = "Failed to load wallet data: ${e.message}"
                 )
             }
+        }
+    }
+
+    private fun calculateAndUpdateUserAssetValue() {
+        val currentState = _uiState.value
+        val vault = currentState.vault
+        val stakingInfo = currentState.stakingInfo
+        
+        if (vault != null && stakingInfo != null) {
+            val userAssetValue = VaultUtils.getUserAssetValue(vault, stakingInfo)
+            _uiState.value = _uiState.value.copy(userAssetValue = userAssetValue)
+            Log.d("ProfileViewModel", "User asset value calculated: $userAssetValue USDC")
         }
     }
 
