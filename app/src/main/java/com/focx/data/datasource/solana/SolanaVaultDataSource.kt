@@ -7,6 +7,7 @@ import com.focx.domain.entity.StakeActivity
 
 import com.focx.domain.entity.Vault
 import com.focx.domain.entity.VaultDepositor
+import com.focx.domain.entity.VaultInfoWithStakers
 import com.focx.domain.usecase.RecentBlockhashUseCase
 import com.focx.utils.Log
 import com.focx.utils.ShopUtils
@@ -339,6 +340,30 @@ class SolanaVaultDataSource @Inject constructor(
         } catch (e: Exception) {
             Log.e(TAG, "Initialize exception:", e)
             emit(Result.failure(Exception("Failed to initialize vault depositor: ${e.message}")))
+        }
+    }
+
+    suspend fun getVaultInfoWithStakers(accountPublicKey: String): Flow<Result<VaultInfoWithStakers>> = flow {
+        try {
+            Log.d(TAG, "Getting vault info with stakers for account: $accountPublicKey")
+            
+            // Get vault info
+            val vault = getVaultInfoFromChain(accountPublicKey)
+            
+            // Get total stakers count
+            val totalStakers = VaultUtils.getTotalStakers(solanaRpcClient)
+            
+            // Combine into wrapper
+            val vaultInfoWithStakers = VaultInfoWithStakers(
+                vault = vault,
+                totalStakers = totalStakers
+            )
+            
+            Log.d(TAG, "Successfully retrieved vault info with ${totalStakers} stakers")
+            emit(Result.success(vaultInfoWithStakers))
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting vault info with stakers: ${e.message}", e)
+            emit(Result.failure(Exception("Failed to get vault info with stakers: ${e.message}")))
         }
     }
 

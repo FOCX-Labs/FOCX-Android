@@ -57,6 +57,7 @@ import com.focx.domain.entity.VaultDepositor
 import com.focx.presentation.ui.theme.Spacing
 import com.focx.presentation.viewmodel.EarnViewModel
 import com.focx.utils.TimeUtils
+import com.focx.utils.VaultUtils
 import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
 
 @OptIn(ExperimentalMaterialApi::class)
@@ -166,12 +167,10 @@ fun EarnScreen(
                                 EarnStatCard(
                                     title = "Current APY",
                                     value = uiState.vault?.let {
-                                        val apy = if (it.totalShares > 0UL) {
-                                            (it.totalRewards.toDouble() / it.totalAssets.toDouble()) * 100
-                                        } else 0.0
+                                        val apy = VaultUtils.calculateApy(it)
                                         "${String.format("%.1f", apy)}%"
                                     } ?: "0.0%",
-                                    subtitle = "30-day average",
+                                    subtitle = "Compound interest",
                                     subtitleColor = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.weight(1f)
                                 )
@@ -182,16 +181,16 @@ fun EarnScreen(
                             ) {
                                 EarnStatCard(
                                     title = "Total Stakers",
-                                    value = uiState.vault?.totalShares?.toString() ?: "0",
+                                    value = uiState.totalStakers.toString(),
                                     subtitle = "Active participants",
                                     subtitleColor = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.weight(1f)
                                 )
                                 EarnStatCard(
                                     title = "My Position",
-                                    value = uiState.stakingInfo?.let { "${it.totalStaked.toDouble() / 1_000_000_000.0} USDC" }
-                                        ?: "0 USDC",
-                                    subtitle = "",
+                                    value = uiState.stakingInfo?.let { "${it.totalStaked.toDouble() / 1_000_000_000.0}" }
+                                        ?: "0",
+                                    subtitle = "USDC",
                                     subtitleColor = Color(0xFF4CAF50),
                                     modifier = Modifier.weight(1f)
                                 )

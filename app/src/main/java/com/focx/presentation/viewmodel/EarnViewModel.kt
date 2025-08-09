@@ -9,6 +9,7 @@ import com.focx.domain.usecase.GetCurrentWalletAddressUseCase
 import com.focx.domain.usecase.GetStakeActivitiesUseCase
 import com.focx.domain.usecase.GetStakingInfoUseCase
 import com.focx.domain.usecase.GetVaultInfoUseCase
+import com.focx.domain.usecase.GetVaultInfoWithStakersUseCase
 import com.focx.domain.usecase.InitializeVaultDepositorUseCase
 import com.focx.domain.usecase.SolanaTokenBalanceUseCase
 import com.focx.domain.usecase.StakeUsdcUseCase
@@ -29,6 +30,7 @@ data class EarnUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val vault: Vault? = null,
+    val totalStakers: Int = 0,
     val stakingInfo: VaultDepositor? = null,
     val stakeActivities: List<StakeActivity> = emptyList(),
     val userWalletAddress: String? = null,
@@ -40,6 +42,7 @@ data class EarnUiState(
 @HiltViewModel
 class EarnViewModel @Inject constructor(
     private val getVaultInfoUseCase: GetVaultInfoUseCase,
+    private val getVaultInfoWithStakersUseCase: GetVaultInfoWithStakersUseCase,
     private val getStakingInfoUseCase: GetStakingInfoUseCase,
     private val getStakeActivitiesUseCase: GetStakeActivitiesUseCase,
     private val stakeUsdcUseCase: StakeUsdcUseCase,
@@ -71,12 +74,15 @@ class EarnViewModel @Inject constructor(
             )
 
             try {
-                // Load vault info
-                            getVaultInfoUseCase(walletAddress).collect { result ->
-                result.fold(
-                    onSuccess = { vault ->
-                        _uiState.value = _uiState.value.copy(vault = vault)
-                    },
+                // Load vault info with stakers
+                getVaultInfoWithStakersUseCase(walletAddress).collect { result ->
+                    result.fold(
+                        onSuccess = { vaultInfoWithStakers ->
+                            _uiState.value = _uiState.value.copy(
+                                vault = vaultInfoWithStakers.vault,
+                                totalStakers = vaultInfoWithStakers.totalStakers
+                            )
+                        },
                         onFailure = { error ->
                             Log.e("EarnViewModel", "Failed to load vault info: ${error.message}")
                             _uiState.value = _uiState.value.copy(

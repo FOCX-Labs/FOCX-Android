@@ -51,6 +51,15 @@ data class Vault(
 //    val reserved: ByteArray // [u8; 16] - Reserved for future use
 )
 
+/**
+ * Enhanced vault info that includes total stakers without modifying the original Vault contract structure
+ */
+@Serializable
+data class VaultInfoWithStakers(
+    val vault: Vault,
+    val totalStakers: Int
+)
+
 @Serializable
 data class VaultDepositor(
     val discriminator: Long,
