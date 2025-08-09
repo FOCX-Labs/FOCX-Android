@@ -14,10 +14,15 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.pullrefresh.PullRefreshIndicator
+import androidx.compose.material.pullrefresh.pullRefresh
+import androidx.compose.material.pullrefresh.rememberPullRefreshState
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -32,6 +37,7 @@ import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -42,152 +48,304 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.focx.presentation.ui.theme.FocxTheme
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.focx.domain.entity.StakeActivity
+import com.focx.domain.entity.Vault
+import com.focx.domain.entity.VaultDepositor
 import com.focx.presentation.ui.theme.Spacing
+import com.focx.presentation.viewmodel.EarnViewModel
+import com.focx.utils.TimeUtils
+import com.focx.utils.VaultUtils
+import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
 
-data class StakeActivity(
-    val type: String,
-    val amount: String,
-    val date: String,
-    val isStake: Boolean
-)
-
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
-fun EarnScreen() {
+fun EarnScreen(
+    activityResultSender: ActivityResultSender,
+    viewModel: EarnViewModel = hiltViewModel()
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var selectedTab by remember { mutableIntStateOf(0) }
     var stakeAmount by remember { mutableStateOf("") }
     var unstakeAmount by remember { mutableStateOf("") }
 
     val tabs = listOf("Stake", "Unstake")
 
-    val recentActivities = listOf(
-        StakeActivity("Stake", "$1000", "August 15, 2023", true),
-        StakeActivity("Withdraw Stake", "$500", "May 10, 2023", false)
-    )
+    // Load earn data when screen is first displayed
+    LaunchedEffect(Unit) {
+        viewModel.loadEarnData()
+    }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = Spacing.medium),
-            verticalArrangement = Arrangement.spacedBy(Spacing.medium)
-        ) {
-            item {
-                Spacer(modifier = Modifier.height(Spacing.small))
+        if (uiState.isLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+                contentAlignment = Alignment.Center
+            ) {
+                androidx.compose.material3.CircularProgressIndicator()
             }
-
-            // Statistics Cards
-            item {
+        } else if (uiState.error != null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+                contentAlignment = Alignment.Center
+            ) {
                 Column(
-                    verticalArrangement = Arrangement.spacedBy(Spacing.medium)
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.medium),
-                        modifier = Modifier.fillMaxWidth()
+                    Text(
+                        text = "Error",
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = uiState.error ?: "Unknown error",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(
+                        onClick = { viewModel.loadEarnData() }
                     ) {
-                        EarnStatCard(
-                            title = "Total Value Locked",
-                            value = "$850K",
-                            subtitle = "+2.7% from last week",
-                            subtitleColor = Color(0xFF4CAF50),
-                            modifier = Modifier.weight(1f)
-                        )
-                        EarnStatCard(
-                            title = "Current APY",
-                            value = "8.5 %",
-                            subtitle = "30-day average",
-                            subtitleColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.medium),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        EarnStatCard(
-                            title = "Total Stakers",
-                            value = "1,234",
-                            subtitle = "Active participants",
-                            subtitleColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.weight(1f)
-                        )
-                        EarnStatCard(
-                            title = "My Position",
-                            value = "$5,000",
-                            subtitle = "+39% growth",
-                            subtitleColor = Color(0xFF4CAF50),
-                            modifier = Modifier.weight(1f)
-                        )
+                        Text("Retry")
                     }
                 }
             }
+        } else {
+            val pullRefreshState = rememberPullRefreshState(
+                refreshing = uiState.isLoading,
+                onRefresh = { viewModel.loadEarnData() }
+            )
 
-            // Stake/Unstake Section
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant
-                    ),
-                    shape = RoundedCornerShape(16.dp)
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .pullRefresh(pullRefreshState)
+            ) {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = Spacing.medium),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.medium)
                 ) {
-                    Column(
-                        modifier = Modifier.padding(Spacing.medium)
-                    ) {
-                        TabRow(
-                            selectedTabIndex = selectedTab,
-                            containerColor = Color.Transparent,
-                            contentColor = MaterialTheme.colorScheme.primary
+                    item {
+                        Spacer(modifier = Modifier.height(Spacing.small))
+                    }
+
+                    // Statistics Cards
+                    item {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(Spacing.medium)
                         ) {
-                            tabs.forEachIndexed { index, title ->
-                                Tab(
-                                    selected = selectedTab == index,
-                                    onClick = { selectedTab = index },
-                                    text = {
-                                        Text(
-                                            text = title,
-                                            fontWeight = if (selectedTab == index) FontWeight.Bold else FontWeight.Normal
-                                        )
-                                    }
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(Spacing.medium),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                EarnStatCard(
+                                    title = "Total Value Locked",
+                                    value = uiState.vault?.let {
+                                        "${
+                                            String.format(
+                                                "%.0fK",
+                                                it.totalAssets.toDouble() / 1_000_000_000.0 / 1000
+                                            )
+                                        }"
+                                    } ?: "$0K",
+                                    subtitle = "USDC",
+                                    subtitleColor = Color(0xFF4CAF50),
+                                    modifier = Modifier.weight(1f)
+                                )
+                                EarnStatCard(
+                                    title = "Current APY",
+                                    value = uiState.vault?.let {
+                                        val apy = VaultUtils.calculateApy(it)
+                                        "${String.format("%.1f", apy)}%"
+                                    } ?: "0.0%",
+                                    subtitle = "Compound interest",
+                                    subtitleColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(Spacing.medium),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                EarnStatCard(
+                                    title = "Total Stakers",
+                                    value = uiState.totalStakers.toString(),
+                                    subtitle = "Active participants",
+                                    subtitleColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                EarnStatCard(
+                                    title = "My Position",
+                                    value = uiState.stakingInfo?.let { "${it.totalStaked.toDouble() / 1_000_000_000.0}" }
+                                        ?: "0",
+                                    subtitle = "USDC",
+                                    subtitleColor = Color(0xFF4CAF50),
+                                    modifier = Modifier.weight(1f)
                                 )
                             }
                         }
+                    }
 
-                        Spacer(modifier = Modifier.height(Spacing.medium))
+                    // Stake/Unstake Section
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant
+                            ),
+                            shape = RoundedCornerShape(16.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(Spacing.medium)
+                            ) {
+                                TabRow(
+                                    selectedTabIndex = selectedTab,
+                                    containerColor = Color.Transparent,
+                                    contentColor = MaterialTheme.colorScheme.primary
+                                ) {
+                                    tabs.forEachIndexed { index, title ->
+                                        Tab(
+                                            selected = selectedTab == index,
+                                            onClick = { selectedTab = index },
+                                            text = {
+                                                Text(
+                                                    text = title,
+                                                    fontWeight = if (selectedTab == index) FontWeight.Bold else FontWeight.Normal
+                                                )
+                                            }
+                                        )
+                                    }
+                                }
 
-                        when (selectedTab) {
-                            0 -> StakeTab(
-                                amount = stakeAmount,
-                                onAmountChange = { stakeAmount = it }
-                            )
+                                Spacer(modifier = Modifier.height(Spacing.medium))
 
-                            1 -> UnstakeTab(
-                                amount = unstakeAmount,
-                                onAmountChange = { unstakeAmount = it }
-                            )
+                                when (selectedTab) {
+                                    0 -> StakeTab(
+                                        amount = stakeAmount,
+                                        onAmountChange = { stakeAmount = it },
+                                        vault = uiState.vault,
+                                        stakingInfo = uiState.stakingInfo,
+                                        usdcBalance = uiState.usdcBalance,
+                                        onStakeClick = { amount ->
+                                            amount.toDoubleOrNull()?.let { doubleAmount ->
+                                                if (doubleAmount > 0) {
+                                                    // Convert USDC amount to smallest unit (1 USDC = 1,000,000 units)
+                                                    val usdcAmount =
+                                                        (doubleAmount * 1_000_000_000).toULong()
+                                                    viewModel.stakeUsdc(
+                                                        usdcAmount,
+                                                        activityResultSender
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    )
+
+                                    1 -> UnstakeTab(
+                                        amount = unstakeAmount,
+                                        onAmountChange = { unstakeAmount = it },
+                                        stakingInfo = uiState.stakingInfo,
+                                        vault = uiState.vault,
+                                        onRequestUnstakeClick = { amount ->
+                                            amount.toDoubleOrNull()?.let { doubleAmount ->
+                                                if (doubleAmount > 0) {
+                                                    // Convert USDC amount to smallest unit (1 USDC = 1,000,000 units)
+                                                    val usdcAmount =
+                                                        (doubleAmount * 1_000_000_000).toULong()
+                                                    viewModel.requestUnstakeUsdc(
+                                                        usdcAmount,
+                                                        activityResultSender
+                                                    )
+                                                }
+                                            }
+                                        },
+                                        onUnstakeClick = { amount ->
+                                            amount.toDoubleOrNull()?.let { doubleAmount ->
+                                                // Convert USDC amount to smallest unit (1 USDC = 1,000,000 units)
+                                                val usdcAmount =
+                                                    (doubleAmount * 1_000_000_000).toULong()
+                                                viewModel.unstakeUsdc(
+                                                    usdcAmount,
+                                                    activityResultSender
+                                                )
+                                            }
+                                        }
+                                    )
+                                }
+                            }
                         }
                     }
+
+                    // Vault Information
+                    item {
+                        VaultInformationCard(vault = uiState.vault)
+                    }
+
+                    // Recent Activity
+//            item {
+//                RecentActivityCard(activities = uiState.stakeActivities)
+//            }
+
+                    item {
+                        Spacer(modifier = Modifier.height(80.dp))
+                    }
                 }
-            }
 
-            // Vault Information
-            item {
-                VaultInformationCard()
+                PullRefreshIndicator(
+                    refreshing = uiState.isLoading,
+                    state = pullRefreshState,
+                    modifier = Modifier.align(Alignment.TopCenter)
+                )
             }
+        }
 
-            // Recent Activity
-            item {
-                RecentActivityCard(activities = recentActivities)
-            }
-
-            item {
-                Spacer(modifier = Modifier.height(80.dp))
-            }
+        // Initialize Vault Depositor Confirmation Dialog
+        if (uiState.showInitializeVaultDepositorDialog) {
+            AlertDialog(
+                onDismissRequest = { viewModel.dismissInitializeVaultDepositorDialog() },
+                title = {
+                    Text(
+                        text = "Initialize Vault Depositor",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                },
+                text = {
+                    Text(
+                        text = "You need to initialize your vault depositor account before staking. This is a one-time setup that creates your staking account on the blockchain. Would you like to proceed?",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                },
+                confirmButton = {
+                    Button(
+                        onClick = { viewModel.confirmInitializeVaultDepositor(activityResultSender) },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        )
+                    ) {
+                        Text("Initialize")
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = { viewModel.dismissInitializeVaultDepositorDialog() }
+                    ) {
+                        Text("Cancel")
+                    }
+                }
+            )
         }
     }
 }
@@ -237,7 +395,11 @@ fun EarnStatCard(
 @Composable
 fun StakeTab(
     amount: String,
-    onAmountChange: (String) -> Unit
+    onAmountChange: (String) -> Unit,
+    vault: Vault?,
+    stakingInfo: VaultDepositor?,
+    usdcBalance: Long,
+    onStakeClick: (String) -> Unit
 ) {
     Column {
         Text(
@@ -268,19 +430,14 @@ fun StakeTab(
             Spacer(modifier = Modifier.padding(horizontal = 8.dp))
 
             TextButton(
-                onClick = { onAmountChange("10000") }
+                onClick = { 
+                    val maxAmount = usdcBalance.toDouble() / 1_000_000_000.0
+                    onAmountChange(String.format("%.2f", maxAmount))
+                }
             ) {
                 Text("Max")
             }
         }
-
-        Spacer(modifier = Modifier.height(Spacing.small))
-
-        Text(
-            text = "Balance: 10,000 USDC",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
 
         Spacer(modifier = Modifier.height(Spacing.small))
 
@@ -289,11 +446,29 @@ fun StakeTab(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
-                text = "Estimated APY:",
+                text = "Balance:",
                 style = MaterialTheme.typography.bodyMedium
             )
             Text(
-                text = "8.5%",
+                text = " ${String.format("%.2f", usdcBalance.toDouble() / 1_000_000_000.0)} USDC",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color(0xFF4CAF50),
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+
+        Spacer(modifier = Modifier.height(Spacing.small))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = "Total Staked:",
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Text(
+                text = "${VaultUtils.getUserAssetValue(vault, stakingInfo)} USDC",
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color(0xFF4CAF50),
                 fontWeight = FontWeight.SemiBold
@@ -303,11 +478,12 @@ fun StakeTab(
         Spacer(modifier = Modifier.height(Spacing.medium))
 
         Button(
-            onClick = { /* Handle stake */ },
+            onClick = { onStakeClick(amount) },
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.primary
-            )
+            ),
+            enabled = amount.isNotEmpty() && amount.toDoubleOrNull() != null
         ) {
             Text("Stake USDC")
         }
@@ -317,7 +493,11 @@ fun StakeTab(
 @Composable
 fun UnstakeTab(
     amount: String,
-    onAmountChange: (String) -> Unit
+    onAmountChange: (String) -> Unit,
+    stakingInfo: VaultDepositor?,
+    vault: Vault?,
+    onRequestUnstakeClick: (String) -> Unit,
+    onUnstakeClick: (String) -> Unit
 ) {
     Column {
         Text(
@@ -348,7 +528,7 @@ fun UnstakeTab(
             Spacer(modifier = Modifier.padding(horizontal = 8.dp))
 
             TextButton(
-                onClick = { onAmountChange("5000") }
+                onClick = { onAmountChange("500") }
             ) {
                 Text("Max")
             }
@@ -357,7 +537,7 @@ fun UnstakeTab(
         Spacer(modifier = Modifier.height(Spacing.small))
 
         Text(
-            text = "Staked: 5,000 USDC",
+            text = "Staked: ${VaultUtils.getUserAssetValue(vault,stakingInfo)} USDC",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -385,14 +565,17 @@ fun UnstakeTab(
                 )
                 Spacer(modifier = Modifier.padding(horizontal = 4.dp))
                 Column {
+                    val lockupPeriodText = vault?.unstakeLockupPeriod?.let {
+                        TimeUtils.formatDuration(it)
+                    } ?: "14 days"
                     Text(
-                        text = "14-Day Withdrawal Period",
+                        text = "${lockupPeriodText} Withdrawal Period",
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.SemiBold,
                         color = Color(0xFFFFA726)
                     )
                     Text(
-                        text = "Unstaked funds and accumulated rewards will be available for withdrawal after 14 days. Rewards cannot be claimed separately, and must be withdrawn together with the staked amount.",
+                        text = "Unstaked funds and accumulated rewards will be available for withdrawal after ${lockupPeriodText}. Rewards cannot be claimed separately, and must be withdrawn together with the staked amount.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -403,19 +586,104 @@ fun UnstakeTab(
         Spacer(modifier = Modifier.height(Spacing.medium))
 
         Button(
-            onClick = { /* Handle unstake */ },
+            onClick = { onRequestUnstakeClick(amount) },
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.primary
-            )
+            ),
+            enabled = amount.isNotEmpty() && amount.toDoubleOrNull() != null
         ) {
             Text("Request Unstake")
+        }
+
+        // Show unstake request status if there's an active request
+        stakingInfo?.unstakeRequest?.let { unstakeRequest ->
+            if (unstakeRequest.requestTime > 0 && unstakeRequest.shares > 0U) {
+                val lockupPeriod = vault?.unstakeLockupPeriod ?: 1209600L
+                val isReady = TimeUtils.isUnstakeReady(unstakeRequest.requestTime, lockupPeriod)
+                val expiryTime =
+                    TimeUtils.getUnstakeExpiryTime(unstakeRequest.requestTime, lockupPeriod)
+
+                Spacer(modifier = Modifier.height(Spacing.medium))
+
+                // Status card
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (isReady) Color(0xFF4CAF50).copy(alpha = 0.1f) else Color(
+                            0xFFFFA726
+                        ).copy(alpha = 0.1f)
+                    ),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(Spacing.small)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Info,
+                                contentDescription = "Status",
+                                tint = if (isReady) Color(0xFF4CAF50) else Color(0xFFFFA726),
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.padding(horizontal = 8.dp))
+                            Text(
+                                text = if (isReady) "Unstake Ready" else "Unstake Pending",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (isReady) Color(0xFF4CAF50) else Color(0xFFFFA726)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(Spacing.small))
+
+                        if (isReady) {
+                            Text(
+                                text = "Your unstake request is ready for withdrawal. You can now withdraw your funds and accumulated rewards.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+
+                            Spacer(modifier = Modifier.height(Spacing.small))
+
+                            Button(
+                                onClick = { onUnstakeClick(unstakeRequest.shares.toString()) },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFF4CAF50)
+                                )
+                            ) {
+                                Text("Withdraw Funds")
+                            }
+                        } else {
+                            Text(
+                                text = "${stakingInfo.unstakeRequest.shares} shares",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = "Expires at: ${TimeUtils.formatExpiryTime(expiryTime)}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+
+                            Text(
+                                text = "Your unstake request will be ready for withdrawal after the lockup period expires.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }
 
 @Composable
-fun VaultInformationCard() {
+fun VaultInformationCard(vault: Vault?) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -463,7 +731,7 @@ fun VaultInformationCard() {
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Text(
-                    text = "50%",
+                    text = "${vault?.let { (it.managementFee.toDouble() / 100.0).toInt() } ?: 0}%",
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -478,7 +746,7 @@ fun VaultInformationCard() {
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Text(
-                    text = "50%",
+                    text = "${vault?.let { (100.0 - it.managementFee.toDouble() / 100.0).toInt() } ?: 0}%",
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -587,10 +855,14 @@ fun ActivityItem(
     }
 }
 
+// Note: Preview is disabled because EarnScreen requires ActivityResultSender
+// which cannot be properly mocked in preview context
+/*
 @Preview(showBackground = true, backgroundColor = 0xFF1A1A1A)
 @Composable
 fun EarnScreenPreview() {
     FocxTheme(darkTheme = true) {
-        EarnScreen()
+        EarnScreen(activityResultSender = ActivityResultSender(Activity()))
     }
 }
+*/

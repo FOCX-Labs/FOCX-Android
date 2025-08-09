@@ -17,7 +17,7 @@ data class User(
 data class UserProfile(
     val user: User,
     val walletBalance: WalletBalance,
-    val stakingInfo: StakingInfo,
+    val stakingInfo: VaultDepositor?,
     val addresses: List<UserAddress>,
     val preferences: UserPreferences
 )

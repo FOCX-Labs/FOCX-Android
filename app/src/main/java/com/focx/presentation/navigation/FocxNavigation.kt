@@ -105,7 +105,7 @@ fun FocxNavigation(activityResultSender: ActivityResultSender) {
             }
 
             composable("earn") {
-                EarnScreen()
+                EarnScreen(activityResultSender = activityResultSender)
             }
 
             composable("governance") {
