@@ -664,7 +664,7 @@ fun UnstakeTab(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
-                                text = "Expires at: ${TimeUtils.formatExpiryTime(expiryTime)}",
+                                text = "Available for withdrawal on: ${TimeUtils.formatExpiryTime(expiryTime)}",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
