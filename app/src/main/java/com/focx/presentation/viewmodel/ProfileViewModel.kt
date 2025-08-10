@@ -263,7 +263,7 @@ class ProfileViewModel @Inject constructor(
         val stakingInfo = currentState.stakingInfo
         
         if (vault != null && stakingInfo != null) {
-            val userAssetValue = VaultUtils.getUserAssetValue(vault, stakingInfo)
+            val userAssetValue = VaultUtils.getUserAssetValueString(vault, stakingInfo)
             _uiState.value = _uiState.value.copy(userAssetValue = userAssetValue)
             Log.d("ProfileViewModel", "User asset value calculated: $userAssetValue USDC")
         }
