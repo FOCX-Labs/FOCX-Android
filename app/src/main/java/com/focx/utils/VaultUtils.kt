@@ -124,7 +124,7 @@ object VaultUtils {
             AppConstants.App.getVaultProgramId(),
         ).result
         
-        val activeDepositors = filterAndParseVaultDepositors(data)
+        val activeDepositors = filterAndParseVaultDepositors(vaultPda,data)
         
         Log.d(TAG, "total program accounts: ${data?.size}, active depositors (shares > 0): ${activeDepositors.size}")
         return activeDepositors.size
@@ -135,7 +135,7 @@ object VaultUtils {
      * @param programAccounts Program account data
      * @return Filtered list of VaultDepositors
      */
-    private fun filterAndParseVaultDepositors(programAccounts: List<AccountInfoWithPublicKey<ByteArray>>?): List<VaultDepositor> {
+    private fun filterAndParseVaultDepositors(vaultPda: SolanaPublicKey, programAccounts: List<AccountInfoWithPublicKey<ByteArray>>?): List<VaultDepositor> {
         if (programAccounts == null) {
             Log.d(TAG, "No program accounts to filter")
             return emptyList()
@@ -174,9 +174,9 @@ object VaultUtils {
                             val vaultDepositor = Borsh.decodeFromByteArray(VaultDepositor.serializer(), accountData)
                             
                             // Filter depositors with shares > 0
-                            if (vaultDepositor.shares > 0UL) {
+                            if (vaultDepositor.shares > 0UL && vaultPda == vaultDepositor.vault) {
                                 activeDepositors.add(vaultDepositor)
-                                Log.d(TAG, "Active depositor found - pubkey: ${publicKey}, shares: ${vaultDepositor.shares}, authority: ${vaultDepositor.authority.base58()}")
+                                Log.d(TAG, "Active depositor found - pubkey: ${publicKey}, pda: ${vaultDepositor.vault}, shares: ${vaultDepositor.shares}, authority: ${vaultDepositor.authority.base58()}")
                             } else {
                                 Log.d(TAG, "Depositor ${publicKey} has 0 shares - skipping")
                             }
