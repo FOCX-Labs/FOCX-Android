@@ -188,8 +188,7 @@ fun EarnScreen(
                                 )
                                 EarnStatCard(
                                     title = "My Position",
-                                    value = uiState.stakingInfo?.let { "${it.totalStaked.toDouble() / 1_000_000_000.0}" }
-                                        ?: "0",
+                                    value = "${VaultUtils.getTotalPosition(uiState.vault, uiState.stakingInfo)}",
                                     subtitle = "USDC",
                                     subtitleColor = Color(0xFF4CAF50),
                                     modifier = Modifier.weight(1f)
@@ -468,7 +467,7 @@ fun StakeTab(
                 style = MaterialTheme.typography.bodyMedium
             )
             Text(
-                text = "${VaultUtils.getUserAssetValue(vault, stakingInfo)} USDC",
+                text = "${VaultUtils.getUserAssetValueString(vault, stakingInfo)} USDC",
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color(0xFF4CAF50),
                 fontWeight = FontWeight.SemiBold
@@ -537,7 +536,7 @@ fun UnstakeTab(
         Spacer(modifier = Modifier.height(Spacing.small))
 
         Text(
-            text = "Staked: ${VaultUtils.getUserAssetValue(vault,stakingInfo)} USDC",
+            text = "Staked: ${VaultUtils.getUserAssetValueString(vault,stakingInfo)} USDC",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -641,6 +640,11 @@ fun UnstakeTab(
 
                         if (isReady) {
                             Text(
+                                text = "${String.format("%.2f", VaultUtils.getPendingStakeValue(unstakeRequest).toDouble() / 1e9)} USDC",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
                                 text = "Your unstake request is ready for withdrawal. You can now withdraw your funds and accumulated rewards.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -659,7 +663,7 @@ fun UnstakeTab(
                             }
                         } else {
                             Text(
-                                text = "${stakingInfo.unstakeRequest.shares} shares",
+                                text = "${String.format("%.2f", VaultUtils.getPendingStakeValue(unstakeRequest).toDouble() / 1e9)} USDC",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )

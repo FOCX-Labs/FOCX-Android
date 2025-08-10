@@ -1,6 +1,7 @@
 package com.focx.utils
 
 import com.focx.core.constants.AppConstants
+import com.focx.domain.entity.UnstakeRequest
 import com.focx.domain.entity.Vault
 import com.focx.domain.entity.VaultDepositor
 import com.funkatronics.kborsh.Borsh
@@ -9,6 +10,7 @@ import com.solana.publickey.SolanaPublicKey
 import com.solana.rpc.AccountInfoWithPublicKey
 import com.solana.rpc.ProgramAccountsRequest
 import com.solana.rpc.SolanaRpcClient
+import java.math.BigInteger
 import kotlin.math.pow
 
 object VaultUtils {
@@ -206,15 +208,24 @@ object VaultUtils {
      * @param vaultDepositor VaultDepositor entity containing user's depositor information
      * @return User's asset value in USDC with 2 decimal places (e.g., "123.45")
      */
-    fun getUserAssetValue(vault: Vault?, vaultDepositor: VaultDepositor?): String {
+    fun getUserAssetValueString(vault: Vault?, vaultDepositor: VaultDepositor?): String {
+        var userAssetValue = getUserAssetValue(vault, vaultDepositor)
+        return formatUsdc(userAssetValue)
+    }
+
+    fun formatUsdc(amount: ULong): String{
+        return String.format("%.2f", amount.toDouble() / 1e9)
+    }
+
+    fun getUserAssetValue(vault: Vault?, vaultDepositor: VaultDepositor?): ULong {
         if (vault == null || vaultDepositor == null) {
-            return "0.00"
+            return 0UL
         }
-        
+
         val userShares = vaultDepositor.shares
         val totalShares = vault.totalShares
         val totalAssets = vault.totalAssets
-        
+
         // Use same logic as contract - available_assets and active_shares
         val pendingUnstakeShares = vault.pendingUnstakeShares
         val reservedAssets = vault.reservedAssets
@@ -224,30 +235,41 @@ object VaultUtils {
         var userAssetValue = 0UL
         if (activeShares > 0UL && userShares > 0UL) {
             // Use BigInteger to avoid overflow and improve precision
-            val userSharesBig = java.math.BigInteger.valueOf(userShares.toLong())
-            val availableAssetsBig = java.math.BigInteger.valueOf(availableAssets.toLong())
-            val activeSharesBig = java.math.BigInteger.valueOf(activeShares.toLong())
-            
+            val userSharesBig = BigInteger.valueOf(userShares.toLong())
+            val availableAssetsBig = BigInteger.valueOf(availableAssets.toLong())
+            val activeSharesBig = BigInteger.valueOf(activeShares.toLong())
+
             // Calculate: (userShares * availableAssets) / activeShares
             val numerator = userSharesBig.multiply(availableAssetsBig)
             val result = numerator.divide(activeSharesBig)
-            
+
             // Convert back to ULong, ensuring it doesn't exceed ULong.MAX_VALUE
             userAssetValue = result.toLong().toULong()
         }
+        return userAssetValue
+    }
 
-        // Convert from lamports to USDC (divide by 1e9) and format to 2 decimal places
-        val userAssetValueUsdc = userAssetValue.toDouble() / 1e9
-        val formattedValue = String.format("%.2f", userAssetValueUsdc)
+    fun getPendingStakeValue(unstakeRequest: UnstakeRequest?): ULong {
+        if (unstakeRequest == null) {
+            return 0UL
+        }
 
-        Log.d(TAG, "user asset value calculation:")
-        Log.d(TAG, "user shares: $userShares")
-        Log.d(TAG, "available assets: ${availableAssets.toDouble() / 1e9} USDC")
-        Log.d(TAG, "active shares: $activeShares")
-        Log.d(TAG, "asset value: $formattedValue USDC")
-        Log.d(TAG, "current share value: ${if (activeShares > 0UL) String.format("%.9f", availableAssets.toDouble() / activeShares.toDouble()) else "0"} USDC/share")
+        val PRECISION = 1e12
+        val shares = unstakeRequest.shares.toDouble()
+        
+        // Combine low and high parts of u128 assetPerShareAtRequest
+        val assetPerShareLow = BigInteger.valueOf(unstakeRequest.assetPerShareAtRequest.toLong())
+        val assetPerShareHigh = BigInteger.valueOf(unstakeRequest.assetPerShareAtRequest2.toLong())
+        val assetPerShare = (assetPerShareHigh.shiftLeft(64).add(assetPerShareLow)).toDouble()
+        
+        val unstakeUSDCAmount = (shares * assetPerShare) / PRECISION
+        
+        return unstakeUSDCAmount.toULong()
+    }
 
-        return formattedValue
+    fun getTotalPosition(vault: Vault?, vaultDepositor: VaultDepositor?): String{
+        val total = getPendingStakeValue(vaultDepositor?.unstakeRequest) + getUserAssetValue(vault, vaultDepositor)
+        return formatUsdc(total)
     }
 
 }
