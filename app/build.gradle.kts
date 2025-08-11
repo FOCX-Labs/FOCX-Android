@@ -23,7 +23,7 @@ android {
         targetSdk = 34
 
         val majorV = 1
-        val minorV = 0
+        val minorV = 1
         val patchV = 0
 
         versionCode = day.toInt() * 1000 + majorV * 100 + minorV * 10 + patchV
