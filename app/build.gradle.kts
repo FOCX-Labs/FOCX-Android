@@ -83,7 +83,7 @@ android {
     applicationVariants.all {
         if (buildType.name == "release") {
             outputs.configureEach {
-                (this as? ApkVariantOutputImpl)?.outputFileName = "Focx.V${versionName}.apk"
+                (this as? ApkVariantOutputImpl)?.outputFileName = "FOCX-v${versionName}.apk"
             }
         }
     }
