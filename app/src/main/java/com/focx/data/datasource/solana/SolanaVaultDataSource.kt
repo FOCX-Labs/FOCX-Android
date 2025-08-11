@@ -379,7 +379,6 @@ class SolanaVaultDataSource @Inject constructor(
         try {
             val vaultData = solanaRpcClient.getAccountInfo<Vault>(
                 pda,
-                commitment = Commitment.PROCESSED,
                 dataSlice = AccountRequest.DataSlice(
                     297, 40
                 )
@@ -429,7 +428,6 @@ class SolanaVaultDataSource @Inject constructor(
         val vaultDepositor =
             solanaRpcClient.getAccountInfo<VaultDepositor>(
                 vaultDepositorPda,
-                commitment = Commitment.PROCESSED,
             ).result?.data
         Log.d(TAG, "Staking info is : $vaultDepositor")
         return vaultDepositor
