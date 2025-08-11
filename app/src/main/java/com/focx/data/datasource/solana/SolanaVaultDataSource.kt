@@ -22,6 +22,7 @@ import com.solana.mobilewalletadapter.clientlib.successPayload
 import com.solana.programs.SystemProgram
 import com.solana.publickey.SolanaPublicKey
 import com.solana.rpc.AccountRequest
+import com.solana.rpc.Commitment
 import com.solana.rpc.SolanaRpcClient
 import com.solana.rpc.getAccountInfo
 import com.solana.serialization.AnchorInstructionSerializer
@@ -287,7 +288,10 @@ class SolanaVaultDataSource @Inject constructor(
             Log.d(TAG, "Initializing vault depositor for account: $accountPublicKey")
 
             val result = walletAdapter.transact(activityResultSender) { authResult ->
-                Log.d(TAG, "Initialize vault depositor authResult.authToken: ${authResult.authToken}")
+                Log.d(
+                    TAG,
+                    "Initialize vault depositor authResult.authToken: ${authResult.authToken}"
+                )
 
                 val builder = Message.Builder()
                 val instructions = genInitializeVaultDepositorInstructions(accountPublicKey)
@@ -343,29 +347,30 @@ class SolanaVaultDataSource @Inject constructor(
         }
     }
 
-    suspend fun getVaultInfoWithStakers(accountPublicKey: String): Flow<Result<VaultInfoWithStakers>> = flow {
-        try {
-            Log.d(TAG, "Getting vault info with stakers for account: $accountPublicKey")
-            
-            // Get vault info
-            val vault = getVaultInfoFromChain(accountPublicKey)
-            
-            // Get total stakers count
-            val totalStakers = VaultUtils.getTotalStakers(solanaRpcClient)
-            
-            // Combine into wrapper
-            val vaultInfoWithStakers = VaultInfoWithStakers(
-                vault = vault,
-                totalStakers = totalStakers
-            )
-            
-            Log.d(TAG, "Successfully retrieved vault info with ${totalStakers} stakers")
-            emit(Result.success(vaultInfoWithStakers))
-        } catch (e: Exception) {
-            Log.e(TAG, "Error getting vault info with stakers: ${e.message}", e)
-            emit(Result.failure(Exception("Failed to get vault info with stakers: ${e.message}")))
+    suspend fun getVaultInfoWithStakers(accountPublicKey: String): Flow<Result<VaultInfoWithStakers>> =
+        flow {
+            try {
+                Log.d(TAG, "Getting vault info with stakers for account: $accountPublicKey")
+
+                // Get vault info
+                val vault = getVaultInfoFromChain(accountPublicKey)
+
+                // Get total stakers count
+                val totalStakers = VaultUtils.getTotalStakers(solanaRpcClient)
+
+                // Combine into wrapper
+                val vaultInfoWithStakers = VaultInfoWithStakers(
+                    vault = vault,
+                    totalStakers = totalStakers
+                )
+
+                Log.d(TAG, "Successfully retrieved vault info with ${totalStakers} stakers")
+                emit(Result.success(vaultInfoWithStakers))
+            } catch (e: Exception) {
+                Log.e(TAG, "Error getting vault info with stakers: ${e.message}", e)
+                emit(Result.failure(Exception("Failed to get vault info with stakers: ${e.message}")))
+            }
         }
-    }
 
     private suspend fun getVaultInfoFromChain(accountPublicKey: String): Vault {
         val pda = VaultUtils.getVaultPda()
@@ -374,6 +379,7 @@ class SolanaVaultDataSource @Inject constructor(
         try {
             val vaultData = solanaRpcClient.getAccountInfo<Vault>(
                 pda,
+                commitment = Commitment.PROCESSED,
                 dataSlice = AccountRequest.DataSlice(
                     297, 40
                 )
@@ -421,7 +427,10 @@ class SolanaVaultDataSource @Inject constructor(
         val vaultDepositorPda =
             VaultUtils.getVaultDepositorPda(SolanaPublicKey.from(accountPublicKey))
         val vaultDepositor =
-            solanaRpcClient.getAccountInfo<VaultDepositor>(vaultDepositorPda).result?.data
+            solanaRpcClient.getAccountInfo<VaultDepositor>(
+                vaultDepositorPda,
+                commitment = Commitment.PROCESSED,
+            ).result?.data
         Log.d(TAG, "Staking info is : $vaultDepositor")
         return vaultDepositor
     }
