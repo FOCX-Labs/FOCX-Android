@@ -1,17 +1,25 @@
 package com.focx.data.datasource.solana
 
 import com.focx.core.constants.AppConstants
+
+import com.focx.domain.entity.CreateProposalArgs
 import com.focx.domain.entity.Dispute
 import com.focx.domain.entity.DisputeStatus
 import com.focx.domain.entity.GovernanceStats
+import com.focx.domain.entity.InitiateDisputeArgs
 import com.focx.domain.entity.PlatformRule
 import com.focx.domain.entity.Proposal
+import com.focx.domain.entity.ProposalCategory
+import com.focx.domain.entity.ProposalStatus
 import com.focx.domain.entity.Vote
+import com.focx.domain.entity.VoteOnProposalArgs
 import com.focx.domain.entity.VoteType
 import com.focx.domain.repository.IGovernanceRepository
 import com.focx.domain.usecase.RecentBlockhashUseCase
+import com.focx.utils.GovernanceUtils
 import com.focx.utils.Log
 import com.focx.utils.ShopUtils
+import com.funkatronics.encoders.Base58
 import com.funkatronics.kborsh.Borsh
 import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
 import com.solana.mobilewalletadapter.clientlib.MobileWalletAdapter
@@ -36,8 +44,27 @@ class SolanaGovernanceDataSource @Inject constructor(
     private val solanaRpcClient: SolanaRpcClient
 ) : IGovernanceRepository {
 
+    companion object {
+
+        private val TAG = "SGDS"
+    }
+
     override suspend fun getProposals(): Flow<List<Proposal>> = flow {
         emit(emptyList()) // TODO: Implement blockchain governance queries
+    }
+
+    override suspend fun getProposals(page: Int, pageSize: Int): Flow<List<Proposal>> = flow {
+        try {
+            val proposals = GovernanceUtils.getProposalList(solanaRpcClient, page, pageSize)
+            emit(proposals)
+        } catch (e: Exception) {
+            Log.e(
+                "SolanaGovernance",
+                "Failed to get proposals from blockchain",
+                e
+            )
+            emit(emptyList())
+        }
     }
 
     override suspend fun getProposalById(id: String): Proposal? {
@@ -45,19 +72,264 @@ class SolanaGovernanceDataSource @Inject constructor(
     }
 
     override suspend fun getActiveProposals(): Flow<List<Proposal>> = flow {
-        emit(emptyList()) // TODO: Implement blockchain governance queries
+        try {
+            val proposals = GovernanceUtils.getProposalList(solanaRpcClient)
+            emit(proposals.filter { it.status == ProposalStatus.PENDING })
+        } catch (e: Exception) {
+            Log.e(
+                "SolanaGovernance",
+                "Failed to get active proposals from blockchain",
+                e
+            )
+            emit(emptyList())
+        }
+    }
+
+    override suspend fun getActiveProposals(page: Int, pageSize: Int): Flow<List<Proposal>> = flow {
+        try {
+            val proposals = GovernanceUtils.getProposalList(solanaRpcClient, page, pageSize)
+            emit(proposals.filter { it.status == ProposalStatus.PENDING })
+        } catch (e: Exception) {
+            Log.e(
+                "SolanaGovernance",
+                "Failed to get active proposals from blockchain",
+                e
+            )
+            emit(emptyList())
+        }
     }
 
     override suspend fun getGovernanceStats(): Flow<GovernanceStats> = flow {
-        emit(GovernanceStats(0, 0, 0, 0.0, 0.0, 0.0)) // TODO: Implement blockchain governance queries
+        try {
+            val configPda = GovernanceUtils.getGovernanceConfigPda()
+            Log.d(TAG, "$configPda")
+            
+
+            
+            // Use manual parsing function to handle committeeMembers fixed-length array
+            val config = GovernanceUtils.getGovernanceConfigManual(solanaRpcClient)
+            Log.d(TAG, "config $config")
+            val totalPower = GovernanceUtils.getTotalVotingPower(config, solanaRpcClient)
+            emit(
+                GovernanceStats(
+                    config?.proposalCounter ?: 0UL,
+                    0,
+                    0,
+                    0.0,
+                    totalPower.toDouble(),
+                    0.0
+                )
+            )
+        } catch (e: Exception) {
+            Log.e(
+                TAG,
+                "Failed to get governance stats from blockchain, using mock data",
+                e
+            )
+            // Fallback to empty stats
+            emit(
+                GovernanceStats(
+                    activeProposals = 0UL,
+                    totalProposals = 0,
+                    totalVotes = 0,
+                    passRate = 0.0,
+                    totalVotingPower = 0.0,
+                    participationRate = 0.0
+                )
+            )
+        }
     }
 
-    override suspend fun createProposal(proposal: Proposal): Result<Proposal> {
-        return Result.failure(Exception("Not implemented")) // TODO: Implement blockchain governance
+    override suspend fun createProposal(
+        title: String,
+        description: String,
+        category: ProposalCategory,
+        proposerPubKey: SolanaPublicKey,
+        activityResultSender: ActivityResultSender
+    ): Result<Unit> {
+        return try {
+            Log.d(TAG, "Starting createProposal: $title")
+
+            val result = walletAdapter.transact(activityResultSender) { authResult ->
+                val builder = Builder()
+
+                // Generate proposal creation instruction
+                val proposalId = System.currentTimeMillis().toString()
+                val proposalPda = ShopUtils.getSimplePda("proposal_$proposalId").getOrNull()!!
+                val governancePda = ShopUtils.getSimplePda("governance").getOrNull()!!
+                val proposerTokenAccount =
+                    ShopUtils.getAssociatedTokenAddress(proposerPubKey).getOrNull()!!
+                val governanceTokenAccount =
+                    ShopUtils.getAssociatedTokenAddress(governancePda).getOrNull()!!
+
+                val ix = ShopUtils.genTransactionInstruction(
+                    listOf(
+                        AccountMeta(proposalPda, false, true),
+                        AccountMeta(governancePda, false, true),
+                        AccountMeta(proposerPubKey, true, true),
+                        AccountMeta(proposerTokenAccount, false, true),
+                        AccountMeta(governanceTokenAccount, false, true),
+                        AccountMeta(AppConstants.App.getMint(), false, false),
+                        AccountMeta(
+                            SolanaPublicKey.from(AppConstants.App.SPL_TOKEN_PROGRAM_ID),
+                            false,
+                            false
+                        ),
+                        AccountMeta(SystemProgram.PROGRAM_ID, false, false),
+                    ),
+                    Borsh.encodeToByteArray(
+                        AnchorInstructionSerializer("create_proposal"),
+                        CreateProposalArgs(
+                            title = title,
+                            description = description,
+                            category = category.name,
+                            securityDeposit = 500UL // Default security deposit
+                        )
+                    )
+                )
+
+                builder.addInstruction(ix)
+
+                // Get recent blockhash and build message
+                val recentBlockhash = recentBlockhashUseCase()
+                val message = builder.setRecentBlockhash(recentBlockhash).build()
+
+                // Create and sign transaction
+                val transaction = Transaction(message)
+                val signResult = signAndSendTransactions(arrayOf(transaction.serialize()))
+                signResult
+            }
+
+            when (result) {
+                is TransactionResult.Success -> {
+                    val signature = result.successPayload?.signatures?.first()
+                    if (signature != null) {
+                        Log.d(
+                            TAG,
+                            "Proposal created successfully: ${Base58.encodeToString(signature)}"
+                        )
+
+                        Result.success(Unit)
+                    } else {
+                        Log.e(
+                            TAG,
+                            "No signature returned from createProposal transaction"
+                        )
+                        Result.failure(Exception("No signature returned from transaction"))
+                    }
+                }
+
+                is TransactionResult.NoWalletFound -> {
+                    Log.e(TAG, "No wallet found for createProposal")
+                    Result.failure(Exception("No wallet found"))
+                }
+
+                is TransactionResult.Failure -> {
+                    Log.e(TAG, "createProposal failed: ${result.e.message}")
+                    Result.failure(Exception("Transaction failed: ${result.e.message}"))
+                }
+
+                else -> Result.failure(Exception("Unknown transaction result"))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "createProposal exception:", e)
+            Result.failure(Exception("Failed to create proposal: ${e.message}"))
+        }
     }
 
-    override suspend fun voteOnProposal(proposalId: String, voteType: VoteType): Result<Vote> {
-        return Result.failure(Exception("Not implemented")) // TODO: Implement blockchain governance
+    override suspend fun voteOnProposal(
+        proposalId: String,
+        voteType: VoteType,
+        voterPubKey: SolanaPublicKey,
+        activityResultSender: ActivityResultSender
+    ): Result<Vote> {
+        return try {
+            Log.d(TAG, "Starting voteOnProposal: $proposalId, voteType: $voteType")
+
+            val result = walletAdapter.transact(activityResultSender) { authResult ->
+                val builder = Builder()
+
+                // Generate vote instruction
+                val proposalPda = ShopUtils.getSimplePda("proposal_$proposalId").getOrNull()!!
+                val governancePda = ShopUtils.getSimplePda("governance").getOrNull()!!
+                val votePda = ShopUtils.getSimplePda("vote_${proposalId}_${voterPubKey.toString()}")
+                    .getOrNull()!!
+
+                val ix = ShopUtils.genTransactionInstruction(
+                    listOf(
+                        AccountMeta(votePda, false, true),
+                        AccountMeta(proposalPda, false, true),
+                        AccountMeta(governancePda, false, true),
+                        AccountMeta(voterPubKey, true, true),
+                        AccountMeta(SystemProgram.PROGRAM_ID, false, false),
+                    ),
+                    Borsh.encodeToByteArray(
+                        AnchorInstructionSerializer("vote_on_proposal"),
+                        VoteOnProposalArgs(
+                            proposalId = proposalId,
+                            voteType = voteType.name
+                        )
+                    )
+                )
+
+                builder.addInstruction(ix)
+
+                // Get recent blockhash and build message
+                val recentBlockhash = recentBlockhashUseCase()
+                val message = builder.setRecentBlockhash(recentBlockhash).build()
+
+                // Create and sign transaction
+                val transaction = Transaction(message)
+                val signResult = signAndSendTransactions(arrayOf(transaction.serialize()))
+                signResult
+            }
+
+            when (result) {
+                is TransactionResult.Success -> {
+                    val signature = result.successPayload?.signatures?.first()
+                    if (signature != null) {
+                        Log.d(
+                            TAG,
+                            "Vote submitted successfully: ${Base58.encodeToString(signature)}"
+                        )
+
+                        val newVote = Vote(
+                            id = System.currentTimeMillis().toString(),
+                            proposalId = proposalId,
+                            voterId = voterPubKey.toString(),
+                            voterName = "Current User",
+                            voteType = voteType,
+                            votingPower = 10.0, // TODO: Get actual voting power from blockchain
+                            timestamp = System.currentTimeMillis(),
+                            transactionHash = Base58.encodeToString(signature)
+                        )
+
+                        Result.success(newVote)
+                    } else {
+                        Log.e(
+                            TAG,
+                            "No signature returned from voteOnProposal transaction"
+                        )
+                        Result.failure(Exception("No signature returned from transaction"))
+                    }
+                }
+
+                is TransactionResult.NoWalletFound -> {
+                    Log.e(TAG, "No wallet found for voteOnProposal")
+                    Result.failure(Exception("No wallet found"))
+                }
+
+                is TransactionResult.Failure -> {
+                    Log.e(TAG, "voteOnProposal failed: ${result.e.message}")
+                    Result.failure(Exception("Transaction failed: ${result.e.message}"))
+                }
+
+                else -> Result.failure(Exception("Unknown transaction result"))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "voteOnProposal exception:", e)
+            Result.failure(Exception("Failed to vote on proposal: ${e.message}"))
+        }
     }
 
     override suspend fun getVotesByProposal(proposalId: String): Flow<List<Vote>> = flow {
@@ -73,29 +345,64 @@ class SolanaGovernanceDataSource @Inject constructor(
     }
 
     override suspend fun getDisputes(): Flow<List<Dispute>> = flow {
-        emit(emptyList()) // TODO: Implement blockchain governance queries
+        try {
+            // TODO: Implement blockchain governance queries
+            emit(emptyList())
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to get disputes from blockchain", e)
+            emit(emptyList())
+        }
     }
 
     override suspend fun getPlatformRules(): Flow<List<PlatformRule>> = flow {
-        emit(emptyList()) // TODO: Implement blockchain governance queries
+        emit(
+            listOf(
+                PlatformRule(
+                    "Product Listings", listOf(
+                        "No counterfeit or replica products",
+                        "Accurate product descriptions required",
+                        "Real product images only",
+                        "Proper categorization mandatory"
+                    )
+                ), PlatformRule(
+                    "Trading Conduct", listOf(
+                        "Honor all confirmed orders",
+                        "Ship within stated timeframe",
+                        "Provide tracking information",
+                        "Respond to buyer inquiries within 24 hours"
+                    )
+                ), PlatformRule(
+                    "Prohibited Items", listOf(
+                        "Illegal substances and weapons",
+                        "Stolen goods",
+                        "Adult content",
+                        "Hazardous materials"
+                    )
+                )
+            )
+        )
     }
 
     override suspend fun voteOnDispute(disputeId: String, favorBuyer: Boolean): Result<Unit> {
         return Result.failure(Exception("Not implemented")) // TODO: Implement blockchain governance
     }
 
-    override suspend fun initiateDispute(orderId: String, buyerPubKey: SolanaPublicKey, activityResultSender: ActivityResultSender): Result<Dispute> {
+    override suspend fun initiateDispute(
+        orderId: String,
+        buyerPubKey: SolanaPublicKey,
+        activityResultSender: ActivityResultSender
+    ): Result<Dispute> {
         return try {
-            Log.d("SolanaGovernance", "Starting initiateDispute for order: $orderId")
-            
+            Log.d(TAG, "Starting initiateDispute for order: $orderId")
+
             val result = walletAdapter.transact(activityResultSender) { authResult ->
                 val builder = Builder()
-                
+
                 // Generate dispute initiation instruction
                 val orderPda = SolanaPublicKey.from(orderId)
                 val disputePda = ShopUtils.getSimplePda("dispute_$orderId").getOrNull()!!
                 val governancePda = ShopUtils.getSimplePda("governance").getOrNull()!!
-                
+
                 val ix = ShopUtils.genTransactionInstruction(
                     listOf(
                         AccountMeta(disputePda, false, true),
@@ -106,59 +413,73 @@ class SolanaGovernanceDataSource @Inject constructor(
                     ),
                     Borsh.encodeToByteArray(
                         AnchorInstructionSerializer("initiate_dispute"),
-                        orderId.toByteArray()
+                        InitiateDisputeArgs(
+                            orderId = orderId
+                        )
                     )
                 )
-                
+
                 builder.addInstruction(ix)
-                
+
                 // Get recent blockhash and build message
                 val recentBlockhash = recentBlockhashUseCase()
                 val message = builder.setRecentBlockhash(recentBlockhash).build()
-                
+
                 // Create and sign transaction
                 val transaction = Transaction(message)
                 val signResult = signAndSendTransactions(arrayOf(transaction.serialize()))
                 signResult
             }
-            
+
             when (result) {
                 is TransactionResult.Success -> {
                     val signature = result.successPayload?.signatures?.first()
                     if (signature != null) {
-                        Log.d("SolanaGovernance", "Dispute initiated successfully: $signature")
-                        
+                        Log.d(
+                            TAG,
+                            "Dispute initiated successfully: ${Base58.encodeToString(signature)}"
+                        )
+
                         val newDispute = Dispute(
                             id = "dispute_${System.currentTimeMillis()}",
                             title = "Order Dispute $orderId",
                             buyer = buyerPubKey.toString(),
                             order = orderId,
                             amount = "299.99 USDC", // TODO: Get actual order amount
-                            submitted = java.text.SimpleDateFormat("MM/dd/yyyy", java.util.Locale.US).format(java.util.Date()),
+                            submitted = java.text.SimpleDateFormat(
+                                "MM/dd/yyyy",
+                                java.util.Locale.US
+                            ).format(java.util.Date()),
                             status = DisputeStatus.UNDER_REVIEW,
                             daysRemaining = 7,
                             evidenceSummary = "Buyer initiated dispute for order $orderId",
                             communityVoting = null
                         )
-                        
+
                         Result.success(newDispute)
                     } else {
-                        Log.e("SolanaGovernance", "No signature returned from initiateDispute transaction")
+                        Log.e(
+                            TAG,
+                            "No signature returned from initiateDispute transaction"
+                        )
                         Result.failure(Exception("No signature returned from transaction"))
                     }
                 }
+
                 is TransactionResult.NoWalletFound -> {
-                    Log.e("SolanaGovernance", "No wallet found for initiateDispute")
+                    Log.e(TAG, "No wallet found for initiateDispute")
                     Result.failure(Exception("No wallet found"))
                 }
+
                 is TransactionResult.Failure -> {
-                    Log.e("SolanaGovernance", "initiateDispute failed: ${result.e.message}")
+                    Log.e(TAG, "initiateDispute failed: ${result.e.message}")
                     Result.failure(Exception("Transaction failed: ${result.e.message}"))
                 }
+
                 else -> Result.failure(Exception("Unknown transaction result"))
             }
         } catch (e: Exception) {
-            Log.e("SolanaGovernance", "initiateDispute exception:", e)
+            Log.e(TAG, "initiateDispute exception:", e)
             Result.failure(Exception("Failed to initiate dispute: ${e.message}"))
         }
     }

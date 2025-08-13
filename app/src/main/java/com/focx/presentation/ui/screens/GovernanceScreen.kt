@@ -14,13 +14,19 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.pullrefresh.PullRefreshIndicator
+import androidx.compose.material.pullrefresh.pullRefresh
+import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -29,8 +35,12 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
+
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -40,7 +50,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.focx.data.datasource.mock.MockGovernanceDataSource
+
 import com.focx.domain.entity.Dispute
 import com.focx.domain.entity.DisputeStatus
 import com.focx.domain.entity.PlatformRule
@@ -49,139 +59,182 @@ import com.focx.presentation.ui.theme.FocxTheme
 import com.focx.presentation.ui.theme.Spacing
 import com.focx.presentation.viewmodel.GovernanceViewModel
 
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun GovernanceScreen(
     viewModel: GovernanceViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val tabs = listOf("Proposals", "Rules", "Disputes")
+    val tabs = listOf("Proposals", "Rules")
+    
+    val listState = rememberLazyListState()
+    val shouldLoadMore = remember {
+        derivedStateOf {
+            if (uiState.selectedTab != 0 || uiState.proposals.isEmpty()) return@derivedStateOf false
+            
+            val lastVisibleItem = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+            val totalItems = listState.layoutInfo.totalItemsCount
+            
+            println("Scroll check - lastVisible: $lastVisibleItem, totalItems: $totalItems, hasMore: ${uiState.hasMoreProposals}, isLoading: ${uiState.isLoadingMore}")
+            
+            // Check if we're near the bottom (within 3 items of the end)
+            lastVisibleItem >= totalItems - 3 && totalItems > 0
+        }
+    }
+
+    // Pull to refresh state
+    val pullRefreshState = rememberPullRefreshState(
+        refreshing = uiState.isRefreshing,
+        onRefresh = { viewModel.refresh() }
+    )
+
+    // Auto load more when scrolling to bottom
+    LaunchedEffect(shouldLoadMore.value) {
+        if (shouldLoadMore.value && uiState.selectedTab == 0 && uiState.hasMoreProposals && !uiState.isLoadingMore) {
+            println("Loading more proposals - shouldLoadMore: ${shouldLoadMore.value}, hasMore: ${uiState.hasMoreProposals}, isLoading: ${uiState.isLoadingMore}")
+            viewModel.loadMoreProposals()
+        }
+    }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
-        LazyColumn(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(horizontal = Spacing.medium),
-            verticalArrangement = Arrangement.spacedBy(Spacing.medium)
+                .pullRefresh(pullRefreshState)
         ) {
-            item {
-                Spacer(modifier = Modifier.height(Spacing.small))
-            }
-
-            // Statistics Cards
-            item {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(Spacing.medium)
-                ) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.medium), modifier = Modifier.fillMaxWidth()
-                    ) {
-                        GovernanceStatCard(
-                            title = "Active Proposals",
-                            value = "12",
-                            subtitle = "3 ending soon",
-                            subtitleColor = Color(0xFFFFA726),
-                            modifier = Modifier.weight(1f)
-                        )
-                        GovernanceStatCard(
-                            title = "Total Voters",
-                            value = "2,456",
-                            subtitle = "+8% this month",
-                            subtitleColor = Color(0xFF4CAF50),
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.medium), modifier = Modifier.fillMaxWidth()
-                    ) {
-                        GovernanceStatCard(
-                            title = "Voting Power",
-                            value = "1,250",
-                            subtitle = "Based on stake",
-                            subtitleColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.weight(1f)
-                        )
-                        GovernanceStatCard(
-                            title = "Success Rate",
-                            value = "94.2%",
-                            subtitle = "Proposals passed",
-                            subtitleColor = Color(0xFF4CAF50),
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
+            LazyColumn(
+                state = listState,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = Spacing.medium),
+                verticalArrangement = Arrangement.spacedBy(Spacing.medium)
+            ) {
+                item {
+                    Spacer(modifier = Modifier.height(Spacing.small))
                 }
-            }
 
-            // Tab Navigation
-            item {
-                TabRow(
-                    selectedTabIndex = uiState.selectedTab,
-                    containerColor = Color.Transparent,
-                    contentColor = MaterialTheme.colorScheme.primary
-                ) {
-                    tabs.forEachIndexed { index, title ->
-                        Tab(
-                            selected = uiState.selectedTab == index,
-                            onClick = { viewModel.selectTab(index) },
-                            text = {
-                                Text(
-                                    text = title,
-                                    fontWeight = if (uiState.selectedTab == index) FontWeight.Bold else FontWeight.Normal,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
-                            }
-                        )
-                    }
-                }
-            }
-
-            // Tab Content
-            when (uiState.selectedTab) {
-                0 -> {
-                    // Create Proposal Button
-                    item {
-                        Button(
-                            onClick = { /* Handle create proposal */ },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary
-                            ),
-                            shape = RoundedCornerShape(12.dp)
+                // Statistics Cards
+                item {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(Spacing.medium)
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.medium), 
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text(
-                                text = "Create Proposal", modifier = Modifier.padding(vertical = 8.dp)
+                            GovernanceStatCard(
+                                title = "Active Proposals",
+                                value = "${uiState.stats.activeProposals}",
+                                subtitle = "",
+                                subtitleColor = Color(0xFFFFA726),
+                                modifier = Modifier.weight(1f)
+                            )
+                            GovernanceStatCard(
+                                title = "Voting Power",
+                                value = "${uiState.stats.totalVotingPower / 1e9}",
+                                subtitle = "Based on stake",
+                                subtitleColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.weight(1f)
                             )
                         }
                     }
+                }
 
-                    // Proposals List
+                // Create Proposal Button
+                item {
+                    Button(
+                        onClick = { /* Handle create proposal */ },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text(
+                            text = "Create Proposal", 
+                            modifier = Modifier.padding(vertical = 8.dp)
+                        )
+                    }
+                }
+
+                // Tab Navigation
+                item {
+                    TabRow(
+                        selectedTabIndex = uiState.selectedTab,
+                        containerColor = Color.Transparent,
+                        contentColor = MaterialTheme.colorScheme.primary
+                    ) {
+                        tabs.forEachIndexed { index, title ->
+                            Tab(
+                                selected = uiState.selectedTab == index,
+                                onClick = { viewModel.selectTab(index) },
+                                text = {
+                                    Text(
+                                        text = title,
+                                        fontWeight = if (uiState.selectedTab == index) FontWeight.Bold else FontWeight.Normal,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                }
+                            )
+                        }
+                    }
+                }
+
+                // Tab Content - Proposals
+                if (uiState.selectedTab == 0) {
                     items(uiState.proposals) { proposal ->
                         ProposalCard(proposal = proposal)
                     }
                 }
 
-                1 -> {
-                    // Platform Rules
+                // Tab Content - Platform Rules
+                if (uiState.selectedTab == 1) {
                     items(uiState.platformRules) { rule ->
                         PlatformRuleCard(rule = rule)
                     }
                 }
 
-                2 -> {
-                    // Disputes
-                    items(uiState.disputes) { dispute ->
-                        DisputeCard(dispute = dispute)
+                // Tab Content - Disputes
+//                if (uiState.selectedTab == 2) {
+//                    items(uiState.disputes) { dispute ->
+//                        DisputeCard(dispute = dispute)
+//                    }
+//                }
+
+                // Load more indicator for proposals
+                if (uiState.selectedTab == 0) {
+                    if (uiState.isLoadingMore || uiState.isLoading) {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(Spacing.medium),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                        }
                     }
                 }
-            }
 
-            item {
-                Spacer(modifier = Modifier.height(80.dp))
+                item {
+                    Spacer(modifier = Modifier.height(80.dp))
+                }
             }
+            
+            // Pull refresh indicator
+            PullRefreshIndicator(
+                refreshing = uiState.isRefreshing,
+                state = pullRefreshState,
+                modifier = Modifier.align(Alignment.TopCenter)
+            )
         }
     }
 }
@@ -223,7 +276,29 @@ fun GovernanceStatCard(
 @Preview
 @Composable
 fun ProposalCardPreview() {
-    ProposalCard(MockGovernanceDataSource.mockGovernance[0])
+    // Create a sample proposal for preview
+    val sampleProposal = Proposal(
+        discriminator = 0L,
+        id = 1UL,
+        proposer = com.solana.publickey.SolanaPublicKey.from("11111111111111111111111111111111"),
+        proposalType = com.focx.domain.entity.ProposalType.RULE_UPDATE,
+        title = "Sample Proposal",
+        description = "This is a sample proposal for preview purposes",
+        depositAmount = 500UL,
+        createdAt = System.currentTimeMillis(),
+        votingStart = System.currentTimeMillis(),
+        votingEnd = System.currentTimeMillis() + 86400000,
+        status = com.focx.domain.entity.ProposalStatus.PENDING,
+        yesVotes = 100UL,
+        noVotes = 10UL,
+        abstainVotes = 5UL,
+        vetoVotes = 0UL,
+        totalVotes = 115UL,
+        executionData = null,
+        executionResult = null,
+        bump = 0U
+    )
+    ProposalCard(sampleProposal)
 }
 
 @Composable
@@ -281,7 +356,7 @@ fun ProposalCard(
                 Spacer(modifier = Modifier.width(Spacing.small))
                 Text(
                     text = "${
-                        ((proposal.votingEndTime - System.currentTimeMillis()) / (1000 * 60 * 60 * 24)).coerceAtLeast(
+                        ((proposal.votingEnd - System.currentTimeMillis()) / (1000 * 60 * 60 * 24)).coerceAtLeast(
                             0
                         )
                     } days",
@@ -317,7 +392,7 @@ fun ProposalCard(
             Spacer(modifier = Modifier.height(4.dp))
 
             LinearProgressIndicator(
-                progress = { if (proposal.totalVotes > 0) proposal.votesFor.toFloat() / proposal.totalVotes.toFloat() else 0f },
+                progress = { if (proposal.totalVotes > 0UL) proposal.yesVotes.toLong().toFloat() / proposal.totalVotes.toLong().toFloat() else 0f },
                 modifier = Modifier.fillMaxWidth(),
                 color = MaterialTheme.colorScheme.primary,
                 trackColor = MaterialTheme.colorScheme.outline
@@ -329,13 +404,13 @@ fun ProposalCard(
                 modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "For: ${proposal.votesFor}",
+                    text = "For: ${proposal.yesVotes}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = Color(0xFF4CAF50),
                     fontWeight = FontWeight.SemiBold
                 )
                 Text(
-                    text = "Against: ${proposal.votesAgainst}",
+                    text = "Against: ${proposal.noVotes}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = Color(0xFFFF5722),
                     fontWeight = FontWeight.SemiBold
@@ -348,12 +423,12 @@ fun ProposalCard(
                 modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "Proposed by: ${proposal.proposerName}",
+                    text = "Proposed by: ${proposal.proposer.toString().take(8)}...",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = "Security Deposit: ${proposal.securityDeposit} USDC",
+                    text = "Security Deposit: ${proposal.depositAmount} USDC",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -434,7 +509,21 @@ fun PlatformRuleCard(
 @Preview
 @Composable
 fun DisputeCardPreview() {
-    DisputeCard(MockGovernanceDataSource.mockDisputes[0])
+    // Create a sample dispute for preview
+    val sampleDispute = Dispute(
+        id = "dispute_001",
+        title = "Sample Dispute",
+        buyer = "buyer123",
+        order = "order_12345",
+        amount = "299.99 USDC",
+        submitted = "12/15/2024",
+        status = DisputeStatus.UNDER_REVIEW,
+        daysRemaining = 7,
+        evidenceSummary = "Sample evidence summary",
+        communityVoting = com.focx.domain.entity.CommunityVoting(buyerFavor = 15, sellerFavor = 8),
+        resolution = null
+    )
+    DisputeCard(sampleDispute)
 }
 
 @Composable
@@ -658,3 +747,4 @@ fun GovernanceScreenPreview() {
         GovernanceScreen()
     }
 }
+

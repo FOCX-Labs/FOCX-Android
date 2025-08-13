@@ -42,6 +42,18 @@ object AppConstants {
             return SolanaPublicKey.from(programId)
         }
 
+        const val MAINNET_GOVERNANCE_PROGRAM_ID = "9GqiBXHh7e5gREwHU6PKHDaQsLuYfqHQ2az2sBLXdaTv"
+        const val DEVNET_GOVERNANCE_PROGRAM_ID = "9GqiBXHh7e5gREwHU6PKHDaQsLuYfqHQ2az2sBLXdaTv"
+
+        fun getGovernanceProgramId(): SolanaPublicKey {
+            val programId =  when (NetworkConfig.getCurrentNetwork()) {
+                MAINNET -> MAINNET_GOVERNANCE_PROGRAM_ID
+                else -> DEVNET_GOVERNANCE_PROGRAM_ID
+            }
+
+            return SolanaPublicKey.from(programId)
+        }
+
         const val MAINNET_USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
         const val DEVNET_USDC_FOCX_MINT = "DXDVt289yXEcqXDd9Ub3HqSBTWwrmNB8DzQEagv9Svtu"
         fun getMint(): SolanaPublicKey {
