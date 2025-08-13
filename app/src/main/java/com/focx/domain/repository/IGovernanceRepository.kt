@@ -4,7 +4,7 @@ import com.focx.domain.entity.Dispute
 import com.focx.domain.entity.GovernanceStats
 import com.focx.domain.entity.PlatformRule
 import com.focx.domain.entity.Proposal
-import com.focx.domain.entity.ProposalCategory
+import com.focx.domain.entity.ProposalType
 import com.focx.domain.entity.Vote
 import com.focx.domain.entity.VoteType
 import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
@@ -18,7 +18,7 @@ interface IGovernanceRepository {
     suspend fun getActiveProposals(): Flow<List<Proposal>>
     suspend fun getActiveProposals(page: Int, pageSize: Int): Flow<List<Proposal>>
     suspend fun getGovernanceStats(): Flow<GovernanceStats>
-    suspend fun createProposal(title: String, description: String, category: ProposalCategory, proposerPubKey: SolanaPublicKey, activityResultSender: ActivityResultSender): Result<Unit>
+    suspend fun createProposal(title: String, description: String, proposalType: ProposalType, proposerPubKey: SolanaPublicKey, activityResultSender: ActivityResultSender): Result<Unit>
     suspend fun voteOnProposal(proposalId: String, voteType: VoteType, voterPubKey: SolanaPublicKey, activityResultSender: ActivityResultSender): Result<Vote>
     suspend fun getVotesByProposal(proposalId: String): Flow<List<Vote>>
     suspend fun getVotesByUser(userId: String): Flow<List<Vote>>

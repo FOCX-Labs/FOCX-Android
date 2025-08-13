@@ -1,6 +1,6 @@
 package com.focx.domain.usecase
 
-import com.focx.domain.entity.ProposalCategory
+import com.focx.domain.entity.ProposalType
 import com.focx.domain.repository.IGovernanceRepository
 import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
 import com.solana.publickey.SolanaPublicKey
@@ -12,8 +12,8 @@ class CreateProposalUseCase @Inject constructor(
 
     suspend fun execute(
         title: String, 
-        description: String, 
-        category: ProposalCategory, 
+        description: String,
+        proposalType: ProposalType,
         proposerPubKey: SolanaPublicKey, 
         activityResultSender: ActivityResultSender
     ): Result<Unit> {
@@ -24,7 +24,7 @@ class CreateProposalUseCase @Inject constructor(
             } else if (description.isBlank()) {
                 Result.failure(Exception("Description cannot be empty"))
             } else {
-                governanceRepository.createProposal(title, description, category, proposerPubKey, activityResultSender)
+                governanceRepository.createProposal(title, description, proposalType, proposerPubKey, activityResultSender)
             }
         } catch (e: Exception) {
             Result.failure(e)

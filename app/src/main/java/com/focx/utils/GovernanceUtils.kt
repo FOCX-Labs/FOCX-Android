@@ -290,4 +290,13 @@ object GovernanceUtils {
         
         return result
     }
+
+    suspend fun getGovernanceTokenVault(): SolanaPublicKey {
+        return ProgramDerivedAddress.find(
+            listOf(
+                "governance_token_vault".toByteArray(),
+            ),
+            AppConstants.App.getGovernanceProgramId()
+        ).getOrNull()!!
+    }
 }

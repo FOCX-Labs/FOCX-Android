@@ -6,11 +6,12 @@ import com.focx.domain.entity.Dispute
 import com.focx.domain.entity.GovernanceStats
 import com.focx.domain.entity.PlatformRule
 import com.focx.domain.entity.Proposal
-import com.focx.domain.entity.ProposalCategory
+import com.focx.domain.entity.ProposalType
 import com.focx.domain.entity.VoteType
 import com.focx.domain.usecase.CreateProposalUseCase
 import com.focx.domain.usecase.GetGovernanceDataUseCase
 import com.focx.domain.usecase.VoteOnProposalUseCase
+import com.focx.domain.usecase.GetCurrentWalletAddressUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -39,14 +40,16 @@ data class GovernanceUiState(
     val disputes: List<Dispute> = emptyList(),
     val selectedTab: Int = 0,
     val currentPage: Int = 1,
-    val hasMoreProposals: Boolean = true
+    val hasMoreProposals: Boolean = true,
+    val showCreateProposalDialog: Boolean = false
 )
 
 @HiltViewModel
 class GovernanceViewModel @Inject constructor(
     private val getGovernanceDataUseCase: GetGovernanceDataUseCase,
     private val voteOnProposalUseCase: VoteOnProposalUseCase,
-    private val createProposalUseCase: CreateProposalUseCase
+    private val createProposalUseCase: CreateProposalUseCase,
+    private val getCurrentWalletAddressUseCase: GetCurrentWalletAddressUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(GovernanceUiState())
@@ -188,10 +191,19 @@ class GovernanceViewModel @Inject constructor(
         }
     }
 
-    fun createProposal(title: String, description: String, category: ProposalCategory, proposerPubKey: SolanaPublicKey, activityResultSender: ActivityResultSender) {
+    fun createProposal(title: String, description: String, proposalType: ProposalType, activityResultSender: ActivityResultSender) {
         viewModelScope.launch {
             try {
-                val result = createProposalUseCase.execute(title, description, category, proposerPubKey, activityResultSender)
+                val proposerAddress = getCurrentWalletAddressUseCase.execute()
+                if (proposerAddress == null) {
+                    _uiState.value = _uiState.value.copy(
+                        error = "Wallet not connected"
+                    )
+                    return@launch
+                }
+                
+                val proposerPubKey = SolanaPublicKey.from(proposerAddress)
+                val result = createProposalUseCase.execute(title, description, proposalType, proposerPubKey, activityResultSender)
                 if (result.isSuccess) {
                     // Refresh data after creating proposal
                     refreshData()
@@ -277,5 +289,13 @@ class GovernanceViewModel @Inject constructor(
 
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)
+    }
+
+    fun showCreateProposalDialog() {
+        _uiState.value = _uiState.value.copy(showCreateProposalDialog = true)
+    }
+
+    fun hideCreateProposalDialog() {
+        _uiState.value = _uiState.value.copy(showCreateProposalDialog = false)
     }
 }

@@ -9,8 +9,8 @@ import com.focx.domain.entity.GovernanceStats
 import com.focx.domain.entity.InitiateDisputeArgs
 import com.focx.domain.entity.PlatformRule
 import com.focx.domain.entity.Proposal
-import com.focx.domain.entity.ProposalCategory
 import com.focx.domain.entity.ProposalStatus
+import com.focx.domain.entity.ProposalType
 import com.focx.domain.entity.Vote
 import com.focx.domain.entity.VoteOnProposalArgs
 import com.focx.domain.entity.VoteType
@@ -19,6 +19,7 @@ import com.focx.domain.usecase.RecentBlockhashUseCase
 import com.focx.utils.GovernanceUtils
 import com.focx.utils.Log
 import com.focx.utils.ShopUtils
+import com.focx.utils.Utils
 import com.funkatronics.encoders.Base58
 import com.funkatronics.kborsh.Borsh
 import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
@@ -34,6 +35,9 @@ import com.solana.transaction.Message.Builder
 import com.solana.transaction.Transaction
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -143,7 +147,7 @@ class SolanaGovernanceDataSource @Inject constructor(
     override suspend fun createProposal(
         title: String,
         description: String,
-        category: ProposalCategory,
+        proposalType: ProposalType,
         proposerPubKey: SolanaPublicKey,
         activityResultSender: ActivityResultSender
     ): Result<Unit> {
@@ -153,39 +157,38 @@ class SolanaGovernanceDataSource @Inject constructor(
             val result = walletAdapter.transact(activityResultSender) { authResult ->
                 val builder = Builder()
 
-                // Generate proposal creation instruction
-                val proposalId = System.currentTimeMillis().toString()
-                val proposalPda = ShopUtils.getSimplePda("proposal_$proposalId").getOrNull()!!
-                val governancePda = ShopUtils.getSimplePda("governance").getOrNull()!!
-                val proposerTokenAccount =
-                    ShopUtils.getAssociatedTokenAddress(proposerPubKey).getOrNull()!!
-                val governanceTokenAccount =
-                    ShopUtils.getAssociatedTokenAddress(governancePda).getOrNull()!!
+                val config = GovernanceUtils.getGovernanceConfigManual(solanaRpcClient)!!
+                val proposalId = config.proposalCounter + 1UL
+                val proposalPda = GovernanceUtils.getProposalPda(proposalId)
+                val governancePda = GovernanceUtils.getGovernanceConfigPda()
+                val governanceTokenVault = GovernanceUtils.getGovernanceTokenVault()
+                val proposerUsdcAccount = ShopUtils.getAssociatedTokenAddress(proposerPubKey).getOrNull()!!
 
                 val ix = ShopUtils.genTransactionInstruction(
                     listOf(
                         AccountMeta(proposalPda, false, true),
                         AccountMeta(governancePda, false, true),
                         AccountMeta(proposerPubKey, true, true),
-                        AccountMeta(proposerTokenAccount, false, true),
-                        AccountMeta(governanceTokenAccount, false, true),
-                        AccountMeta(AppConstants.App.getMint(), false, false),
+                        AccountMeta(proposerUsdcAccount, false, true),
+                        AccountMeta(governanceTokenVault, false, true),
+                        AccountMeta(SystemProgram.PROGRAM_ID, false, false),
                         AccountMeta(
                             SolanaPublicKey.from(AppConstants.App.SPL_TOKEN_PROGRAM_ID),
                             false,
                             false
                         ),
-                        AccountMeta(SystemProgram.PROGRAM_ID, false, false),
                     ),
                     Borsh.encodeToByteArray(
                         AnchorInstructionSerializer("create_proposal"),
                         CreateProposalArgs(
                             title = title,
                             description = description,
-                            category = category.name,
-                            securityDeposit = 500UL // Default security deposit
+                            proposalType = proposalType,
+                            executionData = null,
+                            customDepositRaw = null,
                         )
-                    )
+                    ),
+                    AppConstants.App.getGovernanceProgramId()
                 )
 
                 builder.addInstruction(ix)
@@ -446,10 +449,10 @@ class SolanaGovernanceDataSource @Inject constructor(
                             buyer = buyerPubKey.toString(),
                             order = orderId,
                             amount = "299.99 USDC", // TODO: Get actual order amount
-                            submitted = java.text.SimpleDateFormat(
+                            submitted = SimpleDateFormat(
                                 "MM/dd/yyyy",
-                                java.util.Locale.US
-                            ).format(java.util.Date()),
+                                Locale.US
+                            ).format(Date()),
                             status = DisputeStatus.UNDER_REVIEW,
                             daysRemaining = 7,
                             evidenceSummary = "Buyer initiated dispute for order $orderId",
