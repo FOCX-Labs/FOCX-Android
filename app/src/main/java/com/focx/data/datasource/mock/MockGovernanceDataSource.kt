@@ -4,6 +4,7 @@ import com.focx.domain.entity.*
 import com.solana.publickey.SolanaPublicKey
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -101,5 +102,31 @@ class MockGovernanceDataSource @Inject constructor() {
                 )
             )
         )
+    }
+
+    suspend fun voteOnProposal(
+        proposalId: ULong,
+        voteType: VoteType,
+        voterPubKey: SolanaPublicKey,
+        activityResultSender: ActivityResultSender
+    ): Result<Unit> {
+        return try {
+            // Simulate network delay
+            kotlinx.coroutines.delay(1000)
+            
+            // Find the proposal and update its vote counts
+            val proposalIndex = mockGovernance.indexOfFirst { it.id == proposalId }
+            if (proposalIndex == -1) {
+                return Result.failure(Exception("Proposal not found"))
+            }
+            
+            // In a real implementation, this would update the blockchain
+            // For mock purposes, we just return success
+            println("Mock vote cast: Proposal $proposalId, Vote: $voteType, Voter: ${voterPubKey.toString()}")
+            
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(Exception("Failed to vote on proposal: ${e.message}"))
+        }
     }
 }

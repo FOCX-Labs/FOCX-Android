@@ -26,6 +26,7 @@ data class GovernanceUiState(
     val isLoading: Boolean = false,
     val isLoadingMore: Boolean = false,
     val isRefreshing: Boolean = false,
+    val isVoting: Boolean = false,
     val error: String? = null,
     val stats: GovernanceStats = GovernanceStats(
         activeProposals = 0UL,
@@ -119,7 +120,8 @@ class GovernanceViewModel @Inject constructor(
                     _uiState.value = _uiState.value.copy(
                         disputes = disputes,
                         isLoading = false,
-                        isRefreshing = false
+                        isRefreshing = false,
+                        isVoting = false
                     )
                 }
 
@@ -127,6 +129,7 @@ class GovernanceViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     isRefreshing = false,
+                    isVoting = false,
                     error = "Failed to load governance data: ${e.message}"
                 )
             }
@@ -171,7 +174,7 @@ class GovernanceViewModel @Inject constructor(
         }
     }
 
-    fun voteOnProposal(proposalId: String, voteType: VoteType, voterPubKey: SolanaPublicKey, activityResultSender: ActivityResultSender) {
+    fun voteOnProposal(proposalId: ULong, voteType: VoteType, voterPubKey: SolanaPublicKey, activityResultSender: ActivityResultSender) {
         viewModelScope.launch {
             try {
                 val result = voteOnProposalUseCase.execute(proposalId, voteType, voterPubKey, activityResultSender)
@@ -186,6 +189,74 @@ class GovernanceViewModel @Inject constructor(
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     error = "Failed to vote: ${e.message}"
+                )
+            }
+        }
+    }
+
+    fun voteForProposal(proposalId: ULong, activityResultSender: ActivityResultSender) {
+        viewModelScope.launch {
+            try {
+                _uiState.value = _uiState.value.copy(isVoting = true, error = null)
+                
+                val voterAddress = getCurrentWalletAddressUseCase.execute()
+                if (voterAddress == null) {
+                    _uiState.value = _uiState.value.copy(
+                        error = "Wallet not connected",
+                        isVoting = false
+                    )
+                    return@launch
+                }
+                
+                val voterPubKey = SolanaPublicKey.from(voterAddress)
+                val result = voteOnProposalUseCase.execute(proposalId, VoteType.YES, voterPubKey, activityResultSender)
+                if (result.isSuccess) {
+                    // Refresh data after voting
+                    refreshData()
+                } else {
+                    _uiState.value = _uiState.value.copy(
+                        error = "Failed to vote: ${result.exceptionOrNull()?.message}",
+                        isVoting = false
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    error = "Failed to vote: ${e.message}",
+                    isVoting = false
+                )
+            }
+        }
+    }
+
+    fun voteAgainstProposal(proposalId: ULong, activityResultSender: ActivityResultSender) {
+        viewModelScope.launch {
+            try {
+                _uiState.value = _uiState.value.copy(isVoting = true, error = null)
+                
+                val voterAddress = getCurrentWalletAddressUseCase.execute()
+                if (voterAddress == null) {
+                    _uiState.value = _uiState.value.copy(
+                        error = "Wallet not connected",
+                        isVoting = false
+                    )
+                    return@launch
+                }
+                
+                val voterPubKey = SolanaPublicKey.from(voterAddress)
+                val result = voteOnProposalUseCase.execute(proposalId, VoteType.NO, voterPubKey, activityResultSender)
+                if (result.isSuccess) {
+                    // Refresh data after voting
+                    refreshData()
+                } else {
+                    _uiState.value = _uiState.value.copy(
+                        error = "Failed to vote: ${result.exceptionOrNull()?.message}",
+                        isVoting = false
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    error = "Failed to vote: ${e.message}",
+                    isVoting = false
                 )
             }
         }
@@ -221,13 +292,17 @@ class GovernanceViewModel @Inject constructor(
     }
 
     fun refreshData() {
-        _uiState.value = _uiState.value.copy(isRefreshing = true)
+        _uiState.value = _uiState.value.copy(isRefreshing = true, isVoting = false)
         resetProposalPagination()
         loadGovernanceData()
     }
 
     fun refresh() {
         refreshData()
+    }
+
+    fun clearError() {
+        _uiState.value = _uiState.value.copy(error = null)
     }
 
     private fun resetProposalPagination() {
@@ -285,10 +360,6 @@ class GovernanceViewModel @Inject constructor(
                 )
             }
         }
-    }
-
-    fun clearError() {
-        _uiState.value = _uiState.value.copy(error = null)
     }
 
     fun showCreateProposalDialog() {

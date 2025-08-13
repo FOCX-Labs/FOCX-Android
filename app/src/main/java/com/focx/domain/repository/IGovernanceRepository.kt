@@ -19,7 +19,7 @@ interface IGovernanceRepository {
     suspend fun getActiveProposals(page: Int, pageSize: Int): Flow<List<Proposal>>
     suspend fun getGovernanceStats(): Flow<GovernanceStats>
     suspend fun createProposal(title: String, description: String, proposalType: ProposalType, proposerPubKey: SolanaPublicKey, activityResultSender: ActivityResultSender): Result<Unit>
-    suspend fun voteOnProposal(proposalId: String, voteType: VoteType, voterPubKey: SolanaPublicKey, activityResultSender: ActivityResultSender): Result<Vote>
+    suspend fun voteOnProposal(proposalId: ULong, voteType: VoteType, voterPubKey: SolanaPublicKey, activityResultSender: ActivityResultSender): Result<Unit>
     suspend fun getVotesByProposal(proposalId: String): Flow<List<Vote>>
     suspend fun getVotesByUser(userId: String): Flow<List<Vote>>
     suspend fun getUserVotingPower(userId: String): Double
