@@ -16,8 +16,16 @@ class GetGovernanceDataUseCase @Inject constructor(
         return governanceRepository.getActiveProposals()
     }
 
+    suspend fun getActiveProposals(page: Int, pageSize: Int): Flow<List<Proposal>> {
+        return governanceRepository.getActiveProposals(page, pageSize)
+    }
+
     suspend fun getAllProposals(): Flow<List<Proposal>> {
         return governanceRepository.getProposals()
+    }
+
+    suspend fun getProposals(page: Int, pageSize: Int): Flow<List<Proposal>> {
+        return governanceRepository.getProposals(page, pageSize)
     }
 
     suspend fun getGovernanceStats(): Flow<GovernanceStats> {
