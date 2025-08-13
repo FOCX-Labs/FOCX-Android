@@ -78,15 +78,6 @@ enum class ProposalStatus {
     EXECUTED
 }
 
-enum class ProposalCategory {
-    PLATFORM_UPGRADE,
-    FEE_ADJUSTMENT,
-    GOVERNANCE_CHANGE,
-    TREASURY_MANAGEMENT,
-    SECURITY_UPDATE,
-    OTHER
-}
-
 data class Vote(
     val id: String,
     val proposalId: String,
@@ -147,8 +138,9 @@ data class PlatformRule(
 data class CreateProposalArgs(
     val title: String,
     val description: String,
-    val category: String,
-    val securityDeposit: ULong
+    val proposalType: ProposalType,
+    val executionData: ExecutionData?,
+    val customDepositRaw: ULong?
 )
 
 @Serializable

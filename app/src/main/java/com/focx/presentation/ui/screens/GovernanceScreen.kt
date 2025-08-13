@@ -4,7 +4,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -13,38 +16,64 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
-
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -55,13 +84,16 @@ import com.focx.domain.entity.Dispute
 import com.focx.domain.entity.DisputeStatus
 import com.focx.domain.entity.PlatformRule
 import com.focx.domain.entity.Proposal
+import com.focx.domain.entity.ProposalType
 import com.focx.presentation.ui.theme.FocxTheme
 import com.focx.presentation.ui.theme.Spacing
 import com.focx.presentation.viewmodel.GovernanceViewModel
+import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun GovernanceScreen(
+    activityResultSender: ActivityResultSender,
     viewModel: GovernanceViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -146,7 +178,7 @@ fun GovernanceScreen(
                 // Create Proposal Button
                 item {
                     Button(
-                        onClick = { /* Handle create proposal */ },
+                        onClick = { viewModel.showCreateProposalDialog() },
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.primary
@@ -234,6 +266,16 @@ fun GovernanceScreen(
                 refreshing = uiState.isRefreshing,
                 state = pullRefreshState,
                 modifier = Modifier.align(Alignment.TopCenter)
+            )
+        }
+        
+        // Create Proposal Dialog
+        if (uiState.showCreateProposalDialog) {
+            CreateProposalDialog(
+                onDismiss = { viewModel.hideCreateProposalDialog() },
+                onCreateProposal = { title, description, proposalType ->
+                    viewModel.createProposal(title, description, proposalType, activityResultSender)
+                }
             )
         }
     }
@@ -740,11 +782,296 @@ fun DisputeCard(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CreateProposalDialog(
+    onDismiss: () -> Unit,
+    onCreateProposal: (String, String, ProposalType) -> Unit
+) {
+    var title by remember { mutableStateOf("") }
+    var description by remember { mutableStateOf("") }
+    var selectedProposalType by remember { mutableStateOf(ProposalType.RULE_UPDATE) }
+    var expanded by remember { mutableStateOf(false) }
+    
+    val maxDescriptionLength = 800
+    val descriptionLength = description.length
+    val scope = rememberCoroutineScope()
+    val sheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true,
+        confirmValueChange = { true }
+    )
+
+    // Debug logging for state changes
+    LaunchedEffect(expanded) {
+        println("Dropdown expanded state changed to: $expanded")
+    }
+    
+    LaunchedEffect(selectedProposalType) {
+        println("Selected proposal type changed to: ${selectedProposalType.name}")
+    }
+
+    LaunchedEffect(Unit) {
+        sheetState.expand()
+    }
+
+    ModalBottomSheet(
+        onDismissRequest = {
+            scope.launch {
+                sheetState.hide()
+                onDismiss()
+            }
+        },
+        sheetState = sheetState,
+        dragHandle = { BottomSheetDefaults.DragHandle() },
+        containerColor = MaterialTheme.colorScheme.surface,
+        tonalElevation = 8.dp,
+        windowInsets = WindowInsets(0, 0, 0, 0)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Spacing.medium)
+                .padding(top = Spacing.small, bottom = Spacing.medium),
+            verticalArrangement = Arrangement.spacedBy(Spacing.small)
+        ) {
+            // Header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Create New Proposal",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold
+                )
+                IconButton(onClick = {
+                    scope.launch {
+                        sheetState.hide()
+                        onDismiss()
+                    }
+                }) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Close"
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(Spacing.small))
+            
+            // Title Field
+            OutlinedTextField(
+                value = title,
+                onValueChange = { title = it },
+                label = { Text("Title") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Text,
+                    imeAction = ImeAction.Next
+                ),
+                keyboardActions = KeyboardActions(
+                    onNext = { /* Focus next field */ }
+                ),
+                modifier = Modifier.fillMaxWidth(),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                )
+            )
+            
+            // Description Field
+            OutlinedTextField(
+                value = description,
+                onValueChange = { 
+                    if (it.length <= maxDescriptionLength) {
+                        description = it
+                    }
+                },
+                label = { Text("Description") },
+                singleLine = false,
+                minLines = 3,
+                maxLines = 6,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Text,
+                    imeAction = ImeAction.Done
+                ),
+                keyboardActions = KeyboardActions(
+                    onDone = { /* Hide keyboard */ }
+                ),
+                modifier = Modifier.fillMaxWidth(),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                ),
+                supportingText = {
+                    Text(
+                        text = "$descriptionLength/$maxDescriptionLength",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (descriptionLength > maxDescriptionLength * 0.9) 
+                            MaterialTheme.colorScheme.error 
+                        else 
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            )
+            
+            // Proposal Type Dropdown
+            Box(modifier = Modifier.fillMaxWidth()) {
+                Column {
+                    OutlinedTextField(
+                        value = selectedProposalType.name.replace("_", " "),
+                        onValueChange = { },
+                        readOnly = true,
+                        label = { Text("Proposal Type") },
+                        trailingIcon = { 
+                            Icon(
+                                imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                                contentDescription = "Expand"
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                        ),
+                        supportingText = {
+                            Text(
+                                text = "Current: ${selectedProposalType.name.replace("_", " ")}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    )
+                    
+                    // Dropdown options
+                    if (expanded) {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surface
+                            ),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(vertical = Spacing.small)
+                            ) {
+                                ProposalType.values().forEach { proposalType ->
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable {
+                                                println("Selected proposal type: ${proposalType.name}")
+                                                println("Previous selection: ${selectedProposalType.name}")
+                                                selectedProposalType = proposalType
+                                                expanded = false
+                                                println("New selection: ${selectedProposalType.name}")
+                                            }
+                                            .padding(horizontal = Spacing.medium, vertical = Spacing.small),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = proposalType.name.replace("_", " "),
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = if (selectedProposalType == proposalType) 
+                                                MaterialTheme.colorScheme.primary 
+                                            else 
+                                                MaterialTheme.colorScheme.onSurface,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        if (selectedProposalType == proposalType) {
+                                            Icon(
+                                                imageVector = Icons.Default.Check,
+                                                contentDescription = "Selected",
+                                                tint = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        }
+                                    }
+                                    
+                                    if (proposalType != ProposalType.values().last()) {
+                                        HorizontalDivider(
+                                            modifier = Modifier.padding(horizontal = Spacing.medium),
+                                            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // Invisible clickable overlay - only covers the text field area
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp) // Approximate height of OutlinedTextField
+                        .clickable { 
+                            println("Dropdown clicked, current expanded: $expanded")
+                            expanded = !expanded 
+                        }
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(Spacing.medium))
+            
+            // Action Buttons
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.medium)
+            ) {
+                OutlinedButton(
+                    onClick = {
+                        scope.launch {
+                            sheetState.hide()
+                            onDismiss()
+                        }
+                    },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.onSurface
+                    )
+                ) {
+                    Text("Cancel")
+                }
+                
+                Button(
+                    onClick = {
+                        if (title.isNotBlank() && description.isNotBlank()) {
+                            onCreateProposal(title, description, selectedProposalType)
+                            scope.launch {
+                                sheetState.hide()
+                                onDismiss()
+                            }
+                        }
+                    },
+                    enabled = title.isNotBlank() && description.isNotBlank(),
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    Text("Create Proposal")
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(Spacing.small))
+            
+            // Add minimal bottom padding for system navigation
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+    }
+}
+
 @Preview(showBackground = true, backgroundColor = 0xFF1A1A1A)
 @Composable
 fun GovernanceScreenPreview() {
     FocxTheme(darkTheme = true) {
-        GovernanceScreen()
+        // Preview without ActivityResultSender for design purposes
+        Box(modifier = Modifier.fillMaxSize()) {
+            Text("Governance Screen Preview")
+        }
     }
 }
 
