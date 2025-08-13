@@ -241,11 +241,11 @@ class SolanaGovernanceDataSource @Inject constructor(
     }
 
     override suspend fun voteOnProposal(
-        proposalId: String,
+        proposalId: ULong,
         voteType: VoteType,
         voterPubKey: SolanaPublicKey,
         activityResultSender: ActivityResultSender
-    ): Result<Vote> {
+    ): Result<Unit> {
         return try {
             Log.d(TAG, "Starting voteOnProposal: $proposalId, voteType: $voteType")
 
@@ -253,26 +253,31 @@ class SolanaGovernanceDataSource @Inject constructor(
                 val builder = Builder()
 
                 // Generate vote instruction
-                val proposalPda = ShopUtils.getSimplePda("proposal_$proposalId").getOrNull()!!
-                val governancePda = ShopUtils.getSimplePda("governance").getOrNull()!!
-                val votePda = ShopUtils.getSimplePda("vote_${proposalId}_${voterPubKey.toString()}")
-                    .getOrNull()!!
+                val config = GovernanceUtils.getGovernanceConfigManual(solanaRpcClient)
+                val proposalPda = GovernanceUtils.getProposalPda(proposalId)
+                val governancePda = GovernanceUtils.getGovernanceConfigPda()
+                val votePda = GovernanceUtils.getVotePda(proposalId, voterPubKey)
+                val committeeTokenMint = config?.committeeTokenMint ?: AppConstants.App.getMint()
+                val voterTokenAccount = ShopUtils.getAssociatedTokenAddress(voterPubKey, committeeTokenMint).getOrNull()!!
 
                 val ix = ShopUtils.genTransactionInstruction(
                     listOf(
-                        AccountMeta(votePda, false, true),
                         AccountMeta(proposalPda, false, true),
-                        AccountMeta(governancePda, false, true),
+                        AccountMeta(votePda, false, true),
+                        AccountMeta(governancePda, false, false),
                         AccountMeta(voterPubKey, true, true),
+                        AccountMeta(voterTokenAccount, false, false),
+                        AccountMeta(committeeTokenMint, false, false),
                         AccountMeta(SystemProgram.PROGRAM_ID, false, false),
                     ),
                     Borsh.encodeToByteArray(
-                        AnchorInstructionSerializer("vote_on_proposal"),
+                        AnchorInstructionSerializer("cast_vote"),
                         VoteOnProposalArgs(
                             proposalId = proposalId,
-                            voteType = voteType.name
+                            voteType = voteType
                         )
-                    )
+                    ),
+                    AppConstants.App.getGovernanceProgramId()
                 )
 
                 builder.addInstruction(ix)
@@ -296,18 +301,7 @@ class SolanaGovernanceDataSource @Inject constructor(
                             "Vote submitted successfully: ${Base58.encodeToString(signature)}"
                         )
 
-                        val newVote = Vote(
-                            id = System.currentTimeMillis().toString(),
-                            proposalId = proposalId,
-                            voterId = voterPubKey.toString(),
-                            voterName = "Current User",
-                            voteType = voteType,
-                            votingPower = 10.0, // TODO: Get actual voting power from blockchain
-                            timestamp = System.currentTimeMillis(),
-                            transactionHash = Base58.encodeToString(signature)
-                        )
-
-                        Result.success(newVote)
+                        Result.success(Unit)
                     } else {
                         Log.e(
                             TAG,

@@ -299,4 +299,15 @@ object GovernanceUtils {
             AppConstants.App.getGovernanceProgramId()
         ).getOrNull()!!
     }
+
+    suspend fun getVotePda(proposalId: ULong, voter: SolanaPublicKey): SolanaPublicKey {
+        return ProgramDerivedAddress.find(
+            listOf(
+                "vote".toByteArray(),
+                Borsh.encodeToByteArray(proposalId),
+                voter.bytes
+            ),
+            AppConstants.App.getGovernanceProgramId()
+        ).getOrNull()!!
+    }
 }

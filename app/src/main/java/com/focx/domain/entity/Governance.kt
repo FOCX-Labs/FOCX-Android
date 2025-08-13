@@ -90,10 +90,10 @@ data class Vote(
 )
 
 enum class VoteType {
-    YES,
-    NO,
-    ABSTAIN,
-    NO_WITH_VETO
+    YES,           // 0
+    NO,            // 1
+    ABSTAIN,       // 2
+    NO_WITH_VETO   // 3
 }
 
 data class GovernanceStats(
@@ -145,8 +145,8 @@ data class CreateProposalArgs(
 
 @Serializable
 data class VoteOnProposalArgs(
-    val proposalId: String,
-    val voteType: String
+    val proposalId: ULong,
+    val voteType: VoteType
 )
 
 @Serializable

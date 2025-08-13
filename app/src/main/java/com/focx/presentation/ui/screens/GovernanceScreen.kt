@@ -84,6 +84,7 @@ import com.focx.domain.entity.Dispute
 import com.focx.domain.entity.DisputeStatus
 import com.focx.domain.entity.PlatformRule
 import com.focx.domain.entity.Proposal
+import com.focx.domain.entity.ProposalStatus
 import com.focx.domain.entity.ProposalType
 import com.focx.presentation.ui.theme.FocxTheme
 import com.focx.presentation.ui.theme.Spacing
@@ -158,7 +159,7 @@ fun GovernanceScreen(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             GovernanceStatCard(
-                                title = "Active Proposals",
+                                title = "Total Proposals",
                                 value = "${uiState.stats.activeProposals}",
                                 subtitle = "",
                                 subtitleColor = Color(0xFFFFA726),
@@ -167,7 +168,7 @@ fun GovernanceScreen(
                             GovernanceStatCard(
                                 title = "Voting Power",
                                 value = "${uiState.stats.totalVotingPower / 1e9}",
-                                subtitle = "Based on stake",
+                                subtitle = "",
                                 subtitleColor = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.weight(1f)
                             )
@@ -220,7 +221,16 @@ fun GovernanceScreen(
                 // Tab Content - Proposals
                 if (uiState.selectedTab == 0) {
                     items(uiState.proposals) { proposal ->
-                        ProposalCard(proposal = proposal)
+                        ProposalCard(
+                            proposal = proposal,
+                            onVoteFor = { proposalId ->
+                                viewModel.voteForProposal(proposalId, activityResultSender)
+                            },
+                            onVoteAgainst = { proposalId ->
+                                viewModel.voteAgainstProposal(proposalId, activityResultSender)
+                            },
+                            isVoting = uiState.isVoting
+                        )
                     }
                 }
 
@@ -267,6 +277,50 @@ fun GovernanceScreen(
                 state = pullRefreshState,
                 modifier = Modifier.align(Alignment.TopCenter)
             )
+            
+            // Error message display
+            uiState.error?.let { error ->
+                Card(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(Spacing.medium)
+                        .fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer
+                    ),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(Spacing.medium),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Warning,
+                            contentDescription = "Error",
+                            tint = MaterialTheme.colorScheme.onErrorContainer,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(Spacing.small))
+                        Text(
+                            text = error,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            modifier = Modifier.weight(1f)
+                        )
+                        IconButton(
+                            onClick = { viewModel.clearError() }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Close",
+                                tint = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                        }
+                    }
+                }
+            }
         }
         
         // Create Proposal Dialog
@@ -307,10 +361,10 @@ fun GovernanceStatCard(
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
             )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = subtitle, style = MaterialTheme.typography.bodySmall, color = subtitleColor
-            )
+//            Spacer(modifier = Modifier.height(4.dp))
+//            Text(
+//                text = subtitle, style = MaterialTheme.typography.bodySmall, color = subtitleColor
+//            )
         }
     }
 }
@@ -345,7 +399,10 @@ fun ProposalCardPreview() {
 
 @Composable
 fun ProposalCard(
-    proposal: Proposal
+    proposal: Proposal,
+    onVoteFor: (ULong) -> Unit = {},
+    onVoteAgainst: (ULong) -> Unit = {},
+    isVoting: Boolean = false
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(
@@ -389,7 +446,7 @@ fun ProposalCard(
                         .padding(horizontal = 8.dp, vertical = 4.dp)
                 ) {
                     Text(
-                        text = "Active",
+                        text = "${proposal.status}",
                         style = MaterialTheme.typography.bodySmall,
                         color = Color.White,
                         fontWeight = FontWeight.SemiBold
@@ -398,7 +455,7 @@ fun ProposalCard(
                 Spacer(modifier = Modifier.width(Spacing.small))
                 Text(
                     text = "${
-                        ((proposal.votingEnd - System.currentTimeMillis()) / (1000 * 60 * 60 * 24)).coerceAtLeast(
+                        ((proposal.votingEnd - System.currentTimeMillis()/1000) / (60 * 60 * 24)).coerceAtLeast(
                             0
                         )
                     } days",
@@ -478,32 +535,53 @@ fun ProposalCard(
 
             Spacer(modifier = Modifier.height(Spacing.medium))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.small)
-            ) {
-                OutlinedButton(
-                    onClick = { /* Handle vote for */ },
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = Color(0xFF4CAF50)
-                    ),
-                    border = androidx.compose.foundation.BorderStroke(
-                        1.dp, Color(0xFF4CAF50)
-                    )
+            if (proposal.status === ProposalStatus.PENDING) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.small)
                 ) {
-                    Text("Vote For")
-                }
-                OutlinedButton(
-                    onClick = { /* Handle vote against */ },
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = Color(0xFFFF5722)
-                    ),
-                    border = androidx.compose.foundation.BorderStroke(
-                        1.dp, Color(0xFFFF5722)
-                    )
-                ) {
-                    Text("Vote Against")
+                    OutlinedButton(
+                        onClick = { onVoteFor(proposal.id) },
+                        enabled = !isVoting,
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = Color(0xFF4CAF50)
+                        ),
+                        border = androidx.compose.foundation.BorderStroke(
+                            1.dp, Color(0xFF4CAF50)
+                        )
+                    ) {
+                        if (isVoting) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                color = Color(0xFF4CAF50),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Text("Vote For")
+                        }
+                    }
+                    OutlinedButton(
+                        onClick = { onVoteAgainst(proposal.id) },
+                        enabled = !isVoting,
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = Color(0xFFFF5722)
+                        ),
+                        border = androidx.compose.foundation.BorderStroke(
+                            1.dp, Color(0xFFFF5722)
+                        )
+                    ) {
+                        if (isVoting) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                color = Color(0xFFFF5722),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Text("Vote Against")
+                        }
+                    }
                 }
             }
         }
