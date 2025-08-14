@@ -9,17 +9,18 @@ import com.focx.domain.entity.Proposal
 import com.focx.domain.entity.ProposalType
 import com.focx.domain.entity.VoteType
 import com.focx.domain.usecase.CreateProposalUseCase
+import com.focx.domain.usecase.FinalizeProposalUseCase
+import com.focx.domain.usecase.GetCurrentWalletAddressUseCase
 import com.focx.domain.usecase.GetGovernanceDataUseCase
 import com.focx.domain.usecase.VoteOnProposalUseCase
-import com.focx.domain.usecase.GetCurrentWalletAddressUseCase
+import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
+import com.solana.publickey.SolanaPublicKey
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
-import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
-import com.solana.publickey.SolanaPublicKey
 import javax.inject.Inject
 
 data class GovernanceUiState(
@@ -29,12 +30,8 @@ data class GovernanceUiState(
     val isVoting: Boolean = false,
     val error: String? = null,
     val stats: GovernanceStats = GovernanceStats(
-        activeProposals = 0UL,
-        totalProposals = 0,
-        totalVotes = 0,
-        passRate = 0.0,
+        totalProposals = 0UL,
         totalVotingPower = 0.0,
-        participationRate = 0.0
     ),
     val proposals: List<Proposal> = emptyList(),
     val platformRules: List<PlatformRule> = emptyList(),
@@ -50,6 +47,7 @@ class GovernanceViewModel @Inject constructor(
     private val getGovernanceDataUseCase: GetGovernanceDataUseCase,
     private val voteOnProposalUseCase: VoteOnProposalUseCase,
     private val createProposalUseCase: CreateProposalUseCase,
+    private val finalizeProposalUseCase: FinalizeProposalUseCase,
     private val getCurrentWalletAddressUseCase: GetCurrentWalletAddressUseCase
 ) : ViewModel() {
 
@@ -65,8 +63,13 @@ class GovernanceViewModel @Inject constructor(
             try {
                 _uiState.value = _uiState.value.copy(isLoading = true, error = null)
 
+                // Get current wallet address for committee member check
+                val currentWalletAddress = getCurrentWalletAddressUseCase.execute()
+
                 // Load all governance data concurrently
-                val statsFlow = getGovernanceDataUseCase.getGovernanceStats()
+                val statsFlow = getGovernanceDataUseCase.getGovernanceStats(
+                    if (currentWalletAddress != null) SolanaPublicKey.from(currentWalletAddress) else null
+                )
                     .catch { e ->
                         _uiState.value = _uiState.value.copy(
                             error = "Failed to load stats: ${e.message}"
@@ -174,10 +177,20 @@ class GovernanceViewModel @Inject constructor(
         }
     }
 
-    fun voteOnProposal(proposalId: ULong, voteType: VoteType, voterPubKey: SolanaPublicKey, activityResultSender: ActivityResultSender) {
+    fun voteOnProposal(
+        proposalId: ULong,
+        voteType: VoteType,
+        voterPubKey: SolanaPublicKey,
+        activityResultSender: ActivityResultSender
+    ) {
         viewModelScope.launch {
             try {
-                val result = voteOnProposalUseCase.execute(proposalId, voteType, voterPubKey, activityResultSender)
+                val result = voteOnProposalUseCase.execute(
+                    proposalId,
+                    voteType,
+                    voterPubKey,
+                    activityResultSender
+                )
                 if (result.isSuccess) {
                     // Refresh data after voting
                     refreshData()
@@ -198,7 +211,7 @@ class GovernanceViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 _uiState.value = _uiState.value.copy(isVoting = true, error = null)
-                
+
                 val voterAddress = getCurrentWalletAddressUseCase.execute()
                 if (voterAddress == null) {
                     _uiState.value = _uiState.value.copy(
@@ -207,9 +220,14 @@ class GovernanceViewModel @Inject constructor(
                     )
                     return@launch
                 }
-                
+
                 val voterPubKey = SolanaPublicKey.from(voterAddress)
-                val result = voteOnProposalUseCase.execute(proposalId, VoteType.YES, voterPubKey, activityResultSender)
+                val result = voteOnProposalUseCase.execute(
+                    proposalId,
+                    VoteType.YES,
+                    voterPubKey,
+                    activityResultSender
+                )
                 if (result.isSuccess) {
                     // Refresh data after voting
                     refreshData()
@@ -232,7 +250,7 @@ class GovernanceViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 _uiState.value = _uiState.value.copy(isVoting = true, error = null)
-                
+
                 val voterAddress = getCurrentWalletAddressUseCase.execute()
                 if (voterAddress == null) {
                     _uiState.value = _uiState.value.copy(
@@ -241,9 +259,14 @@ class GovernanceViewModel @Inject constructor(
                     )
                     return@launch
                 }
-                
+
                 val voterPubKey = SolanaPublicKey.from(voterAddress)
-                val result = voteOnProposalUseCase.execute(proposalId, VoteType.NO, voterPubKey, activityResultSender)
+                val result = voteOnProposalUseCase.execute(
+                    proposalId,
+                    VoteType.NO,
+                    voterPubKey,
+                    activityResultSender
+                )
                 if (result.isSuccess) {
                     // Refresh data after voting
                     refreshData()
@@ -262,7 +285,52 @@ class GovernanceViewModel @Inject constructor(
         }
     }
 
-    fun createProposal(title: String, description: String, proposalType: ProposalType, activityResultSender: ActivityResultSender) {
+    fun finalizeProposal(
+        proposalId: ULong, proposerPubKey: SolanaPublicKey, activityResultSender: ActivityResultSender
+    ) {
+        viewModelScope.launch {
+            try {
+                _uiState.value = _uiState.value.copy(isVoting = true, error = null)
+
+                val finalizerAddress = getCurrentWalletAddressUseCase.execute()
+                if (finalizerAddress == null) {
+                    _uiState.value = _uiState.value.copy(
+                        error = "Wallet not connected",
+                        isVoting = false
+                    )
+                    return@launch
+                }
+
+                val result = finalizeProposalUseCase.execute(
+                    proposalId,
+                    proposerPubKey,
+                    SolanaPublicKey.from(finalizerAddress),
+                    activityResultSender
+                )
+                if (result.isSuccess) {
+                    // Refresh data after finalizing
+                    refreshData()
+                } else {
+                    _uiState.value = _uiState.value.copy(
+                        error = "Failed to finalize proposal: ${result.exceptionOrNull()?.message}",
+                        isVoting = false
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    error = "Failed to finalize proposal: ${e.message}",
+                    isVoting = false
+                )
+            }
+        }
+    }
+
+    fun createProposal(
+        title: String,
+        description: String,
+        proposalType: ProposalType,
+        activityResultSender: ActivityResultSender
+    ) {
         viewModelScope.launch {
             try {
                 val proposerAddress = getCurrentWalletAddressUseCase.execute()
@@ -272,9 +340,15 @@ class GovernanceViewModel @Inject constructor(
                     )
                     return@launch
                 }
-                
+
                 val proposerPubKey = SolanaPublicKey.from(proposerAddress)
-                val result = createProposalUseCase.execute(title, description, proposalType, proposerPubKey, activityResultSender)
+                val result = createProposalUseCase.execute(
+                    title,
+                    description,
+                    proposalType,
+                    proposerPubKey,
+                    activityResultSender
+                )
                 if (result.isSuccess) {
                     // Refresh data after creating proposal
                     refreshData()
@@ -319,14 +393,14 @@ class GovernanceViewModel @Inject constructor(
             println("loadMoreProposals early return")
             return
         }
-        
+
         viewModelScope.launch {
             try {
                 _uiState.value = _uiState.value.copy(isLoadingMore = true)
-                
+
                 val nextPage = _uiState.value.currentPage + 1
                 val pageSize = 10
-                
+
                 getGovernanceDataUseCase.getProposals(nextPage, pageSize)
                     .catch { e ->
                         _uiState.value = _uiState.value.copy(
