@@ -3,10 +3,12 @@ package com.focx.presentation.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.focx.domain.entity.Order
+import com.focx.domain.entity.ProposalType
 import com.focx.domain.usecase.GetOrderByIdUseCase
 import com.focx.domain.usecase.ConfirmReceiptUseCase
 import com.focx.domain.usecase.GetCurrentWalletAddressUseCase
 import com.focx.domain.usecase.InitiateDisputeUseCase
+import com.focx.domain.usecase.CreateProposalUseCase
 import com.solana.publickey.SolanaPublicKey
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,7 +20,8 @@ import javax.inject.Inject
 data class BuyerOrderDetailState(
     val order: Order? = null,
     val isLoading: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val showDisputeDialog: Boolean = false
 )
 
 @HiltViewModel
@@ -26,7 +29,8 @@ class BuyerOrderDetailViewModel @Inject constructor(
     private val getOrderByIdUseCase: GetOrderByIdUseCase,
     private val confirmReceiptUseCase: ConfirmReceiptUseCase,
     private val getCurrentWalletAddressUseCase: GetCurrentWalletAddressUseCase,
-    private val initiateDisputeUseCase: InitiateDisputeUseCase
+    private val initiateDisputeUseCase: InitiateDisputeUseCase,
+    private val createProposalUseCase: CreateProposalUseCase
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(BuyerOrderDetailState())
@@ -103,6 +107,55 @@ class BuyerOrderDetailViewModel @Inject constructor(
                 _state.value = _state.value.copy(
                     isLoading = false,
                     error = e.message ?: "Failed to initiate dispute"
+                )
+            }
+        }
+    }
+
+    fun showDisputeDialog() {
+        _state.value = _state.value.copy(showDisputeDialog = true)
+    }
+
+    fun hideDisputeDialog() {
+        _state.value = _state.value.copy(showDisputeDialog = false)
+    }
+
+    fun createDisputeProposal(
+        title: String,
+        description: String,
+        orderId: String,
+        activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender
+    ) {
+        viewModelScope.launch {
+            _state.value = _state.value.copy(isLoading = true, error = null)
+            
+            try {
+                val walletAddress = getCurrentWalletAddressUseCase.execute()!!
+                val result = createProposalUseCase.execute(
+                    title,
+                    description,
+                    ProposalType.DISPUTE_ARBITRATION,
+                    SolanaPublicKey.from(walletAddress),
+                    activityResultSender
+                )
+                
+                if (result.isSuccess) {
+                    _state.value = _state.value.copy(
+                        isLoading = false,
+                        showDisputeDialog = false
+                    )
+                    // Reload order after successful proposal creation
+                    loadOrder(orderId)
+                } else {
+                    _state.value = _state.value.copy(
+                        isLoading = false,
+                        error = result.exceptionOrNull()?.message ?: "Failed to create dispute proposal"
+                    )
+                }
+            } catch (e: Exception) {
+                _state.value = _state.value.copy(
+                    isLoading = false,
+                    error = e.message ?: "Failed to create dispute proposal"
                 )
             }
         }

@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -18,32 +19,44 @@ import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -51,6 +64,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -59,7 +74,11 @@ import coil.request.ImageRequest
 import com.focx.domain.entity.Order
 import com.focx.domain.entity.OrderItem
 import com.focx.domain.entity.OrderManagementStatus
+import com.focx.domain.entity.ProposalType
+import com.focx.presentation.ui.theme.Spacing
 import com.focx.presentation.viewmodel.BuyerOrderDetailViewModel
+import com.solana.publickey.SolanaPublicKey
+import kotlinx.coroutines.launch
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -76,7 +95,6 @@ fun OrderDetailScreen(
     val order = state.order
 
     var showConfirmReceiptDialog by remember { mutableStateOf(false) }
-    var showDisputeDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(orderId) {
         viewModel.loadOrder(orderId)
@@ -154,10 +172,10 @@ fun OrderDetailScreen(
                 // Add action buttons for shipped orders
                 if (order.status == OrderManagementStatus.Shipped) {
                     item {
-                        OrderActionButtons(
-                            onConfirmReceipt = { showConfirmReceiptDialog = true },
-                            onDispute = { showDisputeDialog = true }
-                        )
+                                        OrderActionButtons(
+                    onConfirmReceipt = { showConfirmReceiptDialog = true },
+                    onDispute = { viewModel.showDisputeDialog() }
+                )
                     }
                 }
             }
@@ -202,27 +220,26 @@ fun OrderDetailScreen(
         )
     }
 
-    if (showDisputeDialog) {
+    // Error message display
+    state.error?.let { error ->
         AlertDialog(
-            onDismissRequest = { showDisputeDialog = false },
-            title = { Text("Initiate Dispute") },
-            text = { Text("Are you sure you want to initiate a dispute for this order? This will require review and may take time to resolve.") },
+            onDismissRequest = { viewModel.clearError() },
+            title = { Text("Error") },
+            text = { Text(error) },
             confirmButton = {
-                TextButton(
-                    onClick = {
-                        showDisputeDialog = false
-                        order?.let {
-                            viewModel.initiateDispute(it.id, activityResultSender)
-                        }
-                    }
-                ) {
-                    Text("Initiate Dispute")
+                TextButton(onClick = { viewModel.clearError() }) {
+                    Text("OK")
                 }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDisputeDialog = false }) {
-                    Text("Cancel")
-                }
+            }
+        )
+    }
+
+    // Dispute Dialog
+    if (state.showDisputeDialog) {
+        CreateDisputeDialog(
+            onDismiss = { viewModel.hideDisputeDialog() },
+            onCreateDispute = { title, description ->
+                viewModel.createDisputeProposal(title, description, orderId, activityResultSender)
             }
         )
     }
@@ -597,6 +614,179 @@ fun OrderActionButtons(
                     Text("Initiate Dispute")
                 }
             }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CreateDisputeDialog(
+    onDismiss: () -> Unit,
+    onCreateDispute: (String, String) -> Unit
+) {
+    var title by remember { mutableStateOf("") }
+    var description by remember { mutableStateOf("") }
+
+    val maxDescriptionLength = 800
+    val descriptionLength = description.length
+    val scope = rememberCoroutineScope()
+    val sheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true,
+        confirmValueChange = { true }
+    )
+
+    LaunchedEffect(Unit) {
+        sheetState.expand()
+    }
+
+    ModalBottomSheet(
+        onDismissRequest = {
+            scope.launch {
+                sheetState.hide()
+                onDismiss()
+            }
+        },
+        sheetState = sheetState,
+        dragHandle = { BottomSheetDefaults.DragHandle() },
+        containerColor = MaterialTheme.colorScheme.surface,
+        tonalElevation = 8.dp,
+        windowInsets = WindowInsets(0, 0, 0, 0)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Spacing.medium)
+                .padding(top = Spacing.small, bottom = Spacing.medium),
+            verticalArrangement = Arrangement.spacedBy(Spacing.small)
+        ) {
+            // Header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Create Dispute Proposal",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold
+                )
+                IconButton(onClick = {
+                    scope.launch {
+                        sheetState.hide()
+                        onDismiss()
+                    }
+                }) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Close"
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(Spacing.small))
+
+            // Title Field
+            OutlinedTextField(
+                value = title,
+                onValueChange = { title = it },
+                label = { Text("Title") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Text,
+                    imeAction = ImeAction.Next
+                ),
+                keyboardActions = KeyboardActions(
+                    onNext = { /* Focus next field */ }
+                ),
+                modifier = Modifier.fillMaxWidth(),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                )
+            )
+
+            // Description Field
+            OutlinedTextField(
+                value = description,
+                onValueChange = {
+                    if (it.length <= maxDescriptionLength) {
+                        description = it
+                    }
+                },
+                label = { Text("Description") },
+                singleLine = false,
+                minLines = 3,
+                maxLines = 6,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Text,
+                    imeAction = ImeAction.Done
+                ),
+                keyboardActions = KeyboardActions(
+                    onDone = { /* Hide keyboard */ }
+                ),
+                modifier = Modifier.fillMaxWidth(),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                ),
+                supportingText = {
+                    Text(
+                        text = "$descriptionLength/$maxDescriptionLength",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (descriptionLength > maxDescriptionLength * 0.9)
+                            MaterialTheme.colorScheme.error
+                        else
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            )
+
+            Spacer(modifier = Modifier.height(Spacing.medium))
+
+            // Action Buttons
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.medium)
+            ) {
+                OutlinedButton(
+                    onClick = {
+                        scope.launch {
+                            sheetState.hide()
+                            onDismiss()
+                        }
+                    },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.onSurface
+                    )
+                ) {
+                    Text("Cancel")
+                }
+
+                Button(
+                    onClick = {
+                        if (title.isNotBlank() && description.isNotBlank()) {
+                            onCreateDispute(title, description)
+                            scope.launch {
+                                sheetState.hide()
+                                onDismiss()
+                            }
+                        }
+                    },
+                    enabled = title.isNotBlank() && description.isNotBlank(),
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    Text("Create Dispute")
+                }
+            }
+
+            Spacer(modifier = Modifier.height(Spacing.small))
+
+            // Add minimal bottom padding for system navigation
+            Spacer(modifier = Modifier.height(8.dp))
         }
     }
 }
