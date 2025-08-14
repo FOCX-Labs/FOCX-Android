@@ -310,4 +310,14 @@ object GovernanceUtils {
             AppConstants.App.getGovernanceProgramId()
         ).getOrNull()!!
     }
+
+    suspend fun getAuthority(): SolanaPublicKey {
+        return ProgramDerivedAddress.find(
+            listOf(
+                "governance_authority".toByteArray(),
+            ),
+            AppConstants.App.getGovernanceProgramId()
+        ).getOrNull()!!
+
+    }
 }

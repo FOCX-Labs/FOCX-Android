@@ -28,8 +28,8 @@ class GetGovernanceDataUseCase @Inject constructor(
         return governanceRepository.getProposals(page, pageSize)
     }
 
-    suspend fun getGovernanceStats(): Flow<GovernanceStats> {
-        return governanceRepository.getGovernanceStats()
+    suspend fun getGovernanceStats(currentUserPubKey: com.solana.publickey.SolanaPublicKey? = null): Flow<GovernanceStats> {
+        return governanceRepository.getGovernanceStats(currentUserPubKey)
     }
 
     suspend fun getProposalById(id: String): Proposal? {

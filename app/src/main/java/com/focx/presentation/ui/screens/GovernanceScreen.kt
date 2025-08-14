@@ -1,14 +1,13 @@
 package com.focx.presentation.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -16,12 +15,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
@@ -34,21 +32,17 @@ import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -56,18 +50,15 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -79,7 +70,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-
 import com.focx.domain.entity.Dispute
 import com.focx.domain.entity.DisputeStatus
 import com.focx.domain.entity.PlatformRule
@@ -89,7 +79,10 @@ import com.focx.domain.entity.ProposalType
 import com.focx.presentation.ui.theme.FocxTheme
 import com.focx.presentation.ui.theme.Spacing
 import com.focx.presentation.viewmodel.GovernanceViewModel
+import com.focx.utils.TimeUtils
 import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
+import com.solana.publickey.SolanaPublicKey
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
@@ -99,17 +92,17 @@ fun GovernanceScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val tabs = listOf("Proposals", "Rules")
-    
+
     val listState = rememberLazyListState()
     val shouldLoadMore = remember {
         derivedStateOf {
             if (uiState.selectedTab != 0 || uiState.proposals.isEmpty()) return@derivedStateOf false
-            
+
             val lastVisibleItem = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
             val totalItems = listState.layoutInfo.totalItemsCount
-            
+
             println("Scroll check - lastVisible: $lastVisibleItem, totalItems: $totalItems, hasMore: ${uiState.hasMoreProposals}, isLoading: ${uiState.isLoadingMore}")
-            
+
             // Check if we're near the bottom (within 3 items of the end)
             lastVisibleItem >= totalItems - 3 && totalItems > 0
         }
@@ -155,12 +148,12 @@ fun GovernanceScreen(
                         verticalArrangement = Arrangement.spacedBy(Spacing.medium)
                     ) {
                         Row(
-                            horizontalArrangement = Arrangement.spacedBy(Spacing.medium), 
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.medium),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             GovernanceStatCard(
                                 title = "Total Proposals",
-                                value = "${uiState.stats.activeProposals}",
+                                value = "${uiState.stats.totalProposals}",
                                 subtitle = "",
                                 subtitleColor = Color(0xFFFFA726),
                                 modifier = Modifier.weight(1f)
@@ -176,7 +169,6 @@ fun GovernanceScreen(
                     }
                 }
 
-                // Create Proposal Button
                 item {
                     Button(
                         onClick = { viewModel.showCreateProposalDialog() },
@@ -187,7 +179,7 @@ fun GovernanceScreen(
                         shape = RoundedCornerShape(12.dp)
                     ) {
                         Text(
-                            text = "Create Proposal", 
+                            text = "Create Proposal",
                             modifier = Modifier.padding(vertical = 8.dp)
                         )
                     }
@@ -229,7 +221,15 @@ fun GovernanceScreen(
                             onVoteAgainst = { proposalId ->
                                 viewModel.voteAgainstProposal(proposalId, activityResultSender)
                             },
-                            isVoting = uiState.isVoting
+                            onFinalizeProposal = { proposalId, proposerPubKey ->
+                                viewModel.finalizeProposal(
+                                    proposalId,
+                                    proposerPubKey,
+                                    activityResultSender
+                                )
+                            },
+                            isVoting = uiState.isVoting,
+                            canVote = uiState.stats.canVote
                         )
                     }
                 }
@@ -270,14 +270,14 @@ fun GovernanceScreen(
                     Spacer(modifier = Modifier.height(80.dp))
                 }
             }
-            
+
             // Pull refresh indicator
             PullRefreshIndicator(
                 refreshing = uiState.isRefreshing,
                 state = pullRefreshState,
                 modifier = Modifier.align(Alignment.TopCenter)
             )
-            
+
             // Error message display
             uiState.error?.let { error ->
                 Card(
@@ -322,7 +322,7 @@ fun GovernanceScreen(
                 }
             }
         }
-        
+
         // Create Proposal Dialog
         if (uiState.showCreateProposalDialog) {
             CreateProposalDialog(
@@ -337,7 +337,11 @@ fun GovernanceScreen(
 
 @Composable
 fun GovernanceStatCard(
-    title: String, value: String, subtitle: String, subtitleColor: Color, modifier: Modifier = Modifier
+    title: String,
+    value: String,
+    subtitle: String,
+    subtitleColor: Color,
+    modifier: Modifier = Modifier
 ) {
     Card(
         modifier = modifier, colors = CardDefaults.cardColors(
@@ -394,7 +398,7 @@ fun ProposalCardPreview() {
         executionResult = null,
         bump = 0U
     )
-    ProposalCard(sampleProposal)
+    ProposalCard(sampleProposal, canVote = true, onFinalizeProposal = {} as (ULong, SolanaPublicKey) -> Unit)
 }
 
 @Composable
@@ -402,7 +406,9 @@ fun ProposalCard(
     proposal: Proposal,
     onVoteFor: (ULong) -> Unit = {},
     onVoteAgainst: (ULong) -> Unit = {},
-    isVoting: Boolean = false
+    onFinalizeProposal: (ULong, SolanaPublicKey) -> Unit,
+    isVoting: Boolean = false,
+    canVote: Boolean = false
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(
@@ -452,18 +458,29 @@ fun ProposalCard(
                         fontWeight = FontWeight.SemiBold
                     )
                 }
-                Spacer(modifier = Modifier.width(Spacing.small))
-                Text(
-                    text = "${
-                        ((proposal.votingEnd - System.currentTimeMillis()/1000) / (60 * 60 * 24)).coerceAtLeast(
-                            0
+                Spacer(modifier = Modifier.weight(1f))
+                Box(
+                    modifier = Modifier
+                        .background(
+                            color = Color(0xFF4CAF50), shape = RoundedCornerShape(4.dp)
                         )
-                    } days",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = "${proposal.proposalType}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.White,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
 
+            Spacer(modifier = Modifier.height(Spacing.small))
+            Text(
+                text = "Vote End Time : ${TimeUtils.formatExpiryTime(proposal.votingEnd)}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
             Spacer(modifier = Modifier.height(Spacing.small))
 
             Text(
@@ -475,7 +492,9 @@ fun ProposalCard(
             Spacer(modifier = Modifier.height(Spacing.medium))
 
             Text(
-                text = "Voting Progress", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold
+                text = "Voting Progress",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold
             )
 
             Spacer(modifier = Modifier.height(Spacing.small))
@@ -484,14 +503,18 @@ fun ProposalCard(
                 modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "${proposal.totalVotes} votes", style = MaterialTheme.typography.bodyMedium
+                    text = "${proposal.totalVotes} votes",
+                    style = MaterialTheme.typography.bodyMedium
                 )
             }
 
             Spacer(modifier = Modifier.height(4.dp))
 
             LinearProgressIndicator(
-                progress = { if (proposal.totalVotes > 0UL) proposal.yesVotes.toLong().toFloat() / proposal.totalVotes.toLong().toFloat() else 0f },
+                progress = {
+                    if (proposal.totalVotes > 0UL) proposal.yesVotes.toLong()
+                        .toFloat() / proposal.totalVotes.toLong().toFloat() else 0f
+                },
                 modifier = Modifier.fillMaxWidth(),
                 color = MaterialTheme.colorScheme.primary,
                 trackColor = MaterialTheme.colorScheme.outline
@@ -518,24 +541,26 @@ fun ProposalCard(
 
             Spacer(modifier = Modifier.height(Spacing.small))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = "Proposed by: ${proposal.proposer.toString().take(8)}...",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = "Security Deposit: ${proposal.depositAmount} USDC",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+//            Row(
+//                modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween
+//            ) {
+//
+//            }
+            Text(
+                text = "Proposed by: ${proposal.proposer.toString().take(8)}...",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = "Security Deposit: ${proposal.depositAmount.toDouble() / 1e9} USDC",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
 
             Spacer(modifier = Modifier.height(Spacing.medium))
 
-            if (proposal.status === ProposalStatus.PENDING) {
+            if (proposal.status === ProposalStatus.PENDING && canVote && System.currentTimeMillis() / 1000 < proposal.votingEnd) {
+                Spacer(modifier = Modifier.height(Spacing.medium))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(Spacing.small)
@@ -584,6 +609,36 @@ fun ProposalCard(
                     }
                 }
             }
+
+            if (System.currentTimeMillis() / 1000 > proposal.votingEnd) {
+                Spacer(modifier = Modifier.height(Spacing.medium))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.small)
+                ) {
+                    OutlinedButton(
+                        onClick = { onFinalizeProposal(proposal.id, proposal.proposer) },
+                        enabled = !isVoting,
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = Color(0xFF4CAF50)
+                        ),
+                        border = androidx.compose.foundation.BorderStroke(
+                            1.dp, Color(0xFF4CAF50)
+                        )
+                    ) {
+                        if (isVoting) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                color = Color(0xFF4CAF50),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Text("Finalize Proposal")
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -601,7 +656,9 @@ fun PlatformRuleCard(
             modifier = Modifier.padding(Spacing.medium)
         ) {
             Text(
-                text = rule.category, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold
+                text = rule.category,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
             )
 
             Spacer(modifier = Modifier.height(Spacing.small))
@@ -750,7 +807,9 @@ fun DisputeCard(
             Spacer(modifier = Modifier.height(Spacing.small))
 
             Text(
-                text = "Evidence Summary", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold
+                text = "Evidence Summary",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold
             )
 
             Text(
@@ -769,7 +828,8 @@ fun DisputeCard(
                 )
 
                 Row(
-                    modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
                         text = "Buyer Favor: ${dispute.communityVoting.buyerFavor}",
@@ -790,7 +850,9 @@ fun DisputeCard(
                 Spacer(modifier = Modifier.height(Spacing.small))
 
                 Text(
-                    text = "Resolution", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold
+                    text = "Resolution",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold
                 )
 
                 Text(
@@ -805,7 +867,8 @@ fun DisputeCard(
                 Spacer(modifier = Modifier.height(Spacing.medium))
 
                 Row(
-                    modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.small)
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.small)
                 ) {
                     Button(
                         onClick = { /* Handle vote for buyer */ },
@@ -870,7 +933,7 @@ fun CreateProposalDialog(
     var description by remember { mutableStateOf("") }
     var selectedProposalType by remember { mutableStateOf(ProposalType.RULE_UPDATE) }
     var expanded by remember { mutableStateOf(false) }
-    
+
     val maxDescriptionLength = 800
     val descriptionLength = description.length
     val scope = rememberCoroutineScope()
@@ -883,7 +946,7 @@ fun CreateProposalDialog(
     LaunchedEffect(expanded) {
         println("Dropdown expanded state changed to: $expanded")
     }
-    
+
     LaunchedEffect(selectedProposalType) {
         println("Selected proposal type changed to: ${selectedProposalType.name}")
     }
@@ -935,9 +998,9 @@ fun CreateProposalDialog(
                     )
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(Spacing.small))
-            
+
             // Title Field
             OutlinedTextField(
                 value = title,
@@ -957,11 +1020,11 @@ fun CreateProposalDialog(
                     unfocusedBorderColor = MaterialTheme.colorScheme.outline
                 )
             )
-            
+
             // Description Field
             OutlinedTextField(
                 value = description,
-                onValueChange = { 
+                onValueChange = {
                     if (it.length <= maxDescriptionLength) {
                         description = it
                     }
@@ -986,14 +1049,14 @@ fun CreateProposalDialog(
                     Text(
                         text = "$descriptionLength/$maxDescriptionLength",
                         style = MaterialTheme.typography.bodySmall,
-                        color = if (descriptionLength > maxDescriptionLength * 0.9) 
-                            MaterialTheme.colorScheme.error 
-                        else 
+                        color = if (descriptionLength > maxDescriptionLength * 0.9)
+                            MaterialTheme.colorScheme.error
+                        else
                             MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             )
-            
+
             // Proposal Type Dropdown
             Box(modifier = Modifier.fillMaxWidth()) {
                 Column {
@@ -1002,7 +1065,7 @@ fun CreateProposalDialog(
                         onValueChange = { },
                         readOnly = true,
                         label = { Text("Proposal Type") },
-                        trailingIcon = { 
+                        trailingIcon = {
                             Icon(
                                 imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
                                 contentDescription = "Expand"
@@ -1021,7 +1084,7 @@ fun CreateProposalDialog(
                             )
                         }
                     )
-                    
+
                     // Dropdown options
                     if (expanded) {
                         Card(
@@ -1046,15 +1109,18 @@ fun CreateProposalDialog(
                                                 expanded = false
                                                 println("New selection: ${selectedProposalType.name}")
                                             }
-                                            .padding(horizontal = Spacing.medium, vertical = Spacing.small),
+                                            .padding(
+                                                horizontal = Spacing.medium,
+                                                vertical = Spacing.small
+                                            ),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Text(
                                             text = proposalType.name.replace("_", " "),
                                             style = MaterialTheme.typography.bodyMedium,
-                                            color = if (selectedProposalType == proposalType) 
-                                                MaterialTheme.colorScheme.primary 
-                                            else 
+                                            color = if (selectedProposalType == proposalType)
+                                                MaterialTheme.colorScheme.primary
+                                            else
                                                 MaterialTheme.colorScheme.onSurface,
                                             modifier = Modifier.weight(1f)
                                         )
@@ -1067,7 +1133,7 @@ fun CreateProposalDialog(
                                             )
                                         }
                                     }
-                                    
+
                                     if (proposalType != ProposalType.values().last()) {
                                         HorizontalDivider(
                                             modifier = Modifier.padding(horizontal = Spacing.medium),
@@ -1079,21 +1145,21 @@ fun CreateProposalDialog(
                         }
                     }
                 }
-                
+
                 // Invisible clickable overlay - only covers the text field area
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp) // Approximate height of OutlinedTextField
-                        .clickable { 
+                        .clickable {
                             println("Dropdown clicked, current expanded: $expanded")
-                            expanded = !expanded 
+                            expanded = !expanded
                         }
                 )
             }
-            
+
             Spacer(modifier = Modifier.height(Spacing.medium))
-            
+
             // Action Buttons
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -1113,7 +1179,7 @@ fun CreateProposalDialog(
                 ) {
                     Text("Cancel")
                 }
-                
+
                 Button(
                     onClick = {
                         if (title.isNotBlank() && description.isNotBlank()) {
@@ -1133,9 +1199,9 @@ fun CreateProposalDialog(
                     Text("Create Proposal")
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(Spacing.small))
-            
+
             // Add minimal bottom padding for system navigation
             Spacer(modifier = Modifier.height(8.dp))
         }

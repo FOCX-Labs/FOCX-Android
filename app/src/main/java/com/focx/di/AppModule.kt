@@ -59,6 +59,7 @@ import com.focx.domain.usecase.SolanaWalletPersistenceUseCase
 import com.focx.domain.usecase.UpdateProductUseCase
 import com.focx.domain.usecase.VoteOnProposalUseCase
 import com.focx.domain.usecase.CreateProposalUseCase
+import com.focx.domain.usecase.FinalizeProposalUseCase
 import com.focx.domain.usecase.InitiateDisputeUseCase
 import com.focx.domain.usecase.GetMerchantProductsUseCase
 import com.solana.mobilewalletadapter.clientlib.ConnectionIdentity
@@ -212,6 +213,13 @@ object AppModule {
         governanceRepository: IGovernanceRepository
     ): CreateProposalUseCase {
         return CreateProposalUseCase(governanceRepository)
+    }
+
+    @Provides
+    fun provideFinalizeProposalUseCase(
+        governanceRepository: IGovernanceRepository
+    ): FinalizeProposalUseCase {
+        return FinalizeProposalUseCase(governanceRepository)
     }
 
     @Provides

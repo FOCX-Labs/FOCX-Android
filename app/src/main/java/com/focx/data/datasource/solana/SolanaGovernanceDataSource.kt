@@ -1,10 +1,10 @@
 package com.focx.data.datasource.solana
 
 import com.focx.core.constants.AppConstants
-
 import com.focx.domain.entity.CreateProposalArgs
 import com.focx.domain.entity.Dispute
 import com.focx.domain.entity.DisputeStatus
+import com.focx.domain.entity.FinalizeProposalArgs
 import com.focx.domain.entity.GovernanceStats
 import com.focx.domain.entity.InitiateDisputeArgs
 import com.focx.domain.entity.PlatformRule
@@ -19,7 +19,6 @@ import com.focx.domain.usecase.RecentBlockhashUseCase
 import com.focx.utils.GovernanceUtils
 import com.focx.utils.Log
 import com.focx.utils.ShopUtils
-import com.focx.utils.Utils
 import com.funkatronics.encoders.Base58
 import com.funkatronics.kborsh.Borsh
 import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
@@ -103,46 +102,49 @@ class SolanaGovernanceDataSource @Inject constructor(
         }
     }
 
-    override suspend fun getGovernanceStats(): Flow<GovernanceStats> = flow {
-        try {
-            val configPda = GovernanceUtils.getGovernanceConfigPda()
-            Log.d(TAG, "$configPda")
-            
+    override suspend fun getGovernanceStats(currentUserPubKey: SolanaPublicKey?): Flow<GovernanceStats> =
+        flow {
+            try {
+                val configPda = GovernanceUtils.getGovernanceConfigPda()
+                Log.d(TAG, "$configPda")
 
-            
-            // Use manual parsing function to handle committeeMembers fixed-length array
-            val config = GovernanceUtils.getGovernanceConfigManual(solanaRpcClient)
-            Log.d(TAG, "config $config")
-            val totalPower = GovernanceUtils.getTotalVotingPower(config, solanaRpcClient)
-            emit(
-                GovernanceStats(
-                    config?.proposalCounter ?: 0UL,
-                    0,
-                    0,
-                    0.0,
-                    totalPower.toDouble(),
-                    0.0
+
+                // Use manual parsing function to handle committeeMembers fixed-length array
+                val config = GovernanceUtils.getGovernanceConfigManual(solanaRpcClient)
+                Log.d(TAG, "config $config")
+                val totalPower = GovernanceUtils.getTotalVotingPower(config, solanaRpcClient)
+
+                // Check if current user is a committee member
+                val isCommitteeMember = currentUserPubKey?.let { userPubKey ->
+                    config?.committeeMembers?.any { memberPubKey ->
+                        memberPubKey?.equals(userPubKey) == true
+                    } ?: false
+                } ?: false
+
+                Log.d(TAG, "Current user is committee member: $isCommitteeMember")
+
+                emit(
+                    GovernanceStats(
+                        config?.proposalCounter ?: 0UL,
+                        totalPower.toDouble(),
+                        canVote = isCommitteeMember
+                    )
                 )
-            )
-        } catch (e: Exception) {
-            Log.e(
-                TAG,
-                "Failed to get governance stats from blockchain, using mock data",
-                e
-            )
-            // Fallback to empty stats
-            emit(
-                GovernanceStats(
-                    activeProposals = 0UL,
-                    totalProposals = 0,
-                    totalVotes = 0,
-                    passRate = 0.0,
-                    totalVotingPower = 0.0,
-                    participationRate = 0.0
+            } catch (e: Exception) {
+                Log.e(
+                    TAG,
+                    "Failed to get governance stats from blockchain, using mock data",
+                    e
                 )
-            )
+                // Fallback to empty stats
+                emit(
+                    GovernanceStats(
+                        totalProposals = 0UL,
+                        totalVotingPower = 0.0,
+                    )
+                )
+            }
         }
-    }
 
     override suspend fun createProposal(
         title: String,
@@ -162,7 +164,8 @@ class SolanaGovernanceDataSource @Inject constructor(
                 val proposalPda = GovernanceUtils.getProposalPda(proposalId)
                 val governancePda = GovernanceUtils.getGovernanceConfigPda()
                 val governanceTokenVault = GovernanceUtils.getGovernanceTokenVault()
-                val proposerUsdcAccount = ShopUtils.getAssociatedTokenAddress(proposerPubKey).getOrNull()!!
+                val proposerUsdcAccount =
+                    ShopUtils.getAssociatedTokenAddress(proposerPubKey).getOrNull()!!
 
                 val ix = ShopUtils.genTransactionInstruction(
                     listOf(
@@ -258,7 +261,9 @@ class SolanaGovernanceDataSource @Inject constructor(
                 val governancePda = GovernanceUtils.getGovernanceConfigPda()
                 val votePda = GovernanceUtils.getVotePda(proposalId, voterPubKey)
                 val committeeTokenMint = config?.committeeTokenMint ?: AppConstants.App.getMint()
-                val voterTokenAccount = ShopUtils.getAssociatedTokenAddress(voterPubKey, committeeTokenMint).getOrNull()!!
+                val voterTokenAccount =
+                    ShopUtils.getAssociatedTokenAddress(voterPubKey, committeeTokenMint)
+                        .getOrNull()!!
 
                 val ix = ShopUtils.genTransactionInstruction(
                     listOf(
@@ -326,6 +331,109 @@ class SolanaGovernanceDataSource @Inject constructor(
         } catch (e: Exception) {
             Log.e(TAG, "voteOnProposal exception:", e)
             Result.failure(Exception("Failed to vote on proposal: ${e.message}"))
+        }
+    }
+
+    override suspend fun finalizeProposal(
+        proposalId: ULong,
+        proposerPubKey: SolanaPublicKey,
+        accountPubKey: SolanaPublicKey,
+        activityResultSender: ActivityResultSender
+    ): Result<Unit> {
+        return try {
+            Log.d(TAG, "Starting finalizeProposal: $proposalId")
+
+            val result = walletAdapter.transact(activityResultSender) { authResult ->
+                val builder = Builder()
+
+                // Generate finalize instruction
+                val config = GovernanceUtils.getGovernanceConfigManual(solanaRpcClient)
+                val proposalPda = GovernanceUtils.getProposalPda(proposalId)
+                val governancePda = GovernanceUtils.getGovernanceConfigPda()
+                val committeeTokenMint = config?.committeeTokenMint ?: AppConstants.App.getMint()
+                val proposerTokenAccount =
+                    ShopUtils.getAssociatedTokenAddress(proposerPubKey).getOrNull()!!
+                val governanceTokenVault = GovernanceUtils.getGovernanceTokenVault()
+                val governanceAuthority = GovernanceUtils.getAuthority()
+
+                val memberTokenAccounts = ArrayList<AccountMeta>()
+                for (member in config?.committeeMembers ?: emptyList()) {
+                    if (member != null) {
+                        val tokenAccount =
+                            ShopUtils.getAssociatedTokenAddress(member, committeeTokenMint)
+                                .getOrNull()!!
+                        val curAccount = accountPubKey.base58() == member.base58()
+                        memberTokenAccounts.add(AccountMeta(tokenAccount, curAccount, curAccount))
+                    }
+                }
+
+                val ix = ShopUtils.genTransactionInstruction(
+                    listOf(
+                        AccountMeta(proposalPda, false, true),
+                        AccountMeta(governancePda, false, false),
+                        AccountMeta(committeeTokenMint, false, false),
+                        AccountMeta(proposerTokenAccount, false, true),
+                        AccountMeta(governanceTokenVault, false, true),
+                        AccountMeta(governanceAuthority, false, false),
+                        AccountMeta(SystemProgram.PROGRAM_ID, false, false)
+                    ) + memberTokenAccounts + listOf(
+                        AccountMeta(accountPubKey, true, true)
+                    ),
+                    Borsh.encodeToByteArray(
+                        AnchorInstructionSerializer("finalize_proposal"),
+                        FinalizeProposalArgs(
+                            proposalId = proposalId
+                        )
+                    ),
+                    AppConstants.App.getGovernanceProgramId()
+                )
+
+                builder.addInstruction(ix)
+
+                // Get recent blockhash and build message
+                val recentBlockhash = recentBlockhashUseCase()
+                val message = builder.setRecentBlockhash(recentBlockhash).build()
+
+                // Create and sign transaction
+                val transaction = Transaction(message)
+                val signResult = signAndSendTransactions(arrayOf(transaction.serialize()))
+                signResult
+            }
+
+            when (result) {
+                is TransactionResult.Success -> {
+                    val signature = result.successPayload?.signatures?.first()
+                    if (signature != null) {
+                        Log.d(
+                            TAG,
+                            "Proposal finalized successfully: ${Base58.encodeToString(signature)}"
+                        )
+
+                        Result.success(Unit)
+                    } else {
+                        Log.e(
+                            TAG,
+                            "No signature returned from finalizeProposal transaction"
+                        )
+                        Result.failure(Exception("No signature returned from transaction"))
+                    }
+                }
+
+                is TransactionResult.NoWalletFound -> {
+                    Log.e(TAG, "No wallet found for finalizeProposal")
+                    Result.failure(Exception("No wallet found"))
+                }
+
+                is TransactionResult.Failure -> {
+                    Log.e(TAG, "finalizeProposal failed: ${result.e.message}")
+                    Result.failure(Exception("Transaction failed: ${result.e.message}"))
+                }
+
+                else -> Result.failure(Exception("Unknown transaction result"))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "finalizeProposal exception:", e)
+            Result.failure(Exception("Failed to finalize proposal: ${e.message}"))
         }
     }
 

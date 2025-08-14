@@ -97,12 +97,9 @@ enum class VoteType {
 }
 
 data class GovernanceStats(
-    val activeProposals: ULong,
-    val totalProposals: Int,
-    val totalVotes: Int,
-    val passRate: Double,
+    val totalProposals: ULong,
     val totalVotingPower: Double,
-    val participationRate: Double
+    val canVote: Boolean = false
 )
 
 data class Dispute(
@@ -152,6 +149,11 @@ data class VoteOnProposalArgs(
 @Serializable
 data class InitiateDisputeArgs(
     val orderId: String
+)
+
+@Serializable
+data class FinalizeProposalArgs(
+    val proposalId: ULong
 )
 
 @Serializable
