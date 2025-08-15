@@ -3,6 +3,7 @@ package com.focx.utils
 import com.focx.core.constants.AppConstants
 import com.focx.domain.entity.GovernanceConfig
 import com.focx.domain.entity.Proposal
+import com.focx.domain.entity.ProposalType
 import com.funkatronics.encoders.Base58
 import com.funkatronics.kborsh.Borsh
 import com.solana.publickey.ProgramDerivedAddress
@@ -267,7 +268,8 @@ object GovernanceUtils {
     suspend fun getProposalList(
         solanaRpcClient: SolanaRpcClient,
         page: Int = 1,
-        pageSize: Int = 10
+        pageSize: Int = 10,
+        filter: List<ProposalType>? = listOf(ProposalType.SLASH, ProposalType.DISPUTE)
     ): List<Proposal> {
         val config = getGovernanceConfigManual(solanaRpcClient)
         val totalCount = config?.proposalCounter ?: 0UL
@@ -291,7 +293,9 @@ object GovernanceUtils {
                 if (proposal == null) {
                     Log.d(TAG, "proposal id $i can not found detail data")
                 } else {
-                    result.add(proposal)
+                    if (filter == null || filter.contains(proposal.proposalType)) {
+                        result.add(proposal)
+                    }
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error getting proposal $i", e)

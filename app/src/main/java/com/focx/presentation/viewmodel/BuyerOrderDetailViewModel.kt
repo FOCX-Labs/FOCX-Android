@@ -134,7 +134,7 @@ class BuyerOrderDetailViewModel @Inject constructor(
                 val result = createProposalUseCase.execute(
                     title,
                     description,
-                    ProposalType.DISPUTE_ARBITRATION,
+                    ProposalType.DISPUTE,
                     SolanaPublicKey.from(walletAddress),
                     activityResultSender
                 )
