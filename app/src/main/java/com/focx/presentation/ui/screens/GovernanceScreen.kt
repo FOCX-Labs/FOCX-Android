@@ -398,7 +398,10 @@ fun ProposalCardPreview() {
         executionResult = null,
         bump = 0U
     )
-    ProposalCard(sampleProposal, canVote = true, onFinalizeProposal = {} as (ULong, SolanaPublicKey) -> Unit)
+    ProposalCard(
+        sampleProposal,
+        canVote = true,
+        onFinalizeProposal = {} as (ULong, SolanaPublicKey) -> Unit)
 }
 
 @Composable
@@ -489,59 +492,56 @@ fun ProposalCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            if(
-                proposal.status != ProposalStatus.PENDING
-            ) {
-                Spacer(modifier = Modifier.height(Spacing.medium))
 
+            Spacer(modifier = Modifier.height(Spacing.medium))
+
+            Text(
+                text = "Voting Progress",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold
+            )
+
+            Spacer(modifier = Modifier.height(Spacing.small))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween
+            ) {
                 Text(
-                    text = "Voting Progress",
-                    style = MaterialTheme.typography.titleSmall,
+                    text = "${proposal.totalVotes} votes",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            LinearProgressIndicator(
+                progress = {
+                    if (proposal.totalVotes > 0UL) proposal.yesVotes.toLong()
+                        .toFloat() / proposal.totalVotes.toLong().toFloat() else 0f
+                },
+                modifier = Modifier.fillMaxWidth(),
+                color = MaterialTheme.colorScheme.primary,
+                trackColor = MaterialTheme.colorScheme.outline
+            )
+
+
+            Spacer(modifier = Modifier.height(Spacing.small))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "For: ${proposal.yesVotes}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color(0xFF4CAF50),
                     fontWeight = FontWeight.SemiBold
                 )
-
-                Spacer(modifier = Modifier.height(Spacing.small))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = "${proposal.totalVotes} votes",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                LinearProgressIndicator(
-                    progress = {
-                        if (proposal.totalVotes > 0UL) proposal.yesVotes.toLong()
-                            .toFloat() / proposal.totalVotes.toLong().toFloat() else 0f
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    color = MaterialTheme.colorScheme.primary,
-                    trackColor = MaterialTheme.colorScheme.outline
+                Text(
+                    text = "Against: ${proposal.noVotes}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color(0xFFFF5722),
+                    fontWeight = FontWeight.SemiBold
                 )
-
-
-                Spacer(modifier = Modifier.height(Spacing.small))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = "For: ${proposal.yesVotes}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color(0xFF4CAF50),
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Text(
-                        text = "Against: ${proposal.noVotes}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color(0xFFFF5722),
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
             }
 
             Spacer(modifier = Modifier.height(Spacing.small))
@@ -936,7 +936,7 @@ fun CreateProposalDialog(
 ) {
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
-    var selectedProposalType by remember { mutableStateOf(ProposalType.RULE_UPDATE) }
+    var selectedProposalType by remember { mutableStateOf(ProposalType.SLASH) }
     var expanded by remember { mutableStateOf(false) }
 
     val maxDescriptionLength = 800
@@ -1103,7 +1103,7 @@ fun CreateProposalDialog(
                             Column(
                                 modifier = Modifier.padding(vertical = Spacing.small)
                             ) {
-                                ProposalType.values().forEach { proposalType ->
+                                listOf(ProposalType.SLASH, ProposalType.DISPUTE).forEach { proposalType ->
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()

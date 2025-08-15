@@ -46,9 +46,9 @@ data class Proposal(
 
 enum class ProposalType {
     /// Illegal product slash
-    SLASH_MERCHANT,
+    SLASH,
     /// Trade dispute arbitration
-    DISPUTE_ARBITRATION,
+    DISPUTE,
     /// Rule update
     RULE_UPDATE,
     /// Configuration update
