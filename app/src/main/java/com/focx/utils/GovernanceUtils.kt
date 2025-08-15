@@ -9,6 +9,7 @@ import com.solana.publickey.ProgramDerivedAddress
 import com.solana.publickey.SolanaPublicKey
 import com.solana.rpc.SolanaRpcClient
 import com.solana.rpc.getAccountInfo
+import com.solana.transaction.AccountMeta
 import kotlinx.serialization.encodeToByteArray
 import kotlin.math.max
 import kotlin.math.min
@@ -16,7 +17,7 @@ import kotlin.math.min
 object GovernanceUtils {
     private const val TAG = "GovernanceUtils"
     private const val COMMITTEE_MEMBERS_MAX_SIZE = 10
-    
+
     suspend fun getGovernanceConfigPda(): SolanaPublicKey {
         return ProgramDerivedAddress.find(
             listOf(
@@ -50,18 +51,18 @@ object GovernanceUtils {
         try {
             val configPda = getGovernanceConfigPda()
             val accountInfo = solanaRpcClient.getAccountInfo(configPda).result
-            
+
             if (accountInfo?.data == null) {
                 Log.w(TAG, "Governance config account not found or data is null")
                 return null
             }
-            
+
             val data = accountInfo.data!!
             Log.d(TAG, "Raw governance config data size: ${data.size}")
-            
+
             // Manually parse byte array
             return parseGovernanceConfigFromBytes(data)
-            
+
         } catch (e: Exception) {
             Log.e(TAG, "Error manually parsing governance config: ${e.message}", e)
             return null
@@ -91,29 +92,35 @@ object GovernanceUtils {
      */
     private fun parseGovernanceConfigFromBytes(data: ByteArray): GovernanceConfig {
         var offset = 0
-        
+
         // Check if data size is sufficient
-        val expectedSize = 8 + 32 + 32 + (33 * COMMITTEE_MEMBERS_MAX_SIZE) + 1 + 8 + 8 + 2 + 2 + 2 + 2 + 8 + 8 + 8 + 8 + 1 + 1
+        val expectedSize =
+            8 + 32 + 32 + (33 * COMMITTEE_MEMBERS_MAX_SIZE) + 1 + 8 + 8 + 2 + 2 + 2 + 2 + 8 + 8 + 8 + 8 + 1 + 1
         if (data.size < expectedSize) {
-            Log.w(TAG, "Governance config data size too small: ${data.size}, expected: $expectedSize")
+            Log.w(
+                TAG,
+                "Governance config data size too small: ${data.size}, expected: $expectedSize"
+            )
         }
-        
+
         // Parse discriminator (8 bytes) - little-endian
-        val discriminator = data.slice(offset until offset + 8).foldIndexed(0L) { index, acc, byte ->
-            acc or ((byte.toLong() and 0xFF) shl (index * 8))
-        }
+        val discriminator =
+            data.slice(offset until offset + 8).foldIndexed(0L) { index, acc, byte ->
+                acc or ((byte.toLong() and 0xFF) shl (index * 8))
+            }
         offset += 8
-        
+
         // Parse authority (32 bytes)
         val authorityBytes = data.slice(offset until offset + 32).toByteArray()
         val authority = SolanaPublicKey.from(Base58.encodeToString(authorityBytes))
         offset += 32
-        
+
         // Parse committeeTokenMint (32 bytes)
         val committeeTokenMintBytes = data.slice(offset until offset + 32).toByteArray()
-        val committeeTokenMint = SolanaPublicKey.from(Base58.encodeToString(committeeTokenMintBytes))
+        val committeeTokenMint =
+            SolanaPublicKey.from(Base58.encodeToString(committeeTokenMintBytes))
         offset += 32
-        
+
         // Parse committeeMembers (1 + 32) * 10 bytes = 330 bytes for option<pubkey> array
         val committeeMembers = mutableListOf<SolanaPublicKey?>()
         for (i in 0 until COMMITTEE_MEMBERS_MAX_SIZE) {
@@ -128,78 +135,84 @@ object GovernanceUtils {
                 offset += 32
             }
         }
-        
+
         // Parse committeeMemberCount (1 byte) - UByte
         val committeeMemberCount = data[offset].toUByte()
         offset += 1
-        
+
         // Parse proposalDeposit (8 bytes) - little-endian
-        val proposalDeposit = data.slice(offset until offset + 8).foldIndexed(0UL) { index, acc, byte ->
-            acc or ((byte.toULong() and 0xFFu) shl (index * 8))
-        }
+        val proposalDeposit =
+            data.slice(offset until offset + 8).foldIndexed(0UL) { index, acc, byte ->
+                acc or ((byte.toULong() and 0xFFu) shl (index * 8))
+            }
         offset += 8
-        
+
         // Parse votingPeriod (8 bytes) - little-endian
-        val votingPeriod = data.slice(offset until offset + 8).foldIndexed(0UL) { index, acc, byte ->
-            acc or ((byte.toULong() and 0xFFu) shl (index * 8))
-        }
+        val votingPeriod =
+            data.slice(offset until offset + 8).foldIndexed(0UL) { index, acc, byte ->
+                acc or ((byte.toULong() and 0xFFu) shl (index * 8))
+            }
         offset += 8
-        
+
         // Parse participationThreshold (2 bytes) - little-endian
-        val participationThreshold = data.slice(offset until offset + 2).foldIndexed(0) { index, acc, byte ->
-            acc or ((byte.toInt() and 0xFF) shl (index * 8))
-        }.toUShort()
+        val participationThreshold =
+            data.slice(offset until offset + 2).foldIndexed(0) { index, acc, byte ->
+                acc or ((byte.toInt() and 0xFF) shl (index * 8))
+            }.toUShort()
         offset += 2
-        
+
         // Parse approvalThreshold (2 bytes) - little-endian
-        val approvalThreshold = data.slice(offset until offset + 2).foldIndexed(0) { index, acc, byte ->
-            acc or ((byte.toInt() and 0xFF) shl (index * 8))
-        }.toUShort()
+        val approvalThreshold =
+            data.slice(offset until offset + 2).foldIndexed(0) { index, acc, byte ->
+                acc or ((byte.toInt() and 0xFF) shl (index * 8))
+            }.toUShort()
         offset += 2
-        
+
         // Parse vetoThreshold (2 bytes) - little-endian
         val vetoThreshold = data.slice(offset until offset + 2).foldIndexed(0) { index, acc, byte ->
             acc or ((byte.toInt() and 0xFF) shl (index * 8))
         }.toUShort()
         offset += 2
-        
+
         // Parse feeRate (2 bytes) - little-endian
         val feeRate = data.slice(offset until offset + 2).foldIndexed(0) { index, acc, byte ->
             acc or ((byte.toInt() and 0xFF) shl (index * 8))
         }.toUShort()
         offset += 2
-        
+
         // Parse totalVotingPower (8 bytes) - little-endian
-        val totalVotingPower = data.slice(offset until offset + 8).foldIndexed(0UL) { index, acc, byte ->
-            acc or ((byte.toULong() and 0xFFu) shl (index * 8))
-        }
+        val totalVotingPower =
+            data.slice(offset until offset + 8).foldIndexed(0UL) { index, acc, byte ->
+                acc or ((byte.toULong() and 0xFFu) shl (index * 8))
+            }
         offset += 8
-        
+
         // Parse proposalCounter (8 bytes) - little-endian
-        val proposalCounter = data.slice(offset until offset + 8).foldIndexed(0UL) { index, acc, byte ->
-            acc or ((byte.toULong() and 0xFFu) shl (index * 8))
-        }
+        val proposalCounter =
+            data.slice(offset until offset + 8).foldIndexed(0UL) { index, acc, byte ->
+                acc or ((byte.toULong() and 0xFFu) shl (index * 8))
+            }
         offset += 8
-        
+
         // Parse createdAt (8 bytes) - little-endian
         val createdAt = data.slice(offset until offset + 8).foldIndexed(0L) { index, acc, byte ->
             acc or ((byte.toLong() and 0xFF) shl (index * 8))
         }
         offset += 8
-        
+
         // Parse updatedAt (8 bytes) - little-endian
         val updatedAt = data.slice(offset until offset + 8).foldIndexed(0L) { index, acc, byte ->
             acc or ((byte.toLong() and 0xFF) shl (index * 8))
         }
         offset += 8
-        
+
         // Parse testMode (1 byte)
         val testMode = data[offset] != 0.toByte()
         offset += 1
-        
+
         // Parse bump (1 byte)
         val bump = data[offset].toUByte()
-        
+
         val config = GovernanceConfig(
             discriminator = discriminator,
             authority = authority,
@@ -258,19 +271,19 @@ object GovernanceUtils {
     ): List<Proposal> {
         val config = getGovernanceConfigManual(solanaRpcClient)
         val totalCount = config?.proposalCounter ?: 0UL
-        
+
         if (totalCount == 0UL) {
             return emptyList()
         }
-        
+
         // Calculate pagination info, fixed DESC sorting
         val startIndex = max(1, totalCount.toInt() - page * pageSize + 1)
         val endIndex = min(totalCount.toInt(), startIndex + pageSize - 1)
-        
+
         if (totalCount.toInt() < startIndex) {
             return emptyList()
         }
-        
+
         val result = ArrayList<Proposal>()
         for (i in startIndex..endIndex) {
             try {
@@ -284,10 +297,10 @@ object GovernanceUtils {
                 Log.e(TAG, "Error getting proposal $i", e)
             }
         }
-        
+
         // Sort by DESC (latest first)
         result.reverse()
-        
+
         return result
     }
 
@@ -318,6 +331,31 @@ object GovernanceUtils {
             ),
             AppConstants.App.getGovernanceProgramId()
         ).getOrNull()!!
+    }
 
+    suspend fun getVoteAccounts(
+        proposalId: ULong,
+        governanceConfig: GovernanceConfig,
+        solanaRpcClient: SolanaRpcClient
+    ): List<AccountMeta> {
+        val result = ArrayList<AccountMeta>()
+        val committeeMembers = governanceConfig.committeeMembers.filter { it -> it != null }
+
+        val votePdas = committeeMembers.map { it -> getVotePda(proposalId, it!!) }
+
+        val accountInfos = solanaRpcClient.getMultipleAccounts(votePdas).result
+        accountInfos?.forEachIndexed { index, account ->
+            if (account != null && account.data != null) {
+                val pid = account.data!!.slice(8 until 16).foldIndexed(0UL) { index, acc, byte ->
+                    acc or ((byte.toULong() and 0xFFu) shl (index * 8))
+                }
+                if (pid == proposalId) {
+                    result.add(AccountMeta(votePdas[index], false, false))
+                }
+            }
+        }
+
+        Log.d(TAG, "getVoteAccounts: $result")
+        return result
     }
 }

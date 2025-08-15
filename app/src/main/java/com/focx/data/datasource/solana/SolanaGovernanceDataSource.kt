@@ -32,8 +32,10 @@ import com.solana.serialization.AnchorInstructionSerializer
 import com.solana.transaction.AccountMeta
 import com.solana.transaction.Message.Builder
 import com.solana.transaction.Transaction
+import com.solana.transaction.TransactionInstruction
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import java.nio.ByteBuffer
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -345,6 +347,7 @@ class SolanaGovernanceDataSource @Inject constructor(
 
             val result = walletAdapter.transact(activityResultSender) { authResult ->
                 val builder = Builder()
+                builder.addInstruction(genPreInstruction( 400_000))
 
                 // Generate finalize instruction
                 val config = GovernanceUtils.getGovernanceConfigManual(solanaRpcClient)
@@ -362,10 +365,11 @@ class SolanaGovernanceDataSource @Inject constructor(
                         val tokenAccount =
                             ShopUtils.getAssociatedTokenAddress(member, committeeTokenMint)
                                 .getOrNull()!!
-                        val curAccount = accountPubKey.base58() == member.base58()
-                        memberTokenAccounts.add(AccountMeta(tokenAccount, curAccount, curAccount))
+                        memberTokenAccounts.add(AccountMeta(tokenAccount, false, false))
                     }
                 }
+                val voteAccounts =
+                    GovernanceUtils.getVoteAccounts(proposalId, config!!, solanaRpcClient)
 
                 val ix = ShopUtils.genTransactionInstruction(
                     listOf(
@@ -375,8 +379,8 @@ class SolanaGovernanceDataSource @Inject constructor(
                         AccountMeta(proposerTokenAccount, false, true),
                         AccountMeta(governanceTokenVault, false, true),
                         AccountMeta(governanceAuthority, false, false),
-                        AccountMeta(SystemProgram.PROGRAM_ID, false, false)
-                    ) + memberTokenAccounts + listOf(
+                        AccountMeta(SolanaPublicKey.from(AppConstants.App.SPL_TOKEN_PROGRAM_ID), false, false)
+                    ) + memberTokenAccounts + voteAccounts + listOf(
                         AccountMeta(accountPubKey, true, true)
                     ),
                     Borsh.encodeToByteArray(
@@ -435,6 +439,23 @@ class SolanaGovernanceDataSource @Inject constructor(
             Log.e(TAG, "finalizeProposal exception:", e)
             Result.failure(Exception("Failed to finalize proposal: ${e.message}"))
         }
+    }
+
+
+    fun genPreInstruction(units: Int): TransactionInstruction {
+        val programId = SolanaPublicKey.from("ComputeBudget111111111111111111111111111111")
+
+        // u8 (0x02) + u32 (units, little-endian)
+        val data = ByteBuffer.allocate(9)
+        data.put(0x02)
+        data.putInt(units)
+        data.putInt(0)
+
+        return TransactionInstruction(
+            programId = programId,
+            accounts = listOf(),
+            data = data.array()
+        )
     }
 
     override suspend fun getVotesByProposal(proposalId: String): Flow<List<Vote>> = flow {

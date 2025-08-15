@@ -489,54 +489,59 @@ fun ProposalCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            Spacer(modifier = Modifier.height(Spacing.medium))
-
-            Text(
-                text = "Voting Progress",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold
-            )
-
-            Spacer(modifier = Modifier.height(Spacing.small))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween
+            if(
+                proposal.status != ProposalStatus.PENDING
             ) {
+                Spacer(modifier = Modifier.height(Spacing.medium))
+
                 Text(
-                    text = "${proposal.totalVotes} votes",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            LinearProgressIndicator(
-                progress = {
-                    if (proposal.totalVotes > 0UL) proposal.yesVotes.toLong()
-                        .toFloat() / proposal.totalVotes.toLong().toFloat() else 0f
-                },
-                modifier = Modifier.fillMaxWidth(),
-                color = MaterialTheme.colorScheme.primary,
-                trackColor = MaterialTheme.colorScheme.outline
-            )
-
-            Spacer(modifier = Modifier.height(Spacing.small))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = "For: ${proposal.yesVotes}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color(0xFF4CAF50),
+                    text = "Voting Progress",
+                    style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold
                 )
-                Text(
-                    text = "Against: ${proposal.noVotes}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color(0xFFFF5722),
-                    fontWeight = FontWeight.SemiBold
+
+                Spacer(modifier = Modifier.height(Spacing.small))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "${proposal.totalVotes} votes",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                LinearProgressIndicator(
+                    progress = {
+                        if (proposal.totalVotes > 0UL) proposal.yesVotes.toLong()
+                            .toFloat() / proposal.totalVotes.toLong().toFloat() else 0f
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.outline
                 )
+
+
+                Spacer(modifier = Modifier.height(Spacing.small))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "For: ${proposal.yesVotes}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color(0xFF4CAF50),
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = "Against: ${proposal.noVotes}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color(0xFFFF5722),
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(Spacing.small))
@@ -610,7 +615,7 @@ fun ProposalCard(
                 }
             }
 
-            if (System.currentTimeMillis() / 1000 > proposal.votingEnd) {
+            if (proposal.status == ProposalStatus.PENDING && System.currentTimeMillis() / 1000 > proposal.votingEnd) {
                 Spacer(modifier = Modifier.height(Spacing.medium))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
