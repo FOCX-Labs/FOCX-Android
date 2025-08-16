@@ -85,9 +85,9 @@ import com.solana.publickey.SolanaPublicKey
 import kotlinx.coroutines.launch
 
 @Composable
-private fun getProposalStatusColor(status: ProposalStatus): Color {
+private fun getProposalStatusColor(status: ProposalStatus, ended: Boolean): Color {
     return when (status) {
-        ProposalStatus.PENDING -> Color(0xFF2196F3) // In Progress - Blue
+        ProposalStatus.PENDING -> if(ended) Color(0xFF9E9E9E) else  Color(0xFF2196F3) // In Progress - Blue
         ProposalStatus.PASSED -> Color(0xFF4CAF50)  // Passed - Green
         ProposalStatus.REJECTED -> Color(0xFFF44336) // Rejected - Red
         ProposalStatus.VETOED -> Color(0xFF9C27B0)   // Vetoed - Deep Purple
@@ -99,7 +99,7 @@ private fun getProposalStatusColor(status: ProposalStatus): Color {
 private fun getProposalTypeColor(type: ProposalType): Color {
     return when (type) {
         ProposalType.SLASH -> Color(0xFFF44336)      // Slash - Red
-        ProposalType.DISPUTE -> Color(0xFFFFEB3B)    // Dispute - Yellow
+        ProposalType.DISPUTE -> Color(0xFFFF9800)    // Dispute - Yellow
         ProposalType.RULE_UPDATE -> Color(0xFF2196F3) // Rule Update - Blue
         ProposalType.CONFIG_UPDATE -> Color(0xFF9C27B0) // Config Update - Purple
     }
@@ -492,12 +492,12 @@ fun ProposalCard(
                 Box(
                     modifier = Modifier
                         .background(
-                            color = getProposalStatusColor(proposal.status), shape = RoundedCornerShape(4.dp)
+                            color = getProposalStatusColor(proposal.status, System.currentTimeMillis() / 1000 > proposal.votingEnd), shape = RoundedCornerShape(4.dp)
                         )
                         .padding(horizontal = 8.dp, vertical = 4.dp)
                 ) {
                     Text(
-                        text = "${if (proposal.status == ProposalStatus.PENDING)  "In Progress" else proposal.status}",
+                        text = "${if (proposal.status == ProposalStatus.PENDING)  {if(System.currentTimeMillis() / 1000 < proposal.votingEnd ) "In Progress" else "End" }else proposal.status}",
                         style = MaterialTheme.typography.bodySmall,
                         color = Color.White,
                         fontWeight = FontWeight.SemiBold
