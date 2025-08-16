@@ -289,6 +289,84 @@ class GovernanceViewModel @Inject constructor(
         }
     }
 
+    fun voteAbstainProposal(proposalId: ULong, activityResultSender: ActivityResultSender) {
+        viewModelScope.launch {
+            try {
+                _uiState.value = _uiState.value.copy(isVoting = true, error = null)
+
+                val voterAddress = getCurrentWalletAddressUseCase.execute()
+                if (voterAddress == null) {
+                    _uiState.value = _uiState.value.copy(
+                        error = "Wallet not connected",
+                        isVoting = false
+                    )
+                    return@launch
+                }
+
+                val voterPubKey = SolanaPublicKey.from(voterAddress)
+                val result = voteOnProposalUseCase.execute(
+                    proposalId,
+                    VoteType.ABSTAIN,
+                    voterPubKey,
+                    activityResultSender
+                )
+                if (result.isSuccess) {
+                    // Refresh data after voting
+                    refreshData()
+                } else {
+                    _uiState.value = _uiState.value.copy(
+                        error = "Failed to vote: ${result.exceptionOrNull()?.message}",
+                        isVoting = false
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    error = "Failed to vote: ${e.message}",
+                    isVoting = false
+                )
+            }
+        }
+    }
+
+    fun voteNoWithVetoProposal(proposalId: ULong, activityResultSender: ActivityResultSender) {
+        viewModelScope.launch {
+            try {
+                _uiState.value = _uiState.value.copy(isVoting = true, error = null)
+
+                val voterAddress = getCurrentWalletAddressUseCase.execute()
+                if (voterAddress == null) {
+                    _uiState.value = _uiState.value.copy(
+                        error = "Wallet not connected",
+                        isVoting = false
+                    )
+                    return@launch
+                }
+
+                val voterPubKey = SolanaPublicKey.from(voterAddress)
+                val result = voteOnProposalUseCase.execute(
+                    proposalId,
+                    VoteType.NO_WITH_VETO,
+                    voterPubKey,
+                    activityResultSender
+                )
+                if (result.isSuccess) {
+                    // Refresh data after voting
+                    refreshData()
+                } else {
+                    _uiState.value = _uiState.value.copy(
+                        error = "Failed to vote: ${result.exceptionOrNull()?.message}",
+                        isVoting = false
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    error = "Failed to vote: ${e.message}",
+                    isVoting = false
+                )
+            }
+        }
+    }
+
     fun finalizeProposal(
         proposalId: ULong, proposerPubKey: SolanaPublicKey, activityResultSender: ActivityResultSender
     ) {
