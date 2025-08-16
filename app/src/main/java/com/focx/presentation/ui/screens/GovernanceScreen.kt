@@ -84,6 +84,27 @@ import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
 import com.solana.publickey.SolanaPublicKey
 import kotlinx.coroutines.launch
 
+@Composable
+private fun getProposalStatusColor(status: ProposalStatus): Color {
+    return when (status) {
+        ProposalStatus.PENDING -> Color(0xFF2196F3) // In Progress - Blue
+        ProposalStatus.PASSED -> Color(0xFF4CAF50)  // Passed - Green
+        ProposalStatus.REJECTED -> Color(0xFFF44336) // Rejected - Red
+        ProposalStatus.VETOED -> Color(0xFF9C27B0)   // Vetoed - Deep Purple
+        ProposalStatus.EXECUTED -> Color(0xFFFF9800) // Executed - Orange
+    }
+}
+
+@Composable
+private fun getProposalTypeColor(type: ProposalType): Color {
+    return when (type) {
+        ProposalType.SLASH -> Color(0xFFF44336)      // Slash - Red
+        ProposalType.DISPUTE -> Color(0xFFFFEB3B)    // Dispute - Yellow
+        ProposalType.RULE_UPDATE -> Color(0xFF2196F3) // Rule Update - Blue
+        ProposalType.CONFIG_UPDATE -> Color(0xFF9C27B0) // Config Update - Purple
+    }
+}
+
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun GovernanceScreen(
@@ -440,12 +461,20 @@ fun ProposalCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
 
-                Icon(
-                    imageVector = Icons.Default.Warning,
-                    contentDescription = "Warning",
-                    tint = Color(0xFFFF5722),
-                    modifier = Modifier.size(16.dp)
-                )
+                Box(
+                    modifier = Modifier
+                        .background(
+                            color = getProposalTypeColor(proposal.proposalType), shape = RoundedCornerShape(4.dp)
+                        )
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = "${proposal.proposalType}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.White,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = proposal.title,
@@ -463,32 +492,18 @@ fun ProposalCard(
                 Box(
                     modifier = Modifier
                         .background(
-                            color = Color(0xFF4CAF50), shape = RoundedCornerShape(4.dp)
+                            color = getProposalStatusColor(proposal.status), shape = RoundedCornerShape(4.dp)
                         )
                         .padding(horizontal = 8.dp, vertical = 4.dp)
                 ) {
                     Text(
-                        text = "${proposal.status}",
+                        text = "${if (proposal.status == ProposalStatus.PENDING)  "In Progress" else proposal.status}",
                         style = MaterialTheme.typography.bodySmall,
                         color = Color.White,
                         fontWeight = FontWeight.SemiBold
                     )
                 }
                 Spacer(modifier = Modifier.weight(1f))
-                Box(
-                    modifier = Modifier
-                        .background(
-                            color = Color(0xFF4CAF50), shape = RoundedCornerShape(4.dp)
-                        )
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                ) {
-                    Text(
-                        text = "${proposal.proposalType}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color.White,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
             }
 
             Spacer(modifier = Modifier.height(Spacing.small))
