@@ -6,7 +6,6 @@ import android.net.Uri
 import com.focx.core.network.NetworkConfig
 import com.focx.core.network.NetworkPreferences
 import com.focx.data.constants.PreferencesConstants
-import com.focx.data.datasource.mock.MockGovernanceDataSource
 import com.focx.data.datasource.mock.MockSellerDataSource
 import com.focx.data.datasource.mock.MockUserDataSource
 import com.focx.data.datasource.local.AddressLocalDataSource
@@ -15,6 +14,7 @@ import com.focx.data.datasource.solana.SolanaMerchantDataSource
 import com.focx.data.datasource.solana.SolanaOrderDataSource
 import com.focx.data.datasource.solana.SolanaProductDataSource
 import com.focx.data.datasource.solana.SolanaFaucetDataSource
+import com.focx.data.datasource.solana.SolanaGovernanceDataSource
 import com.focx.data.datasource.solana.SolanaWalletRepository
 import com.focx.data.datasource.solana.SolanaVaultDataSource
 import com.focx.data.networking.KtorHttpDriver
@@ -58,6 +58,9 @@ import com.focx.domain.usecase.SolanaWalletConnectUseCase
 import com.focx.domain.usecase.SolanaWalletPersistenceUseCase
 import com.focx.domain.usecase.UpdateProductUseCase
 import com.focx.domain.usecase.VoteOnProposalUseCase
+import com.focx.domain.usecase.CreateProposalUseCase
+import com.focx.domain.usecase.FinalizeProposalUseCase
+import com.focx.domain.usecase.InitiateDisputeUseCase
 import com.focx.domain.usecase.GetMerchantProductsUseCase
 import com.solana.mobilewalletadapter.clientlib.ConnectionIdentity
 import com.solana.mobilewalletadapter.clientlib.MobileWalletAdapter
@@ -67,6 +70,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import org.sol4k.Connection
 import javax.inject.Singleton
 
 @Module
@@ -182,12 +186,6 @@ object AppModule {
     }
 
     @Provides
-    @Singleton
-    fun provideGovernanceRepository(): IGovernanceRepository {
-        return MockGovernanceDataSource()
-    }
-
-    @Provides
     fun provideGetGovernanceDataUseCase(
         governanceRepository: IGovernanceRepository
     ): GetGovernanceDataUseCase {
@@ -195,10 +193,42 @@ object AppModule {
     }
 
     @Provides
+    @Singleton
+    fun provideGovernanceRepository(
+        walletAdapter: MobileWalletAdapter,
+        recentBlockhashUseCase: RecentBlockhashUseCase,
+        solanaRpcClient: SolanaRpcClient,
+        sol4kConnection: Connection
+    ): IGovernanceRepository {
+        return SolanaGovernanceDataSource(walletAdapter, recentBlockhashUseCase, solanaRpcClient, sol4kConnection)
+    }
+
+    @Provides
     fun provideVoteOnProposalUseCase(
         governanceRepository: IGovernanceRepository
     ): VoteOnProposalUseCase {
         return VoteOnProposalUseCase(governanceRepository)
+    }
+
+    @Provides
+    fun provideCreateProposalUseCase(
+        governanceRepository: IGovernanceRepository
+    ): CreateProposalUseCase {
+        return CreateProposalUseCase(governanceRepository)
+    }
+
+    @Provides
+    fun provideFinalizeProposalUseCase(
+        governanceRepository: IGovernanceRepository
+    ): FinalizeProposalUseCase {
+        return FinalizeProposalUseCase(governanceRepository)
+    }
+
+    @Provides
+    fun provideInitiateDisputeUseCase(
+        governanceRepository: IGovernanceRepository
+    ): InitiateDisputeUseCase {
+        return InitiateDisputeUseCase(governanceRepository)
     }
 
     @Provides
@@ -393,6 +423,13 @@ object AppModule {
         ktorHttpDriver: KtorHttpDriver
     ): SolanaRpcClient {
         return SolanaRpcClient(NetworkConfig.getRpcUrl(), ktorHttpDriver)
+    }
+
+    @Provides
+    @Singleton
+    fun provideSol4kConnection(
+    ): Connection {
+        return Connection(NetworkConfig.getRpcUrl())
     }
 
     @Provides

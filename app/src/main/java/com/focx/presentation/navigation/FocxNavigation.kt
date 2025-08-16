@@ -109,7 +109,7 @@ fun FocxNavigation(activityResultSender: ActivityResultSender) {
             }
 
             composable("governance") {
-                GovernanceScreen()
+                GovernanceScreen(activityResultSender = activityResultSender)
             }
 
             composable("profile") {
