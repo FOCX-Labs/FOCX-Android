@@ -242,6 +242,12 @@ fun GovernanceScreen(
                             onVoteAgainst = { proposalId ->
                                 viewModel.voteAgainstProposal(proposalId, activityResultSender)
                             },
+                            onVoteAbstain = { proposalId ->
+                                viewModel.voteAbstainProposal(proposalId, activityResultSender)
+                            },
+                            onVoteNoWithVeto = { proposalId ->
+                                viewModel.voteNoWithVetoProposal(proposalId, activityResultSender)
+                            },
                             onFinalizeProposal = { proposalId, proposerPubKey ->
                                 viewModel.finalizeProposal(
                                     proposalId,
@@ -432,9 +438,13 @@ fun ProposalCardPreview() {
     )
     ProposalCard(
         sampleProposal,
-        canVote = true,
+        onVoteFor = {},
+        onVoteAgainst = {},
+        onVoteAbstain = {},
+        onVoteNoWithVeto = {},
         onFinalizeProposal = {} as (ULong, SolanaPublicKey) -> Unit,
-        onViewProgress = {})
+        onViewProgress = {},
+        canVote = true)
 }
 
 @Composable
@@ -442,6 +452,8 @@ fun ProposalCard(
     proposal: Proposal,
     onVoteFor: (ULong) -> Unit = {},
     onVoteAgainst: (ULong) -> Unit = {},
+    onVoteAbstain: (ULong) -> Unit = {},
+    onVoteNoWithVeto: (ULong) -> Unit = {},
     onFinalizeProposal: (ULong, SolanaPublicKey) -> Unit,
     onViewProgress: (ULong) -> Unit = {},
     isVoting: Boolean = false,
@@ -589,15 +601,35 @@ fun ProposalCard(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        text = "For: ${proposal.yesVotes}",
+                        text = "Yes: ${proposal.yesVotes}",
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color(0xFF4CAF50),
                         fontWeight = FontWeight.SemiBold
                     )
                     Text(
-                        text = "Against: ${proposal.noVotes}",
+                        text = "No: ${proposal.noVotes}",
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color(0xFFFF5722),
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "Abstain: ${proposal.abstainVotes}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color(0xFF9E9E9E),
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = "No with Veto: ${proposal.vetoVotes}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color(0xFF9C27B0),
                         fontWeight = FontWeight.SemiBold
                     )
                 }
@@ -625,6 +657,8 @@ fun ProposalCard(
 
             if (proposal.status === ProposalStatus.PENDING && canVote && System.currentTimeMillis() / 1000 < proposal.votingEnd) {
                 Spacer(modifier = Modifier.height(Spacing.medium))
+                
+                // First row of voting buttons
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(Spacing.small)
@@ -647,7 +681,7 @@ fun ProposalCard(
                                 strokeWidth = 2.dp
                             )
                         } else {
-                            Text("Vote For")
+                            Text("Yes")
                         }
                     }
                     OutlinedButton(
@@ -668,7 +702,58 @@ fun ProposalCard(
                                 strokeWidth = 2.dp
                             )
                         } else {
-                            Text("Vote Against")
+                            Text("No")
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(Spacing.small))
+
+                // Second row of voting buttons
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.small)
+                ) {
+                    OutlinedButton(
+                        onClick = { onVoteAbstain(proposal.id) },
+                        enabled = !isVoting,
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = Color(0xFF9E9E9E)
+                        ),
+                        border = androidx.compose.foundation.BorderStroke(
+                            1.dp, Color(0xFF9E9E9E)
+                        )
+                    ) {
+                        if (isVoting) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                color = Color(0xFF9E9E9E),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Text("Abstain")
+                        }
+                    }
+                    OutlinedButton(
+                        onClick = { onVoteNoWithVeto(proposal.id) },
+                        enabled = !isVoting,
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = Color(0xFF9C27B0)
+                        ),
+                        border = androidx.compose.foundation.BorderStroke(
+                            1.dp, Color(0xFF9C27B0)
+                        )
+                    ) {
+                        if (isVoting) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                color = Color(0xFF9C27B0),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Text("No with Veto")
                         }
                     }
                 }
@@ -1407,15 +1492,35 @@ fun VotingProgressDialog(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "For: ${votingProgress.yesVotes}",
+                    text = "Yes: ${votingProgress.yesVotes}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = Color(0xFF4CAF50),
                     fontWeight = FontWeight.SemiBold
                 )
                 Text(
-                    text = "Against: ${votingProgress.noVotes}",
+                    text = "No: ${votingProgress.noVotes}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = Color(0xFFFF5722),
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "Abstain: ${votingProgress.abstainVotes}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color(0xFF9E9E9E),
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = "No with Veto: ${votingProgress.vetoVotes}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color(0xFF9C27B0),
                     fontWeight = FontWeight.SemiBold
                 )
             }
