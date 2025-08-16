@@ -1180,7 +1180,7 @@ fun CreateProposalDialog(
                     }
                     Spacer(modifier = Modifier.height(Spacing.small))
                     Text(
-                        text = "Creating a proposal requires a security deposit. 90% will be refunded if the proposal passes or fails. Malicious proposals will result in full forfeiture of the deposit.",
+                        text = "Creating a proposal requires a security deposit of 100 USDC. 90% will be refunded if the proposal passes or fails. Malicious proposals will result in full forfeiture of the deposit.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
