@@ -495,15 +495,13 @@ class SolanaGovernanceDataSource @Inject constructor(
                     "Product Listings", listOf(
                         "No counterfeit or replica products",
                         "Accurate product descriptions required",
-                        "Real product images only",
-                        "Proper categorization mandatory"
+                        "Real product images only"
                     )
                 ), PlatformRule(
                     "Trading Conduct", listOf(
                         "Honor all confirmed orders",
                         "Ship within stated timeframe",
-                        "Provide tracking information",
-                        "Respond to buyer inquiries within 24 hours"
+                        "Provide tracking information"
                     )
                 ), PlatformRule(
                     "Prohibited Items", listOf(
