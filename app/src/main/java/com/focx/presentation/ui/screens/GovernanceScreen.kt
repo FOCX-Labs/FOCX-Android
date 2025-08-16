@@ -228,6 +228,9 @@ fun GovernanceScreen(
                                     activityResultSender
                                 )
                             },
+                            onViewProgress = { proposalId ->
+                                viewModel.getVotingProgress(proposalId)
+                            },
                             isVoting = uiState.isVoting,
                             canVote = uiState.stats.canVote
                         )
@@ -332,6 +335,14 @@ fun GovernanceScreen(
                 }
             )
         }
+
+        // Voting Progress Dialog
+        if (uiState.showVotingProgressDialog && uiState.votingProgress != null) {
+            VotingProgressDialog(
+                votingProgress = uiState.votingProgress!!,
+                onDismiss = { viewModel.hideVotingProgressDialog() }
+            )
+        }
     }
 }
 
@@ -401,7 +412,8 @@ fun ProposalCardPreview() {
     ProposalCard(
         sampleProposal,
         canVote = true,
-        onFinalizeProposal = {} as (ULong, SolanaPublicKey) -> Unit)
+        onFinalizeProposal = {} as (ULong, SolanaPublicKey) -> Unit,
+        onViewProgress = {})
 }
 
 @Composable
@@ -410,6 +422,7 @@ fun ProposalCard(
     onVoteFor: (ULong) -> Unit = {},
     onVoteAgainst: (ULong) -> Unit = {},
     onFinalizeProposal: (ULong, SolanaPublicKey) -> Unit,
+    onViewProgress: (ULong) -> Unit = {},
     isVoting: Boolean = false,
     canVote: Boolean = false
 ) {
@@ -493,55 +506,86 @@ fun ProposalCard(
             )
 
 
-            Spacer(modifier = Modifier.height(Spacing.medium))
-
-            Text(
-                text = "Voting Progress",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold
-            )
-
             Spacer(modifier = Modifier.height(Spacing.small))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween
-            ) {
+            // only after finalize can show voting progress
+            if (proposal.status == ProposalStatus.PENDING) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.small)
+                ) {
+                    Text(
+                        text = "Voting Progress",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.weight(1f),
+                    )
+                    OutlinedButton(
+                        onClick = { onViewProgress(proposal.id) },
+                        enabled = !isVoting,
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = Color(0xFFFF5722)
+                        ),
+                        border = androidx.compose.foundation.BorderStroke(
+                            1.dp, Color(0xFFFF5722)
+                        )
+                    ) {
+                        Text("View Progress")
+                    }
+                }
+
+            } else {
                 Text(
-                    text = "${proposal.totalVotes} votes",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            LinearProgressIndicator(
-                progress = {
-                    if (proposal.totalVotes > 0UL) proposal.yesVotes.toLong()
-                        .toFloat() / proposal.totalVotes.toLong().toFloat() else 0f
-                },
-                modifier = Modifier.fillMaxWidth(),
-                color = MaterialTheme.colorScheme.primary,
-                trackColor = MaterialTheme.colorScheme.outline
-            )
-
-
-            Spacer(modifier = Modifier.height(Spacing.small))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = "For: ${proposal.yesVotes}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color(0xFF4CAF50),
+                    text = "Voting Result",
+                    style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold
                 )
-                Text(
-                    text = "Against: ${proposal.noVotes}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color(0xFFFF5722),
-                    fontWeight = FontWeight.SemiBold
+
+                Spacer(modifier = Modifier.height(Spacing.small))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "${proposal.totalVotes} votes",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                LinearProgressIndicator(
+                    progress = {
+                        if (proposal.totalVotes > 0UL) proposal.yesVotes.toLong()
+                            .toFloat() / proposal.totalVotes.toLong().toFloat() else 0f
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.outline
                 )
+
+
+                Spacer(modifier = Modifier.height(Spacing.small))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "For: ${proposal.yesVotes}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color(0xFF4CAF50),
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = "Against: ${proposal.noVotes}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color(0xFFFF5722),
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(Spacing.small))
@@ -1103,7 +1147,10 @@ fun CreateProposalDialog(
                             Column(
                                 modifier = Modifier.padding(vertical = Spacing.small)
                             ) {
-                                listOf(ProposalType.SLASH, ProposalType.DISPUTE).forEach { proposalType ->
+                                listOf(
+                                    ProposalType.SLASH,
+                                    ProposalType.DISPUTE
+                                ).forEach { proposalType ->
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
@@ -1208,6 +1255,135 @@ fun CreateProposalDialog(
             Spacer(modifier = Modifier.height(Spacing.small))
 
             // Add minimal bottom padding for system navigation
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun VotingProgressDialog(
+    votingProgress: com.focx.domain.entity.VotingProgress,
+    onDismiss: () -> Unit
+) {
+    val scope = rememberCoroutineScope()
+    val sheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true,
+        confirmValueChange = { true }
+    )
+
+    LaunchedEffect(Unit) {
+        sheetState.expand()
+    }
+
+    ModalBottomSheet(
+        onDismissRequest = {
+            scope.launch {
+                sheetState.hide()
+                onDismiss()
+            }
+        },
+        sheetState = sheetState,
+        dragHandle = { BottomSheetDefaults.DragHandle() },
+        containerColor = MaterialTheme.colorScheme.surface,
+        tonalElevation = 8.dp,
+        windowInsets = WindowInsets(0, 0, 0, 0)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(Spacing.medium),
+            verticalArrangement = Arrangement.spacedBy(Spacing.small)
+        ) {
+            // Header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Voting Progress",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold
+                )
+                IconButton(onClick = {
+                    scope.launch {
+                        sheetState.hide()
+                        onDismiss()
+                    }
+                }) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Close"
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(Spacing.small))
+
+            // Voting Statistics
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "${votingProgress.totalVotes} votes",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            LinearProgressIndicator(
+                progress = {
+                    if (votingProgress.totalVotes > 0UL) votingProgress.yesVotes.toLong()
+                        .toFloat() / votingProgress.totalVotes.toLong().toFloat() else 0f
+                },
+                modifier = Modifier.fillMaxWidth(),
+                color = MaterialTheme.colorScheme.primary,
+                trackColor = MaterialTheme.colorScheme.outline
+            )
+
+
+            Spacer(modifier = Modifier.height(Spacing.small))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "For: ${votingProgress.yesVotes}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color(0xFF4CAF50),
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = "Against: ${votingProgress.noVotes}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color(0xFFFF5722),
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+
+            Spacer(modifier = Modifier.height(Spacing.medium))
+
+            // Close Button
+            Button(
+                onClick = {
+                    scope.launch {
+                        sheetState.hide()
+                        onDismiss()
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary
+                )
+            ) {
+                Text("Close")
+            }
+
             Spacer(modifier = Modifier.height(8.dp))
         }
     }

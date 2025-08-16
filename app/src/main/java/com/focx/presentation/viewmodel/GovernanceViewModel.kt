@@ -8,6 +8,7 @@ import com.focx.domain.entity.PlatformRule
 import com.focx.domain.entity.Proposal
 import com.focx.domain.entity.ProposalType
 import com.focx.domain.entity.VoteType
+import com.focx.domain.entity.VotingProgress
 import com.focx.domain.usecase.CreateProposalUseCase
 import com.focx.domain.usecase.FinalizeProposalUseCase
 import com.focx.domain.usecase.GetCurrentWalletAddressUseCase
@@ -28,6 +29,7 @@ data class GovernanceUiState(
     val isLoadingMore: Boolean = false,
     val isRefreshing: Boolean = false,
     val isVoting: Boolean = false,
+    val isLoadingVotingProgress: Boolean = false,
     val error: String? = null,
     val stats: GovernanceStats = GovernanceStats(
         totalProposals = 0UL,
@@ -39,7 +41,9 @@ data class GovernanceUiState(
     val selectedTab: Int = 0,
     val currentPage: Int = 1,
     val hasMoreProposals: Boolean = true,
-    val showCreateProposalDialog: Boolean = false
+    val showCreateProposalDialog: Boolean = false,
+    val showVotingProgressDialog: Boolean = false,
+    val votingProgress: VotingProgress? = null
 )
 
 @HiltViewModel
@@ -442,5 +446,40 @@ class GovernanceViewModel @Inject constructor(
 
     fun hideCreateProposalDialog() {
         _uiState.value = _uiState.value.copy(showCreateProposalDialog = false)
+    }
+
+    fun showVotingProgressDialog() {
+        _uiState.value = _uiState.value.copy(showVotingProgressDialog = true)
+    }
+
+    fun hideVotingProgressDialog() {
+        _uiState.value = _uiState.value.copy(showVotingProgressDialog = false, votingProgress = null)
+    }
+
+    fun getVotingProgress(proposalId: ULong) {
+        viewModelScope.launch {
+            try {
+                _uiState.value = _uiState.value.copy(isLoadingVotingProgress = true, error = null)
+                
+                val result = getGovernanceDataUseCase.getVotingProgress(proposalId)
+                
+                if (result.isSuccess) {
+                    _uiState.value = _uiState.value.copy(
+                        votingProgress = result.getOrNull(),
+                        showVotingProgressDialog = true
+                    )
+                } else {
+                    _uiState.value = _uiState.value.copy(
+                        error = result.exceptionOrNull()?.message ?: "Failed to get voting progress"
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    error = "Failed to get voting progress: ${e.message}"
+                )
+            } finally {
+                _uiState.value = _uiState.value.copy(isLoadingVotingProgress = false)
+            }
+        }
     }
 }

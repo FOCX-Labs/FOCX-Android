@@ -171,6 +171,7 @@ dependencies {
     implementation(libs.bcprov.jdk15on)
     implementation("io.github.funkatronics:kborsh:0.1.1")
     implementation("com.ditchoom:buffer-jvm:1.4.2")
+    implementation("org.sol4k:sol4k:0.5.3")
 
     // Testing
     testImplementation(libs.junit)

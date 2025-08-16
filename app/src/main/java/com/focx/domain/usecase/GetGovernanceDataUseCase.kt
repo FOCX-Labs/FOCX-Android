@@ -4,6 +4,7 @@ import com.focx.domain.entity.Dispute
 import com.focx.domain.entity.GovernanceStats
 import com.focx.domain.entity.PlatformRule
 import com.focx.domain.entity.Proposal
+import com.focx.domain.entity.VotingProgress
 import com.focx.domain.repository.IGovernanceRepository
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
@@ -46,5 +47,9 @@ class GetGovernanceDataUseCase @Inject constructor(
 
     suspend fun voteOnDispute(disputeId: String, favorBuyer: Boolean): Result<Unit> {
         return governanceRepository.voteOnDispute(disputeId, favorBuyer)
+    }
+
+    suspend fun getVotingProgress(proposalId: ULong): Result<VotingProgress> {
+        return governanceRepository.getVotingProgress(proposalId)
     }
 }

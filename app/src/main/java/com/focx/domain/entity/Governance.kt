@@ -192,3 +192,17 @@ data class GovernanceConfig(
     /// PDA bump
     val bump: UByte
 )
+
+data class VotingProgress(
+    val proposalId: ULong,
+    /// Yes votes
+    val yesVotes: ULong,
+    /// No votes
+    val noVotes: ULong,
+    /// Abstain votes
+    val abstainVotes: ULong,
+    /// Veto votes
+    val vetoVotes: ULong,
+    /// Total votes
+    val totalVotes: ULong,
+)

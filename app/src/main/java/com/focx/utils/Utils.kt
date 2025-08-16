@@ -4,6 +4,7 @@ import com.focx.core.constants.AppConstants
 import com.focx.domain.usecase.SolanaTokenBalanceUseCase.InvalidAccountException
 import com.solana.publickey.SolanaPublicKey
 import com.solana.rpc.SolanaRpcClient
+import okhttp3.Connection
 import kotlin.collections.slice
 
 object Utils {

@@ -4,6 +4,7 @@ import com.focx.core.constants.AppConstants
 import com.focx.domain.entity.GovernanceConfig
 import com.focx.domain.entity.Proposal
 import com.focx.domain.entity.ProposalType
+import com.focx.domain.entity.VotingProgress
 import com.funkatronics.encoders.Base58
 import com.funkatronics.kborsh.Borsh
 import com.solana.publickey.ProgramDerivedAddress
@@ -361,5 +362,53 @@ object GovernanceUtils {
 
         Log.d(TAG, "getVoteAccounts: $result")
         return result
+    }
+
+    suspend fun calcVoteResult(
+        proposalId: ULong,
+        governanceConfig: GovernanceConfig,
+        solanaRpcClient: SolanaRpcClient): VotingProgress {
+        var yesVotes = 0UL
+        var noVotes  = 0UL
+        var abstainVotes  = 0UL
+        var vetoVotes  = 0UL
+        var totalVotes  = 0UL
+
+        val committeeMembers = governanceConfig.committeeMembers.filter { it -> it != null }
+
+        val powers = committeeMembers.map { it -> (Utils.getBalanceByOwnerAndMint(solanaRpcClient, it!!, governanceConfig.committeeTokenMint).toDouble() / 1e9).toULong()  }
+
+        val votePdas = committeeMembers.map { it -> getVotePda(proposalId, it!!) }
+
+        val accountInfos = solanaRpcClient.getMultipleAccounts(votePdas).result
+        accountInfos?.forEachIndexed { index, account ->
+            if (account != null && account.data != null) {
+                val pid = account.data!!.slice(8 until 16).foldIndexed(0UL) { index, acc, byte ->
+                    acc or ((byte.toULong() and 0xFFu) shl (index * 8))
+                }
+                Log.d(TAG, "account data : ${account.data!![40]}")
+                if (pid == proposalId) {
+                    val voteType = account.data!![48].toInt() and 0xFF
+                    Log.d(TAG, "${committeeMembers[index]} voteType: $voteType")
+                    when (voteType) {
+                        0 -> yesVotes += powers[index]
+                        1 -> noVotes += powers[index]
+                        2 -> abstainVotes += powers[index]
+                        3 -> vetoVotes += powers[index]
+                    }
+
+                }
+            }
+        }
+        totalVotes = yesVotes + noVotes + abstainVotes + vetoVotes
+
+        return VotingProgress(
+            proposalId,
+            yesVotes,
+            noVotes,
+            abstainVotes,
+            vetoVotes,
+            totalVotes
+        )
     }
 }

@@ -1,10 +1,8 @@
 package com.focx.data.datasource.mock
 
 import com.focx.domain.entity.*
-import com.solana.publickey.SolanaPublicKey
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
 import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
+import com.solana.publickey.SolanaPublicKey
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -127,6 +125,35 @@ class MockGovernanceDataSource @Inject constructor() {
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(Exception("Failed to vote on proposal: ${e.message}"))
+        }
+    }
+
+    suspend fun getVotingProgress(proposalId: ULong): Result<VotingProgress> {
+        return try {
+            // Simulate network delay
+            kotlinx.coroutines.delay(500)
+            
+            // Find the proposal
+            val proposal = mockGovernance.find { it.id == proposalId }
+                ?: return Result.failure(Exception("Proposal not found"))
+            
+            // Create mock voting progress
+            val totalVotes = proposal.yesVotes + proposal.noVotes + proposal.abstainVotes + proposal.vetoVotes
+            
+            val totalVotingPower = 10000.0 // Mock total voting power
+
+            val votingProgress = VotingProgress(
+                proposalId = proposalId,
+                totalVotes = totalVotes,
+                yesVotes = proposal.yesVotes,
+                noVotes = proposal.noVotes,
+                abstainVotes = proposal.abstainVotes,
+                vetoVotes = proposal.vetoVotes,
+            )
+            
+            Result.success(votingProgress)
+        } catch (e: Exception) {
+            Result.failure(Exception("Failed to get voting progress: ${e.message}"))
         }
     }
 }
