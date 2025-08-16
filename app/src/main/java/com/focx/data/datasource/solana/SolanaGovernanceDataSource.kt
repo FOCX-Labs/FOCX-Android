@@ -14,9 +14,11 @@ import com.focx.domain.entity.ProposalType
 import com.focx.domain.entity.Vote
 import com.focx.domain.entity.VoteOnProposalArgs
 import com.focx.domain.entity.VoteType
+import com.focx.domain.entity.VotingProgress
 import com.focx.domain.repository.IGovernanceRepository
 import com.focx.domain.usecase.RecentBlockhashUseCase
 import com.focx.utils.GovernanceUtils
+import com.focx.utils.GovernanceUtils.calcVoteResult
 import com.focx.utils.Log
 import com.focx.utils.ShopUtils
 import com.funkatronics.encoders.Base58
@@ -35,6 +37,7 @@ import com.solana.transaction.Transaction
 import com.solana.transaction.TransactionInstruction
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import org.sol4k.Connection
 import java.nio.ByteBuffer
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -46,7 +49,8 @@ import javax.inject.Singleton
 class SolanaGovernanceDataSource @Inject constructor(
     private val walletAdapter: MobileWalletAdapter,
     private val recentBlockhashUseCase: RecentBlockhashUseCase,
-    private val solanaRpcClient: SolanaRpcClient
+    private val solanaRpcClient: SolanaRpcClient,
+    private val sol4kConnection: Connection
 ) : IGovernanceRepository {
 
     companion object {
@@ -347,7 +351,7 @@ class SolanaGovernanceDataSource @Inject constructor(
 
             val result = walletAdapter.transact(activityResultSender) { authResult ->
                 val builder = Builder()
-                builder.addInstruction(genPreInstruction( 400_000))
+                builder.addInstruction(genPreInstruction(400_000))
 
                 // Generate finalize instruction
                 val config = GovernanceUtils.getGovernanceConfigManual(solanaRpcClient)
@@ -379,7 +383,11 @@ class SolanaGovernanceDataSource @Inject constructor(
                         AccountMeta(proposerTokenAccount, false, true),
                         AccountMeta(governanceTokenVault, false, true),
                         AccountMeta(governanceAuthority, false, false),
-                        AccountMeta(SolanaPublicKey.from(AppConstants.App.SPL_TOKEN_PROGRAM_ID), false, false)
+                        AccountMeta(
+                            SolanaPublicKey.from(AppConstants.App.SPL_TOKEN_PROGRAM_ID),
+                            false,
+                            false
+                        )
                     ) + memberTokenAccounts + voteAccounts + listOf(
                         AccountMeta(accountPubKey, true, true)
                     ),
@@ -609,4 +617,91 @@ class SolanaGovernanceDataSource @Inject constructor(
             Result.failure(Exception("Failed to initiate dispute: ${e.message}"))
         }
     }
+
+    override suspend fun getVotingProgress(proposalId: ULong): Result<VotingProgress> {
+        return try {
+            val config = GovernanceUtils.getGovernanceConfigManual(solanaRpcClient)
+            val result = calcVoteResult(proposalId, config!!, solanaRpcClient)
+            Log.d(TAG, "getVotingProgress: $result")
+
+            return Result.success(result)
+        } catch (e: Exception) {
+            Log.e(TAG, "getVotingProgress exception:", e)
+            Result.failure(Exception("Failed to get voting progress: ${e.message}"))
+        }
+    }
+
+//    override suspend fun getVotingProgress(proposalId: ULong): Result<VotingProgress> {
+//        return try {
+//            // Create instruction data with discriminator + proposal_id
+//            val discriminator = byteArrayOf(176.toByte(), 113.toByte(), 230.toByte(), 83.toByte(), 95.toByte(), 230.toByte(), 193.toByte(), 41.toByte())
+//            val proposalIdBytes = ByteBuffer.allocate(8).order(java.nio.ByteOrder.LITTLE_ENDIAN).putLong(proposalId.toLong()).array()
+//            val instructionData = discriminator + proposalIdBytes
+//
+//
+//            val keypair = Keypair.generate()
+//            val feePayer = keypair.publicKey
+//
+//            val instruction = org.sol4k.instruction.BaseInstruction(
+//                data = instructionData,
+//                keys = listOf(
+//                    org.sol4k.AccountMeta(
+//                        feePayer,
+//                        false,
+//                        false
+//                    ),
+//                    org.sol4k.AccountMeta(
+//                        PublicKey("SysvarC1ock11111111111111111111111111111111"),
+//                        false,
+//                        false
+//                    )
+//                ),
+//                programId = PublicKey(AppConstants.App.getGovernanceProgramId().base58())
+//            )
+//
+//            // Use withContext to ensure network operations run on IO dispatcher
+//            val blockhash = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+//                sol4kConnection.getLatestBlockhash()
+//            }
+//
+//            val message = TransactionMessage.newMessage(
+//                feePayer,
+//                blockhash,
+//                instruction
+//            )
+//
+//            val tx = VersionedTransaction(message)
+//            tx.sign(keypair)
+//
+//            val data = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+//                sol4kConnection.simulateTransaction(tx)
+//            }
+//
+//            Log.d(TAG, "simulateTransaction: $data")
+//
+//            return Result.failure(Exception("Not implemented")) // TODO: Implement blockchain governance
+//        } catch (e: Exception) {
+//            Log.e(TAG, "getVotingProgress exception:", e)
+//            Result.failure(Exception("Failed to get voting progress: ${e.message}"))
+//        }
+//    }
+
+    /**
+     * Parse voting power event data from simulation logs
+     * This method needs to be implemented based on the actual program event format
+     */
+    private fun parseVotingPowerEvent(logs: List<String>): VotingProgress? {
+        // TODO: Implement parsing logic based on actual program event format
+        // This should parse the logs and return a VotingProgress object, or null if parsing fails
+
+        Log.d(TAG, "Parsing voting power event from logs...")
+        logs.forEach { log ->
+            Log.d(TAG, "Log: $log")
+        }
+
+        // For now, return null to indicate fallback to traditional method is needed
+        return null
+    }
+
+
 }

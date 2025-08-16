@@ -70,6 +70,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import org.sol4k.Connection
 import javax.inject.Singleton
 
 @Module
@@ -196,9 +197,10 @@ object AppModule {
     fun provideGovernanceRepository(
         walletAdapter: MobileWalletAdapter,
         recentBlockhashUseCase: RecentBlockhashUseCase,
-        solanaRpcClient: SolanaRpcClient
+        solanaRpcClient: SolanaRpcClient,
+        sol4kConnection: Connection
     ): IGovernanceRepository {
-        return SolanaGovernanceDataSource(walletAdapter, recentBlockhashUseCase, solanaRpcClient)
+        return SolanaGovernanceDataSource(walletAdapter, recentBlockhashUseCase, solanaRpcClient, sol4kConnection)
     }
 
     @Provides
@@ -421,6 +423,13 @@ object AppModule {
         ktorHttpDriver: KtorHttpDriver
     ): SolanaRpcClient {
         return SolanaRpcClient(NetworkConfig.getRpcUrl(), ktorHttpDriver)
+    }
+
+    @Provides
+    @Singleton
+    fun provideSol4kConnection(
+    ): Connection {
+        return Connection(NetworkConfig.getRpcUrl())
     }
 
     @Provides

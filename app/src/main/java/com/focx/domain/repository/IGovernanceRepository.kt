@@ -7,6 +7,7 @@ import com.focx.domain.entity.Proposal
 import com.focx.domain.entity.ProposalType
 import com.focx.domain.entity.Vote
 import com.focx.domain.entity.VoteType
+import com.focx.domain.entity.VotingProgress
 import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
 import com.solana.publickey.SolanaPublicKey
 import kotlinx.coroutines.flow.Flow
@@ -51,4 +52,6 @@ interface IGovernanceRepository {
         buyerPubKey: SolanaPublicKey,
         activityResultSender: ActivityResultSender
     ): Result<Dispute>
+    
+    suspend fun getVotingProgress(proposalId: ULong): Result<VotingProgress>
 }
