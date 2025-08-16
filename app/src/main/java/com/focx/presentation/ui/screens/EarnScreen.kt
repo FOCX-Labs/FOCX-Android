@@ -58,6 +58,7 @@ import com.focx.presentation.ui.theme.Spacing
 import com.focx.presentation.viewmodel.EarnViewModel
 import com.focx.utils.TimeUtils
 import com.focx.utils.VaultUtils
+import com.focx.utils.VaultUtils.getUserAssetValue
 import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
 
 @OptIn(ExperimentalMaterialApi::class)
@@ -188,7 +189,12 @@ fun EarnScreen(
                                 )
                                 EarnStatCard(
                                     title = "My Position",
-                                    value = "${VaultUtils.getTotalPosition(uiState.vault, uiState.stakingInfo)}",
+                                    value = "${
+                                        VaultUtils.getTotalPosition(
+                                            uiState.vault,
+                                            uiState.stakingInfo
+                                        )
+                                    }",
                                     subtitle = "USDC",
                                     subtitleColor = Color(0xFF4CAF50),
                                     modifier = Modifier.weight(1f)
@@ -429,7 +435,7 @@ fun StakeTab(
             Spacer(modifier = Modifier.padding(horizontal = 8.dp))
 
             TextButton(
-                onClick = { 
+                onClick = {
                     val maxAmount = usdcBalance.toDouble() / 1_000_000_000.0
                     onAmountChange(String.format("%.2f", maxAmount))
                 }
@@ -527,7 +533,14 @@ fun UnstakeTab(
             Spacer(modifier = Modifier.padding(horizontal = 8.dp))
 
             TextButton(
-                onClick = { onAmountChange("500") }
+                onClick = {
+                    onAmountChange(
+                        String.format(
+                            "%.2f",
+                            getUserAssetValue(vault, stakingInfo).toDouble() / 1_000_000_000.0
+                        )
+                    )
+                }
             ) {
                 Text("Max")
             }
@@ -536,7 +549,7 @@ fun UnstakeTab(
         Spacer(modifier = Modifier.height(Spacing.small))
 
         Text(
-            text = "Staked: ${VaultUtils.getUserAssetValueString(vault,stakingInfo)} USDC",
+            text = "Staked: ${VaultUtils.getUserAssetValueString(vault, stakingInfo)} USDC",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -640,7 +653,13 @@ fun UnstakeTab(
 
                         if (isReady) {
                             Text(
-                                text = "${String.format("%.2f", VaultUtils.getPendingStakeValue(unstakeRequest).toDouble() / 1e9)} USDC",
+                                text = "${
+                                    String.format(
+                                        "%.2f",
+                                        VaultUtils.getPendingStakeValue(unstakeRequest)
+                                            .toDouble() / 1e9
+                                    )
+                                } USDC",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -663,12 +682,22 @@ fun UnstakeTab(
                             }
                         } else {
                             Text(
-                                text = "${String.format("%.2f", VaultUtils.getPendingStakeValue(unstakeRequest).toDouble() / 1e9)} USDC",
+                                text = "${
+                                    String.format(
+                                        "%.2f",
+                                        VaultUtils.getPendingStakeValue(unstakeRequest)
+                                            .toDouble() / 1e9
+                                    )
+                                } USDC",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
-                                text = "Available for withdrawal on: ${TimeUtils.formatExpiryTime(expiryTime)}",
+                                text = "Available for withdrawal on: ${
+                                    TimeUtils.formatExpiryTime(
+                                        expiryTime
+                                    )
+                                }",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
