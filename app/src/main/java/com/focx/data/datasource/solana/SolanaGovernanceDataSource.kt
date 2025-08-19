@@ -21,6 +21,7 @@ import com.focx.utils.GovernanceUtils
 import com.focx.utils.GovernanceUtils.calcVoteResult
 import com.focx.utils.Log
 import com.focx.utils.ShopUtils
+import com.focx.utils.Utils
 import com.funkatronics.encoders.Base58
 import com.funkatronics.kborsh.Borsh
 import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
@@ -216,12 +217,21 @@ class SolanaGovernanceDataSource @Inject constructor(
                 is TransactionResult.Success -> {
                     val signature = result.successPayload?.signatures?.first()
                     if (signature != null) {
+                        val signatureString = Base58.encodeToString(signature)
                         Log.d(
                             TAG,
-                            "Proposal created successfully: ${Base58.encodeToString(signature)}"
+                            "Proposal created successfully: $signatureString"
                         )
 
-                        Result.success(Unit)
+                        // Confirm transaction
+                        val confirmationResult = Utils.confirmTransaction(solanaRpcClient, signatureString)
+                        if (confirmationResult.isSuccess && confirmationResult.getOrNull() == true) {
+                            Log.d(TAG, "Transaction confirmed: $signatureString")
+                            Result.success(Unit)
+                        } else {
+                            Log.e(TAG, "Transaction confirmation failed: $signatureString")
+                            Result.failure(Exception("Transaction confirmation failed"))
+                        }
                     } else {
                         Log.e(
                             TAG,
@@ -307,12 +317,21 @@ class SolanaGovernanceDataSource @Inject constructor(
                 is TransactionResult.Success -> {
                     val signature = result.successPayload?.signatures?.first()
                     if (signature != null) {
+                        val signatureString = Base58.encodeToString(signature)
                         Log.d(
                             TAG,
-                            "Vote submitted successfully: ${Base58.encodeToString(signature)}"
+                            "Vote submitted successfully: $signatureString"
                         )
 
-                        Result.success(Unit)
+                        // Confirm transaction
+                        val confirmationResult = Utils.confirmTransaction(solanaRpcClient, signatureString)
+                        if (confirmationResult.isSuccess && confirmationResult.getOrNull() == true) {
+                            Log.d(TAG, "Transaction confirmed: $signatureString")
+                            Result.success(Unit)
+                        } else {
+                            Log.e(TAG, "Transaction confirmation failed: $signatureString")
+                            Result.failure(Exception("Transaction confirmation failed"))
+                        }
                     } else {
                         Log.e(
                             TAG,
@@ -416,12 +435,21 @@ class SolanaGovernanceDataSource @Inject constructor(
                 is TransactionResult.Success -> {
                     val signature = result.successPayload?.signatures?.first()
                     if (signature != null) {
+                        val signatureString = Base58.encodeToString(signature)
                         Log.d(
                             TAG,
-                            "Proposal finalized successfully: ${Base58.encodeToString(signature)}"
+                            "Proposal finalized successfully: $signatureString"
                         )
 
-                        Result.success(Unit)
+                        // Confirm transaction
+                        val confirmationResult = Utils.confirmTransaction(solanaRpcClient, signatureString)
+                        if (confirmationResult.isSuccess && confirmationResult.getOrNull() == true) {
+                            Log.d(TAG, "Transaction confirmed: $signatureString")
+                            Result.success(Unit)
+                        } else {
+                            Log.e(TAG, "Transaction confirmation failed: $signatureString")
+                            Result.failure(Exception("Transaction confirmation failed"))
+                        }
                     } else {
                         Log.e(
                             TAG,
@@ -567,28 +595,38 @@ class SolanaGovernanceDataSource @Inject constructor(
                 is TransactionResult.Success -> {
                     val signature = result.successPayload?.signatures?.first()
                     if (signature != null) {
+                        val signatureString = Base58.encodeToString(signature)
                         Log.d(
                             TAG,
-                            "Dispute initiated successfully: ${Base58.encodeToString(signature)}"
+                            "Dispute initiated successfully: $signatureString"
                         )
 
-                        val newDispute = Dispute(
-                            id = "dispute_${System.currentTimeMillis()}",
-                            title = "Order Dispute $orderId",
-                            buyer = buyerPubKey.toString(),
-                            order = orderId,
-                            amount = "299.99 USDC", // TODO: Get actual order amount
-                            submitted = SimpleDateFormat(
-                                "MM/dd/yyyy",
-                                Locale.US
-                            ).format(Date()),
-                            status = DisputeStatus.UNDER_REVIEW,
-                            daysRemaining = 7,
-                            evidenceSummary = "Buyer initiated dispute for order $orderId",
-                            communityVoting = null
-                        )
+                        // Confirm transaction
+                        val confirmationResult = Utils.confirmTransaction(solanaRpcClient, signatureString)
+                        if (confirmationResult.isSuccess && confirmationResult.getOrNull() == true) {
+                            Log.d(TAG, "Transaction confirmed: $signatureString")
+                            
+                            val newDispute = Dispute(
+                                id = "dispute_${System.currentTimeMillis()}",
+                                title = "Order Dispute $orderId",
+                                buyer = buyerPubKey.toString(),
+                                order = orderId,
+                                amount = "299.99 USDC", // TODO: Get actual order amount
+                                submitted = SimpleDateFormat(
+                                    "MM/dd/yyyy",
+                                    Locale.US
+                                ).format(Date()),
+                                status = DisputeStatus.UNDER_REVIEW,
+                                daysRemaining = 7,
+                                evidenceSummary = "Buyer initiated dispute for order $orderId",
+                                communityVoting = null
+                            )
 
-                        Result.success(newDispute)
+                            Result.success(newDispute)
+                        } else {
+                            Log.e(TAG, "Transaction confirmation failed: $signatureString")
+                            Result.failure(Exception("Transaction confirmation failed"))
+                        }
                     } else {
                         Log.e(
                             TAG,
