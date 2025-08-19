@@ -4,12 +4,42 @@ import com.focx.core.constants.AppConstants
 import com.focx.domain.usecase.SolanaTokenBalanceUseCase.InvalidAccountException
 import com.solana.publickey.SolanaPublicKey
 import com.solana.rpc.SolanaRpcClient
-import okhttp3.Connection
+import com.solana.rpc.TransactionOptions
 import kotlin.collections.slice
+import kotlinx.coroutines.withTimeout
 
 object Utils {
 
     private const val TAG = "Utils"
+
+    suspend fun confirmTransaction(
+        solanaRpcClient: SolanaRpcClient,
+        transactionSignature: String,
+        options: TransactionOptions = TransactionOptions()
+    ): Result<Boolean> = withTimeout(options.timeout) {
+        try {
+            Log.d(TAG, "Confirming transaction: $transactionSignature")
+            
+            val confirmationResult = solanaRpcClient.confirmTransaction(transactionSignature, options)
+            
+            if (confirmationResult.isSuccess) {
+                val confirmed = confirmationResult.getOrNull() ?: false
+                if (confirmed) {
+                    Log.d(TAG, "Transaction confirmed successfully: $transactionSignature")
+                    Result.success(true)
+                } else {
+                    Log.w(TAG, "Transaction confirmation failed: $transactionSignature")
+                    Result.success(false)
+                }
+            } else {
+                Log.e(TAG, "Transaction confirmation error: ${confirmationResult.exceptionOrNull()?.message}")
+                Result.failure(confirmationResult.exceptionOrNull() ?: Exception("Transaction confirmation failed"))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Exception during transaction confirmation: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
 
     suspend fun getBalanceByOwnerAndMint(
         solanaRpcClient: SolanaRpcClient,
