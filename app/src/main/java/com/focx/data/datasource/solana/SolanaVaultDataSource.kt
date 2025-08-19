@@ -11,6 +11,7 @@ import com.focx.domain.entity.VaultInfoWithStakers
 import com.focx.domain.usecase.RecentBlockhashUseCase
 import com.focx.utils.Log
 import com.focx.utils.ShopUtils
+import com.focx.utils.Utils
 import com.focx.utils.ShopUtils.genTransactionInstruction
 import com.focx.utils.VaultUtils
 import com.funkatronics.encoders.Base58
@@ -127,7 +128,16 @@ class SolanaVaultDataSource @Inject constructor(
                     if (signature != null) {
                         val signatureString = Base58.encodeToString(signature)
                         Log.d(TAG, "Stake USDC successful: $signatureString")
-                        emit(Result.success(signatureString))
+                        
+                        // Confirm transaction
+                        val confirmationResult = Utils.confirmTransaction(solanaRpcClient, signatureString)
+                        if (confirmationResult.isSuccess && confirmationResult.getOrNull() == true) {
+                            Log.d(TAG, "Transaction confirmed: $signatureString")
+                            emit(Result.success(signatureString))
+                        } else {
+                            Log.e(TAG, "Transaction confirmation failed: $signatureString")
+                            emit(Result.failure(Exception("Transaction confirmation failed")))
+                        }
                     } else {
                         Log.e(TAG, "No signature returned from stake transaction")
                         emit(Result.failure(Exception("No signature returned from transaction")))
@@ -257,7 +267,16 @@ class SolanaVaultDataSource @Inject constructor(
                     if (signature != null) {
                         val signatureString = Base58.encodeToString(signature)
                         Log.d(TAG, "Unstake USDC successful: $signatureString")
-                        emit(Result.success(signatureString))
+                        
+                        // Confirm transaction
+                        val confirmationResult = Utils.confirmTransaction(solanaRpcClient, signatureString)
+                        if (confirmationResult.isSuccess && confirmationResult.getOrNull() == true) {
+                            Log.d(TAG, "Transaction confirmed: $signatureString")
+                            emit(Result.success(signatureString))
+                        } else {
+                            Log.e(TAG, "Transaction confirmation failed: $signatureString")
+                            emit(Result.failure(Exception("Transaction confirmation failed")))
+                        }
                     } else {
                         Log.e(TAG, "No signature returned from unstake transaction")
                         emit(Result.failure(Exception("No signature returned from transaction")))
@@ -324,7 +343,16 @@ class SolanaVaultDataSource @Inject constructor(
                     if (signature != null) {
                         val signatureString = Base58.encodeToString(signature)
                         Log.d(TAG, "Initialize vault depositor successful: $signatureString")
-                        emit(Result.success(signatureString))
+                        
+                        // Confirm transaction
+                        val confirmationResult = Utils.confirmTransaction(solanaRpcClient, signatureString)
+                        if (confirmationResult.isSuccess && confirmationResult.getOrNull() == true) {
+                            Log.d(TAG, "Transaction confirmed: $signatureString")
+                            emit(Result.success(signatureString))
+                        } else {
+                            Log.e(TAG, "Transaction confirmation failed: $signatureString")
+                            emit(Result.failure(Exception("Transaction confirmation failed")))
+                        }
                     } else {
                         Log.e(TAG, "No signature returned from initialize transaction")
                         emit(Result.failure(Exception("No signature returned from transaction")))

@@ -24,6 +24,7 @@ import com.focx.domain.repository.IProductRepository
 import com.focx.domain.usecase.RecentBlockhashUseCase
 import com.focx.utils.Log
 import com.focx.utils.ShopUtils
+import com.focx.utils.Utils
 import com.focx.utils.ShopUtils.genTransactionInstruction
 import com.funkatronics.encoders.Base58
 import com.funkatronics.kborsh.Borsh
@@ -261,12 +262,22 @@ class SolanaProductDataSource @Inject constructor(
                 is TransactionResult.Success -> {
                     val signature = result.successPayload?.signatures?.first()
                     if (signature != null) {
+                        val signatureString = Base58.encodeToString(signature)
                         Log.d(
                             TAG,
-                            "Product saved successfully: ${Base58.encodeToString(signature)}"
+                            "Product saved successfully: $signatureString"
                         )
-                        // Add to local list only after successful blockchain transaction
-                        products.add(product)
+                        
+                        // Confirm transaction
+                        val confirmationResult = Utils.confirmTransaction(solanaRpcClient, signatureString)
+                        if (confirmationResult.isSuccess && confirmationResult.getOrNull() == true) {
+                            Log.d(TAG, "Transaction confirmed: $signatureString")
+                            // Add to local list only after successful blockchain transaction
+                            products.add(product)
+                        } else {
+                            Log.e(TAG, "Transaction confirmation failed: $signatureString")
+                            throw Exception("Transaction confirmation failed")
+                        }
                     } else {
                         Log.e(TAG, "No signature returned from saveProduct transaction")
                         throw Exception("No signature returned from transaction")
@@ -513,14 +524,24 @@ class SolanaProductDataSource @Inject constructor(
                 is TransactionResult.Success -> {
                     val signature = result.successPayload?.signatures?.first()
                     if (signature != null) {
+                        val signatureString = Base58.encodeToString(signature)
                         Log.d(
                             TAG,
-                            "Product updated successfully: ${Base58.encodeToString(signature)}"
+                            "Product updated successfully: $signatureString"
                         )
-                        // Update local list only after successful blockchain transaction
-                        val index = products.indexOfFirst { it.id == product.id }
-                        if (index != -1) {
-                            products[index] = product
+                        
+                        // Confirm transaction
+                        val confirmationResult = Utils.confirmTransaction(solanaRpcClient, signatureString)
+                        if (confirmationResult.isSuccess && confirmationResult.getOrNull() == true) {
+                            Log.d(TAG, "Transaction confirmed: $signatureString")
+                            // Update local list only after successful blockchain transaction
+                            val index = products.indexOfFirst { it.id == product.id }
+                            if (index != -1) {
+                                products[index] = product
+                            }
+                        } else {
+                            Log.e(TAG, "Transaction confirmation failed: $signatureString")
+                            throw Exception("Transaction confirmation failed")
                         }
                     } else {
                         Log.e(TAG, "No signature returned from updateProduct transaction")
@@ -586,12 +607,22 @@ class SolanaProductDataSource @Inject constructor(
                 is TransactionResult.Success -> {
                     val signature = result.successPayload?.signatures?.first()
                     if (signature != null) {
+                        val signatureString = Base58.encodeToString(signature)
                         Log.d(
                             TAG,
-                            "Product deleted successfully: ${Base58.encodeToString(signature)}"
+                            "Product deleted successfully: $signatureString"
                         )
-                        // Remove from local list only after successful blockchain transaction
-                        products.removeAll { it.id == productId }
+                        
+                        // Confirm transaction
+                        val confirmationResult = Utils.confirmTransaction(solanaRpcClient, signatureString)
+                        if (confirmationResult.isSuccess && confirmationResult.getOrNull() == true) {
+                            Log.d(TAG, "Transaction confirmed: $signatureString")
+                            // Remove from local list only after successful blockchain transaction
+                            products.removeAll { it.id == productId }
+                        } else {
+                            Log.e(TAG, "Transaction confirmation failed: $signatureString")
+                            throw Exception("Transaction confirmation failed")
+                        }
                     } else {
                         Log.e(TAG, "No signature returned from deleteProduct transaction")
                         throw Exception("No signature returned from transaction")

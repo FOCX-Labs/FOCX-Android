@@ -11,6 +11,7 @@ import com.focx.domain.repository.IOrderRepository
 import com.focx.domain.usecase.RecentBlockhashUseCase
 import com.focx.utils.Log
 import com.focx.utils.ShopUtils
+import com.focx.utils.Utils
 import com.funkatronics.kborsh.Borsh
 import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
 import com.solana.mobilewalletadapter.clientlib.MobileWalletAdapter
@@ -103,33 +104,43 @@ class SolanaOrderDataSource @Inject constructor(
                 is TransactionResult.Success -> {
                     val signature = result.successPayload?.signatures?.first()
                     if (signature != null) {
-                        Log.d("SolanaOrder", "Order created successfully: $signature")
-                        Result.success(
-                            Order(
-                                id = java.util.UUID.randomUUID().toString(),
-                                buyerId = buyer,
-                                sellerId = product.sellerId,
-                                sellerName = product.sellerName,
-                                items = listOf(
-                                    com.focx.domain.entity.OrderItem(
-                                        id = java.util.UUID.randomUUID().toString(),
-                                        productId = product.id.toString(),
-                                        productName = product.name,
-                                        productImage = product.imageUrls.firstOrNull() ?: "",
-                                        quantity = quantity.toInt(),
-                                        unitPrice = product.price.toDouble(),
-                                        totalPrice = product.price.toDouble() * quantity.toDouble()
-                                    )
-                                ),
-                                totalAmount = product.price.toDouble() * quantity.toDouble(),
-                                currency = product.currency,
-                                status = OrderManagementStatus.Pending,
-                                shippingAddress = shippingAddress,
-                                orderNote = orderNote,
-                                paymentMethod = "USDC",
-                                transactionHash = signature.toString()
+                        val signatureString = signature.toString()
+                        Log.d("SolanaOrder", "Order created successfully: $signatureString")
+                        
+                        // Confirm transaction
+                        val confirmationResult = Utils.confirmTransaction(solanaRpcClient, signatureString)
+                        if (confirmationResult.isSuccess && confirmationResult.getOrNull() == true) {
+                            Log.d("SolanaOrder", "Transaction confirmed: $signatureString")
+                            Result.success(
+                                Order(
+                                    id = java.util.UUID.randomUUID().toString(),
+                                    buyerId = buyer,
+                                    sellerId = product.sellerId,
+                                    sellerName = product.sellerName,
+                                    items = listOf(
+                                        com.focx.domain.entity.OrderItem(
+                                            id = java.util.UUID.randomUUID().toString(),
+                                            productId = product.id.toString(),
+                                            productName = product.name,
+                                            productImage = product.imageUrls.firstOrNull() ?: "",
+                                            quantity = quantity.toInt(),
+                                            unitPrice = product.price.toDouble(),
+                                            totalPrice = product.price.toDouble() * quantity.toDouble()
+                                        )
+                                    ),
+                                    totalAmount = product.price.toDouble() * quantity.toDouble(),
+                                    currency = product.currency,
+                                    status = OrderManagementStatus.Pending,
+                                    shippingAddress = shippingAddress,
+                                    orderNote = orderNote,
+                                    paymentMethod = "USDC",
+                                    transactionHash = signatureString
+                                )
                             )
-                        )
+                        } else {
+                            Log.e("SolanaOrder", "Transaction confirmation failed: $signatureString")
+                            Result.failure(Exception("Transaction confirmation failed"))
+                        }
                     } else {
                         Log.e("SolanaOrder", "No signature returned from createOrder transaction")
                         Result.failure(Exception("No signature returned from transaction"))
@@ -319,8 +330,18 @@ class SolanaOrderDataSource @Inject constructor(
                 is TransactionResult.Success -> {
                     val signature = result.successPayload?.signatures?.first()
                     if (signature != null) {
-                        Log.d("SolanaOrder", "Tracking number updated successfully: $signature")
-                        Result.success(Unit)
+                        val signatureString = signature.toString()
+                        Log.d("SolanaOrder", "Tracking number updated successfully: $signatureString")
+                        
+                        // Confirm transaction
+                        val confirmationResult = Utils.confirmTransaction(solanaRpcClient, signatureString)
+                        if (confirmationResult.isSuccess && confirmationResult.getOrNull() == true) {
+                            Log.d("SolanaOrder", "Transaction confirmed: $signatureString")
+                            Result.success(Unit)
+                        } else {
+                            Log.e("SolanaOrder", "Transaction confirmation failed: $signatureString")
+                            Result.failure(Exception("Transaction confirmation failed"))
+                        }
                     } else {
                         Log.e(
                             "SolanaOrder",
@@ -413,8 +434,18 @@ class SolanaOrderDataSource @Inject constructor(
                 is TransactionResult.Success -> {
                     val signature = result.successPayload?.signatures?.first()
                     if (signature != null) {
-                        Log.d("SolanaOrder", "Receipt confirmed successfully: $signature")
-                        Result.success(Unit)
+                        val signatureString = signature.toString()
+                        Log.d("SolanaOrder", "Receipt confirmed successfully: $signatureString")
+                        
+                        // Confirm transaction
+                        val confirmationResult = Utils.confirmTransaction(solanaRpcClient, signatureString)
+                        if (confirmationResult.isSuccess && confirmationResult.getOrNull() == true) {
+                            Log.d("SolanaOrder", "Transaction confirmed: $signatureString")
+                            Result.success(Unit)
+                        } else {
+                            Log.e("SolanaOrder", "Transaction confirmation failed: $signatureString")
+                            Result.failure(Exception("Transaction confirmation failed"))
+                        }
                     } else {
                         Log.e(
                             "SolanaOrder",
