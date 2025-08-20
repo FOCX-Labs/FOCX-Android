@@ -315,11 +315,7 @@ fun EarnScreen(
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         Button(
-                            onClick = {
-                                if (true !== uiState.error?.startsWith("Transaction failed:")) {
-                                    viewModel.loadEarnData()
-                                }
-                            }
+                            onClick = { viewModel.clearError() }
                         ) {
                             Text("Retry")
                         }
