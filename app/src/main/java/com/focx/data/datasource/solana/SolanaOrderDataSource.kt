@@ -12,6 +12,7 @@ import com.focx.domain.usecase.RecentBlockhashUseCase
 import com.focx.utils.Log
 import com.focx.utils.ShopUtils
 import com.focx.utils.Utils
+import com.funkatronics.encoders.Base58
 import com.funkatronics.kborsh.Borsh
 import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
 import com.solana.mobilewalletadapter.clientlib.MobileWalletAdapter
@@ -104,7 +105,7 @@ class SolanaOrderDataSource @Inject constructor(
                 is TransactionResult.Success -> {
                     val signature = result.successPayload?.signatures?.first()
                     if (signature != null) {
-                        val signatureString = signature.toString()
+                        val signatureString = Base58.encodeToString(signature)
                         Log.d("SolanaOrder", "Order created successfully: $signatureString")
                         
                         // Confirm transaction
@@ -330,7 +331,7 @@ class SolanaOrderDataSource @Inject constructor(
                 is TransactionResult.Success -> {
                     val signature = result.successPayload?.signatures?.first()
                     if (signature != null) {
-                        val signatureString = signature.toString()
+                        val signatureString = Base58.encodeToString(signature)
                         Log.d("SolanaOrder", "Tracking number updated successfully: $signatureString")
                         
                         // Confirm transaction
@@ -434,7 +435,7 @@ class SolanaOrderDataSource @Inject constructor(
                 is TransactionResult.Success -> {
                     val signature = result.successPayload?.signatures?.first()
                     if (signature != null) {
-                        val signatureString = signature.toString()
+                        val signatureString = Base58.encodeToString(signature)
                         Log.d("SolanaOrder", "Receipt confirmed successfully: $signatureString")
                         
                         // Confirm transaction
