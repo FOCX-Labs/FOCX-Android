@@ -190,7 +190,7 @@ class ProductListViewModel @Inject constructor(
                             if (product != null) {
                                 Log.d("ProductListViewModel", "Successfully loaded product: ${product.name}, price: ${product.price}")
                                 // Add the product to both products and filteredProducts lists
-                                val updatedProducts = (_state.value.products + product).distinctBy { it.id }
+                                val updatedProducts = (listOf(product) + _state.value.products).distinctBy { it.id }
                                 val updatedFilteredProducts = (_state.value.filteredProducts + product).distinctBy { it.id }
                                 Log.d("ProductListViewModel", "Updated products list size: ${updatedProducts.size}, filtered products size: ${updatedFilteredProducts.size}")
                                 _state.value = _state.value.copy(
