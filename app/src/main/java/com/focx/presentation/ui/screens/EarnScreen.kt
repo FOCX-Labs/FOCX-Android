@@ -82,237 +82,243 @@ fun EarnScreen(
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
-        if (uiState.isLoading) {
-            Box(
+        val pullRefreshState = rememberPullRefreshState(
+            refreshing = uiState.isLoading,
+            onRefresh = { viewModel.loadEarnData() }
+        )
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .pullRefresh(pullRefreshState)
+        ) {
+            LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues),
-                contentAlignment = Alignment.Center
+                    .padding(horizontal = Spacing.medium),
+                verticalArrangement = Arrangement.spacedBy(Spacing.medium)
             ) {
-                androidx.compose.material3.CircularProgressIndicator()
-            }
-        } else if (uiState.error != null) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = "Error",
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = MaterialTheme.colorScheme.error
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = uiState.error ?: "Unknown error",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Button(
-                        onClick = { viewModel.loadEarnData() }
-                    ) {
-                        Text("Retry")
-                    }
+                item {
+                    Spacer(modifier = Modifier.height(Spacing.small))
                 }
-            }
-        } else {
-            val pullRefreshState = rememberPullRefreshState(
-                refreshing = uiState.isLoading,
-                onRefresh = { viewModel.loadEarnData() }
-            )
 
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .pullRefresh(pullRefreshState)
-            ) {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = Spacing.medium),
-                    verticalArrangement = Arrangement.spacedBy(Spacing.medium)
-                ) {
-                    item {
-                        Spacer(modifier = Modifier.height(Spacing.small))
-                    }
-
-                    // Statistics Cards
-                    item {
-                        Column(
-                            verticalArrangement = Arrangement.spacedBy(Spacing.medium)
+                // Statistics Cards
+                item {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(Spacing.medium)
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.medium),
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(Spacing.medium),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                EarnStatCard(
-                                    title = "Total Value Locked",
-                                    value = uiState.vault?.let {
-                                        "${
-                                            String.format(
-                                                "%.0fK",
-                                                it.totalAssets.toDouble() / 1_000_000_000.0 / 1000
-                                            )
-                                        }"
-                                    } ?: "$0K",
-                                    subtitle = "USDC",
-                                    subtitleColor = Color(0xFF4CAF50),
-                                    modifier = Modifier.weight(1f)
-                                )
-                                EarnStatCard(
-                                    title = "Current APY",
-                                    value = uiState.vault?.let {
-                                        val apy = VaultUtils.calculateApy(it)
-                                        "${String.format("%.1f", apy)}%"
-                                    } ?: "0.0%",
-                                    subtitle = "Compound interest",
-                                    subtitleColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(Spacing.medium),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                EarnStatCard(
-                                    title = "Total Stakers",
-                                    value = uiState.totalStakers.toString(),
-                                    subtitle = "Active participants",
-                                    subtitleColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.weight(1f)
-                                )
-                                EarnStatCard(
-                                    title = "My Position",
-                                    value = "${
-                                        VaultUtils.getTotalPosition(
-                                            uiState.vault,
-                                            uiState.stakingInfo
+                            EarnStatCard(
+                                title = "Total Value Locked",
+                                value = uiState.vault?.let {
+                                    "${
+                                        String.format(
+                                            "%.0fK",
+                                            it.totalAssets.toDouble() / 1_000_000_000.0 / 1000
                                         )
-                                    }",
-                                    subtitle = "USDC",
-                                    subtitleColor = Color(0xFF4CAF50),
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
+                                    }"
+                                } ?: "$0K",
+                                subtitle = "USDC",
+                                subtitleColor = Color(0xFF4CAF50),
+                                modifier = Modifier.weight(1f)
+                            )
+                            EarnStatCard(
+                                title = "Current APY",
+                                value = uiState.vault?.let {
+                                    val apy = VaultUtils.calculateApy(it)
+                                    "${String.format("%.1f", apy)}%"
+                                } ?: "0.0%",
+                                subtitle = "Compound interest",
+                                subtitleColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.medium),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            EarnStatCard(
+                                title = "Total Stakers",
+                                value = uiState.totalStakers.toString(),
+                                subtitle = "Active participants",
+                                subtitleColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.weight(1f)
+                            )
+                            EarnStatCard(
+                                title = "My Position",
+                                value = "${
+                                    VaultUtils.getTotalPosition(
+                                        uiState.vault,
+                                        uiState.stakingInfo
+                                    )
+                                }",
+                                subtitle = "USDC",
+                                subtitleColor = Color(0xFF4CAF50),
+                                modifier = Modifier.weight(1f)
+                            )
                         }
                     }
+                }
 
-                    // Stake/Unstake Section
-                    item {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant
-                            ),
-                            shape = RoundedCornerShape(16.dp)
+                // Stake/Unstake Section
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant
+                        ),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(Spacing.medium)
                         ) {
-                            Column(
-                                modifier = Modifier.padding(Spacing.medium)
+                            TabRow(
+                                selectedTabIndex = selectedTab,
+                                containerColor = Color.Transparent,
+                                contentColor = MaterialTheme.colorScheme.primary
                             ) {
-                                TabRow(
-                                    selectedTabIndex = selectedTab,
-                                    containerColor = Color.Transparent,
-                                    contentColor = MaterialTheme.colorScheme.primary
-                                ) {
-                                    tabs.forEachIndexed { index, title ->
-                                        Tab(
-                                            selected = selectedTab == index,
-                                            onClick = { selectedTab = index },
-                                            text = {
-                                                Text(
-                                                    text = title,
-                                                    fontWeight = if (selectedTab == index) FontWeight.Bold else FontWeight.Normal
-                                                )
-                                            }
-                                        )
-                                    }
-                                }
-
-                                Spacer(modifier = Modifier.height(Spacing.medium))
-
-                                when (selectedTab) {
-                                    0 -> StakeTab(
-                                        amount = stakeAmount,
-                                        onAmountChange = { stakeAmount = it },
-                                        vault = uiState.vault,
-                                        stakingInfo = uiState.stakingInfo,
-                                        usdcBalance = uiState.usdcBalance,
-                                        onStakeClick = { amount ->
-                                            amount.toDoubleOrNull()?.let { doubleAmount ->
-                                                if (doubleAmount > 0) {
-                                                    // Convert USDC amount to smallest unit (1 USDC = 1,000,000 units)
-                                                    val usdcAmount =
-                                                        (doubleAmount * 1_000_000_000).toULong()
-                                                    viewModel.stakeUsdc(
-                                                        usdcAmount,
-                                                        activityResultSender
-                                                    )
-                                                }
-                                            }
+                                tabs.forEachIndexed { index, title ->
+                                    Tab(
+                                        selected = selectedTab == index,
+                                        onClick = { selectedTab = index },
+                                        text = {
+                                            Text(
+                                                text = title,
+                                                fontWeight = if (selectedTab == index) FontWeight.Bold else FontWeight.Normal
+                                            )
                                         }
                                     )
+                                }
+                            }
 
-                                    1 -> UnstakeTab(
-                                        amount = unstakeAmount,
-                                        onAmountChange = { unstakeAmount = it },
-                                        stakingInfo = uiState.stakingInfo,
-                                        vault = uiState.vault,
-                                        onRequestUnstakeClick = { amount ->
-                                            amount.toDoubleOrNull()?.let { doubleAmount ->
-                                                if (doubleAmount > 0) {
-                                                    // Convert USDC amount to smallest unit (1 USDC = 1,000,000 units)
-                                                    val usdcAmount =
-                                                        (doubleAmount * 1_000_000_000).toULong()
-                                                    viewModel.requestUnstakeUsdc(
-                                                        usdcAmount,
-                                                        activityResultSender
-                                                    )
-                                                }
-                                            }
-                                        },
-                                        onUnstakeClick = { amount ->
-                                            amount.toDoubleOrNull()?.let { doubleAmount ->
+                            Spacer(modifier = Modifier.height(Spacing.medium))
+
+                            when (selectedTab) {
+                                0 -> StakeTab(
+                                    amount = stakeAmount,
+                                    onAmountChange = { stakeAmount = it },
+                                    vault = uiState.vault,
+                                    stakingInfo = uiState.stakingInfo,
+                                    usdcBalance = uiState.usdcBalance,
+                                    onStakeClick = { amount ->
+                                        amount.toDoubleOrNull()?.let { doubleAmount ->
+                                            if (doubleAmount > 0) {
                                                 // Convert USDC amount to smallest unit (1 USDC = 1,000,000 units)
                                                 val usdcAmount =
                                                     (doubleAmount * 1_000_000_000).toULong()
-                                                viewModel.unstakeUsdc(
+                                                viewModel.stakeUsdc(
                                                     usdcAmount,
                                                     activityResultSender
                                                 )
                                             }
                                         }
-                                    )
-                                }
+                                    }
+                                )
+
+                                1 -> UnstakeTab(
+                                    amount = unstakeAmount,
+                                    onAmountChange = { unstakeAmount = it },
+                                    stakingInfo = uiState.stakingInfo,
+                                    vault = uiState.vault,
+                                    onRequestUnstakeClick = { amount ->
+                                        amount.toDoubleOrNull()?.let { doubleAmount ->
+                                            if (doubleAmount > 0) {
+                                                // Convert USDC amount to smallest unit (1 USDC = 1,000,000 units)
+                                                val usdcAmount =
+                                                    (doubleAmount * 1_000_000_000).toULong()
+                                                viewModel.requestUnstakeUsdc(
+                                                    usdcAmount,
+                                                    activityResultSender
+                                                )
+                                            }
+                                        }
+                                    },
+                                    onUnstakeClick = { amount ->
+                                        amount.toDoubleOrNull()?.let { doubleAmount ->
+                                            // Convert USDC amount to smallest unit (1 USDC = 1,000,000 units)
+                                            val usdcAmount =
+                                                (doubleAmount * 1_000_000_000).toULong()
+                                            viewModel.unstakeUsdc(
+                                                usdcAmount,
+                                                activityResultSender
+                                            )
+                                        }
+                                    }
+                                )
                             }
                         }
                     }
+                }
 
-                    // Vault Information
-                    item {
-                        VaultInformationCard(vault = uiState.vault)
-                    }
+                // Vault Information
+                item {
+                    VaultInformationCard(vault = uiState.vault)
+                }
 
-                    // Recent Activity
+                // Recent Activity
 //            item {
 //                RecentActivityCard(activities = uiState.stakeActivities)
 //            }
 
-                    item {
-                        Spacer(modifier = Modifier.height(80.dp))
+                item {
+                    Spacer(modifier = Modifier.height(80.dp))
+                }
+            }
+
+            PullRefreshIndicator(
+                refreshing = uiState.isLoading,
+                state = pullRefreshState,
+                modifier = Modifier.align(Alignment.TopCenter)
+            )
+
+            if (uiState.isLoading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    androidx.compose.material3.CircularProgressIndicator()
+                }
+            }
+
+            if (uiState.error != null) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "Error",
+                            style = MaterialTheme.typography.headlineMedium,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = uiState.error ?: "Unknown error",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(
+                            onClick = { viewModel.loadEarnData() }
+                        ) {
+                            Text("Retry")
+                        }
                     }
                 }
-
-                PullRefreshIndicator(
-                    refreshing = uiState.isLoading,
-                    state = pullRefreshState,
-                    modifier = Modifier.align(Alignment.TopCenter)
-                )
             }
         }
 
