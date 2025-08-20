@@ -83,7 +83,7 @@ fun EarnScreen(
         containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         val pullRefreshState = rememberPullRefreshState(
-            refreshing = uiState.isLoading,
+            refreshing = false,
             onRefresh = { viewModel.loadEarnData() }
         )
 
@@ -269,12 +269,14 @@ fun EarnScreen(
                 }
             }
 
+            // Show PullRefreshIndicator for pull-to-refresh
             PullRefreshIndicator(
-                refreshing = uiState.isLoading,
+                refreshing = false,
                 state = pullRefreshState,
                 modifier = Modifier.align(Alignment.TopCenter)
             )
 
+            // Show full screen loading only for initial load
             if (uiState.isLoading) {
                 Box(
                     modifier = Modifier
@@ -313,7 +315,11 @@ fun EarnScreen(
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         Button(
-                            onClick = { viewModel.loadEarnData() }
+                            onClick = {
+                                if (true !== uiState.error?.startsWith("Transaction failed:")) {
+                                    viewModel.loadEarnData()
+                                }
+                            }
                         ) {
                             Text("Retry")
                         }
