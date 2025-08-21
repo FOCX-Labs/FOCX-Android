@@ -783,7 +783,7 @@ fun VaultInformationCard(vault: Vault?) {
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "Insurance Holders",
+                    text = "Stakers",
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Text(
