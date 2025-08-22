@@ -88,6 +88,14 @@ fun SoldOrderDetailScreen(
         }
     }
 
+    // Show error message when tracking update fails
+    LaunchedEffect(state.trackingUpdateError) {
+        state.trackingUpdateError?.let { error ->
+            Toast.makeText(context, error, Toast.LENGTH_LONG).show()
+            viewModel.clearTrackingUpdateError()
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -167,7 +175,8 @@ fun SoldOrderDetailScreen(
                             },
                             onAddTrackingNumber = { trackingNumber ->
                                 viewModel.updateTrackingNumber(order.id, trackingNumber, activityResultSender)
-                            }
+                            },
+                            isUpdatingTracking = state.isUpdatingTracking
                         )
                     }
 
@@ -235,7 +244,8 @@ fun OrderStatusCard(
     trackingNumber: String?,
     estimatedDelivery: String?,
     modifier: Modifier = Modifier,
-    onAddTrackingNumber: ((String) -> Unit)? = null
+    onAddTrackingNumber: ((String) -> Unit)? = null,
+    isUpdatingTracking: Boolean = false
 ) {
     var showTrackingDialog by remember { mutableStateOf(false) }
     var inputTrackingNumber by remember { mutableStateOf("") }
@@ -299,9 +309,20 @@ fun OrderStatusCard(
                 Spacer(modifier = Modifier.height(Spacing.medium))
                 Button(
                     onClick = { showTrackingDialog = true },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isUpdatingTracking
                 ) {
-                    Text("Add Tracking Number")
+                    if (isUpdatingTracking) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            strokeWidth = 2.dp
+                        )
+                        Spacer(modifier = Modifier.width(Spacing.small))
+                        Text("Updating...")
+                    } else {
+                        Text("Add Tracking Number")
+                    }
                 }
             }
         }
@@ -311,8 +332,10 @@ fun OrderStatusCard(
     if (showTrackingDialog) {
         AlertDialog(
             onDismissRequest = { 
-                showTrackingDialog = false
-                inputTrackingNumber = ""
+                if (!isUpdatingTracking) {
+                    showTrackingDialog = false
+                    inputTrackingNumber = ""
+                }
             },
             title = {
                 Text("Add Tracking Number")
@@ -329,7 +352,8 @@ fun OrderStatusCard(
                         onValueChange = { inputTrackingNumber = it },
                         label = { Text("Tracking Number") },
                         modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
+                        singleLine = true,
+                        enabled = !isUpdatingTracking
                     )
                 }
             },
@@ -342,9 +366,19 @@ fun OrderStatusCard(
                             inputTrackingNumber = ""
                         }
                     },
-                    enabled = inputTrackingNumber.isNotBlank()
+                    enabled = inputTrackingNumber.isNotBlank() && !isUpdatingTracking
                 ) {
-                    Text("确定")
+                    if (isUpdatingTracking) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            color = MaterialTheme.colorScheme.primary,
+                            strokeWidth = 2.dp
+                        )
+                        Spacer(modifier = Modifier.width(Spacing.small))
+                        Text("Updating...")
+                    } else {
+                        Text("Confirm")
+                    }
                 }
             },
             dismissButton = {
@@ -352,9 +386,10 @@ fun OrderStatusCard(
                     onClick = {
                         showTrackingDialog = false
                         inputTrackingNumber = ""
-                    }
+                    },
+                    enabled = !isUpdatingTracking
                 ) {
-                    Text("取消")
+                    Text("Cancel")
                 }
             }
         )

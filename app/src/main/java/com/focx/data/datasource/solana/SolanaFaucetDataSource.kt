@@ -6,6 +6,7 @@ import com.focx.core.network.NetworkConfig
 import com.focx.domain.usecase.RecentBlockhashUseCase
 import com.focx.utils.Log
 import com.focx.utils.ShopUtils
+import com.focx.utils.Utils
 import com.focx.utils.ShopUtils.genTransactionInstruction
 import com.funkatronics.kborsh.Borsh
 import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
@@ -93,7 +94,16 @@ class SolanaFaucetDataSource @Inject constructor(
                         val signatureString =
                             com.funkatronics.encoders.Base58.encodeToString(signature)
                         Log.d(TAG, "USDC faucet successful: $signatureString")
-                        emit(Result.success(signatureString))
+                        
+                        // Confirm transaction
+                        val confirmationResult = Utils.confirmTransaction(solanaRpcClient, signatureString)
+                        if (confirmationResult.isSuccess && confirmationResult.getOrNull() == true) {
+                            Log.d(TAG, "Transaction confirmed: $signatureString")
+                            emit(Result.success(signatureString))
+                        } else {
+                            Log.e(TAG, "Transaction confirmation failed: $signatureString")
+                            emit(Result.failure(Exception("Transaction confirmation failed")))
+                        }
                     } else {
                         Log.e(TAG, "No signature returned from USDC faucet transaction")
                         emit(Result.failure(Exception("No signature returned from transaction")))

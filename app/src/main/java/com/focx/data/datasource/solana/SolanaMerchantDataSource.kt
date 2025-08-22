@@ -14,6 +14,7 @@ import com.focx.domain.usecase.RecentBlockhashUseCase
 import com.focx.utils.DebugUtils
 import com.focx.utils.Log
 import com.focx.utils.ShopUtils
+import com.focx.utils.Utils
 import com.focx.utils.ShopUtils.genTransactionInstruction
 import com.focx.utils.ShopUtils.getAssociatedTokenAddress
 import com.focx.utils.ShopUtils.getDepositEscrowPda
@@ -111,15 +112,27 @@ class SolanaMerchantDataSource @Inject constructor(
                 is TransactionResult.Success -> {
                     val signature = result.successPayload?.signatures?.first()
                     if (signature != null) {
+                        val signatureString = Base58.encodeToString(signature)
                         Log.d(
                             TAG,
-                            "Anchor registration successful: ${Base58.encodeToString(signature)}"
+                            "Anchor registration successful: $signatureString"
                         )
-                        MerchantRegistrationResult(
-                            success = true,
-                            transactionSignature = Base58.encodeToString(signature),
-                            merchantAccount = merchantRegistration.merchantPublicKey
-                        )
+                        
+                        // Confirm transaction
+                        val confirmationResult = Utils.confirmTransaction(solanaRpcClient, signatureString)
+                        if (confirmationResult.isSuccess && confirmationResult.getOrNull() == true) {
+                            Log.d(TAG, "Transaction confirmed: $signatureString")
+                            MerchantRegistrationResult(
+                                success = true,
+                                transactionSignature = signatureString,
+                                merchantAccount = merchantRegistration.merchantPublicKey
+                            )
+                        } else {
+                            Log.e(TAG, "Transaction confirmation failed: $signatureString")
+                            MerchantRegistrationResult(
+                                success = false, errorMessage = "Transaction confirmation failed"
+                            )
+                        }
                     } else {
                         MerchantRegistrationResult(
                             success = false, errorMessage = "No signature returned from transaction"
@@ -326,13 +339,28 @@ class SolanaMerchantDataSource @Inject constructor(
                 is TransactionResult.Success -> {
                     val signature = result.successPayload?.signatures?.first()
                     if (signature != null) {
-                        Log.d(TAG, "Deposit successful: ${Base58.encodeToString(signature)}")
-                        MerchantRegistrationResult(
-                            success = true,
-                            transactionSignature = Base58.encodeToString(signature),
-                            merchantAccount = merchantAccount,
-                            errorMessage = null
-                        )
+                        val signatureString = Base58.encodeToString(signature)
+                        Log.d(TAG, "Deposit successful: $signatureString")
+                        
+                        // Confirm transaction
+                        val confirmationResult = Utils.confirmTransaction(solanaRpcClient, signatureString)
+                        if (confirmationResult.isSuccess && confirmationResult.getOrNull() == true) {
+                            Log.d(TAG, "Transaction confirmed: $signatureString")
+                            MerchantRegistrationResult(
+                                success = true,
+                                transactionSignature = signatureString,
+                                merchantAccount = merchantAccount,
+                                errorMessage = null
+                            )
+                        } else {
+                            Log.e(TAG, "Transaction confirmation failed: $signatureString")
+                            MerchantRegistrationResult(
+                                success = false,
+                                transactionSignature = null,
+                                merchantAccount = null,
+                                errorMessage = "Transaction confirmation failed"
+                            )
+                        }
                     } else {
                         MerchantRegistrationResult(
                             success = false,
