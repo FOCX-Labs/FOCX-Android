@@ -13,7 +13,6 @@ import com.focx.domain.usecase.GetCurrentUserUseCase
 import com.focx.domain.usecase.GetStakingInfoUseCase
 import com.focx.domain.usecase.GetUserAddressesUseCase
 import com.focx.domain.usecase.GetVaultInfoWithStakersUseCase
-import com.focx.domain.usecase.GetWalletBalanceUseCase
 import com.focx.domain.usecase.LoginWithWalletUseCase
 import com.focx.domain.usecase.RequestUsdcFaucetUseCase
 import com.focx.domain.usecase.SolanaAccountBalanceUseCase
@@ -51,7 +50,6 @@ data class ProfileUiState(
 class ProfileViewModel @Inject constructor(
     private val getCurrentUserUseCase: GetCurrentUserUseCase,
     private val getUserAddressesUseCase: GetUserAddressesUseCase,
-    private val getWalletBalanceUseCase: GetWalletBalanceUseCase,
     private val solanaAccountBalanceUseCase: SolanaAccountBalanceUseCase,
     private val solanaTokenBalanceUseCase: SolanaTokenBalanceUseCase,
     private val getStakingInfoUseCase: GetStakingInfoUseCase,
@@ -167,28 +165,9 @@ class ProfileViewModel @Inject constructor(
                         _uiState.value = _uiState.value.copy(walletBalance = walletBalance)
                     } catch (e: Exception) {
                         Log.e("ProfileViewModel", "Exception getting real wallet balance: ${e.message}")
-                        // Fallback to mock data
-                        getWalletBalanceUseCase(walletAddress).catch { fallbackError ->
-                            Log.e("ProfileViewModel", "Fallback wallet balance flow error: ${fallbackError.message}")
-                            _uiState.value = _uiState.value.copy(
-                                error = "Failed to load wallet balance: ${fallbackError.message}"
-                            )
-                        }.collect { fallbackResult ->
-                            fallbackResult.fold(
-                                onSuccess = { balance ->
-                                    _uiState.value = _uiState.value.copy(walletBalance = balance)
-                                },
-                                onFailure = { fallbackError ->
-                                    Log.e(
-                                        "ProfileViewModel",
-                                        "Failed to load fallback wallet balance: ${fallbackError.message}"
-                                    )
-                                    _uiState.value = _uiState.value.copy(
-                                        error = "Failed to load wallet balance: ${fallbackError.message}"
-                                    )
-                                }
-                            )
-                        }
+                        _uiState.value = _uiState.value.copy(
+                            error = "Failed to load wallet balance: ${e.message}"
+                        )
                     }
                 }
 
