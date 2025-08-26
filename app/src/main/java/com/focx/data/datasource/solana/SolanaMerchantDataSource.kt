@@ -5,13 +5,13 @@ import com.focx.core.constants.AppConstants
 import com.focx.core.constants.AppConstants.App.SPL_TOKEN_PROGRAM_ID
 import com.focx.core.constants.AppConstants.Merchant.DEFAULT_STATUS
 import com.focx.core.network.NetworkConfig
+import com.focx.core.network.NetworkConnectionManager
 import com.focx.domain.entity.Merchant
 import com.focx.domain.entity.MerchantRegistration
 import com.focx.domain.entity.MerchantRegistrationResult
 import com.focx.domain.entity.MerchantStatus
 import com.focx.domain.repository.IMerchantRepository
 import com.focx.domain.usecase.RecentBlockhashUseCase
-import com.focx.utils.DebugUtils
 import com.focx.utils.Log
 import com.focx.utils.ShopUtils
 import com.focx.utils.Utils
@@ -31,7 +31,6 @@ import com.solana.mobilewalletadapter.clientlib.TransactionResult
 import com.solana.mobilewalletadapter.clientlib.successPayload
 import com.solana.programs.SystemProgram
 import com.solana.publickey.SolanaPublicKey
-import com.solana.rpc.SolanaRpcClient
 import com.solana.rpc.getAccountInfo
 import com.solana.serialization.AnchorInstructionSerializer
 import com.solana.transaction.AccountMeta
@@ -55,7 +54,7 @@ class SolanaMerchantDataSource @Inject constructor(
     private val context: Context,
     private val walletAdapter: MobileWalletAdapter,
     private val recentBlockhashUseCase: RecentBlockhashUseCase,
-    private val solanaRpcClient: SolanaRpcClient
+    private val networkConnectionManager: NetworkConnectionManager
 ) : IMerchantRepository {
 
     companion object {
@@ -119,7 +118,7 @@ class SolanaMerchantDataSource @Inject constructor(
                         )
                         
                         // Confirm transaction
-                        val confirmationResult = Utils.confirmTransaction(solanaRpcClient, signatureString)
+                        val confirmationResult = Utils.confirmTransaction(networkConnectionManager.getSolanaRpcClient(), signatureString)
                         if (confirmationResult.isSuccess && confirmationResult.getOrNull() == true) {
                             Log.d(TAG, "Transaction confirmed: $signatureString")
                             MerchantRegistrationResult(
@@ -253,8 +252,8 @@ class SolanaMerchantDataSource @Inject constructor(
                 val merchantPublicKey = SolanaPublicKey.from(walletAddress)
                 val pda = getMerchantInfoPda(SolanaPublicKey.from(walletAddress))
                 Log.d(TAG, "merchant pad: ${pda.getOrNull()!!.base58()}")
-                val merchant = solanaRpcClient.getAccountInfo<Merchant>(pda.getOrNull()!!).result
-                val orderCount = ShopUtils.getMerchantOrderCount(ShopUtils.getMerchantOrderCountPDA(merchantPublicKey).getOrNull()!!, solanaRpcClient)
+                val merchant = networkConnectionManager.getSolanaRpcClient().getAccountInfo<Merchant>(pda.getOrNull()!!).result
+                val orderCount = ShopUtils.getMerchantOrderCount(ShopUtils.getMerchantOrderCountPDA(merchantPublicKey).getOrNull()!!, networkConnectionManager.getSolanaRpcClient())
 
                 if (!(merchant == null || merchant.data == null)) {
                     Log.d(TAG, "merchant info: ${merchant.data!!.name}, ${merchant.data!!.description}, ${merchant.data!!.depositAmount},")
@@ -343,7 +342,7 @@ class SolanaMerchantDataSource @Inject constructor(
                         Log.d(TAG, "Deposit successful: $signatureString")
                         
                         // Confirm transaction
-                        val confirmationResult = Utils.confirmTransaction(solanaRpcClient, signatureString)
+                        val confirmationResult = Utils.confirmTransaction(networkConnectionManager.getSolanaRpcClient(), signatureString)
                         if (confirmationResult.isSuccess && confirmationResult.getOrNull() == true) {
                             Log.d(TAG, "Transaction confirmed: $signatureString")
                             MerchantRegistrationResult(

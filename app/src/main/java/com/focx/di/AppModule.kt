@@ -3,8 +3,9 @@ package com.focx.di
 import android.content.Context
 import android.content.SharedPreferences
 import android.net.Uri
-import com.focx.core.network.NetworkConfig
 import com.focx.core.network.NetworkPreferences
+import com.focx.core.network.NetworkManager
+import com.focx.core.network.NetworkConnectionManager
 import com.focx.data.constants.PreferencesConstants
 import com.focx.data.datasource.mock.MockSellerDataSource
 import com.focx.data.datasource.mock.MockUserDataSource
@@ -64,13 +65,11 @@ import com.focx.domain.usecase.InitiateDisputeUseCase
 import com.focx.domain.usecase.GetMerchantProductsUseCase
 import com.solana.mobilewalletadapter.clientlib.ConnectionIdentity
 import com.solana.mobilewalletadapter.clientlib.MobileWalletAdapter
-import com.solana.rpc.SolanaRpcClient
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
-import org.sol4k.Connection
 import javax.inject.Singleton
 
 @Module
@@ -83,9 +82,9 @@ object AppModule {
         @ApplicationContext context: Context,
         walletAdapter: MobileWalletAdapter,
         recentBlockhashUseCase: RecentBlockhashUseCase,
-        solanaRpcClient: SolanaRpcClient
+        networkConnectionManager: NetworkConnectionManager
     ): IProductRepository {
-        return SolanaProductDataSource(context, walletAdapter, recentBlockhashUseCase, solanaRpcClient)
+        return SolanaProductDataSource(context, walletAdapter, recentBlockhashUseCase, networkConnectionManager)
     }
 
     @Provides
@@ -94,9 +93,9 @@ object AppModule {
         @ApplicationContext context: Context,
         walletAdapter: MobileWalletAdapter,
         recentBlockhashUseCase: RecentBlockhashUseCase,
-        solanaRpcClient: SolanaRpcClient
+        networkConnectionManager: NetworkConnectionManager
     ): SolanaProductDataSource {
-        return SolanaProductDataSource(context, walletAdapter, recentBlockhashUseCase, solanaRpcClient)
+        return SolanaProductDataSource(context, walletAdapter, recentBlockhashUseCase, networkConnectionManager)
     }
 
     @Provides
@@ -146,9 +145,9 @@ object AppModule {
     fun provideOrderRepository(
         walletAdapterClient: MobileWalletAdapter,
         recentBlockhashUseCase: RecentBlockhashUseCase,
-        solanaRpcClient: SolanaRpcClient
+        networkConnectionManager: NetworkConnectionManager
     ): IOrderRepository {
-        return SolanaOrderDataSource(walletAdapterClient, recentBlockhashUseCase, solanaRpcClient)
+        return SolanaOrderDataSource(walletAdapterClient, recentBlockhashUseCase, networkConnectionManager)
     }
 
     @Provides
@@ -197,10 +196,9 @@ object AppModule {
     fun provideGovernanceRepository(
         walletAdapter: MobileWalletAdapter,
         recentBlockhashUseCase: RecentBlockhashUseCase,
-        solanaRpcClient: SolanaRpcClient,
-        sol4kConnection: Connection
+        networkConnectionManager: NetworkConnectionManager
     ): IGovernanceRepository {
-        return SolanaGovernanceDataSource(walletAdapter, recentBlockhashUseCase, solanaRpcClient, sol4kConnection)
+        return SolanaGovernanceDataSource(walletAdapter, recentBlockhashUseCase, networkConnectionManager)
     }
 
     @Provides
@@ -355,6 +353,25 @@ object AppModule {
     fun provideNetworkPreferences(@ApplicationContext context: Context): NetworkPreferences {
         return NetworkPreferences(context)
     }
+
+    @Provides
+    @Singleton
+    fun provideNetworkManager(
+        @ApplicationContext context: Context, 
+        networkPreferences: NetworkPreferences,
+        networkConnectionManager: NetworkConnectionManager
+    ): NetworkManager {
+        return NetworkManager(context, networkPreferences, networkConnectionManager)
+    }
+
+    @Provides
+    @Singleton
+    fun provideNetworkConnectionManager(
+        networkPreferences: NetworkPreferences,
+        ktorHttpDriver: KtorHttpDriver
+    ): NetworkConnectionManager {
+        return NetworkConnectionManager(networkPreferences, ktorHttpDriver)
+    }
     
     @Provides
     @Singleton
@@ -419,41 +436,26 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideSolanaRpcClient(
-        ktorHttpDriver: KtorHttpDriver
-    ): SolanaRpcClient {
-        return SolanaRpcClient(NetworkConfig.getRpcUrl(), ktorHttpDriver)
-    }
-
-    @Provides
-    @Singleton
-    fun provideSol4kConnection(
-    ): Connection {
-        return Connection(NetworkConfig.getRpcUrl())
-    }
-
-    @Provides
-    @Singleton
     fun provideSolanaAccountBalanceUseCase(
-        solanaRpcClient: SolanaRpcClient
+        networkConnectionManager: NetworkConnectionManager
     ): SolanaAccountBalanceUseCase {
-        return SolanaAccountBalanceUseCase(solanaRpcClient)
+        return SolanaAccountBalanceUseCase(networkConnectionManager)
     }
 
     @Provides
     @Singleton
     fun provideSolanaTokenBalanceUseCase(
-        solanaRpcClient: SolanaRpcClient
+        networkConnectionManager: NetworkConnectionManager
     ): SolanaTokenBalanceUseCase {
-        return SolanaTokenBalanceUseCase(solanaRpcClient)
+        return SolanaTokenBalanceUseCase(networkConnectionManager)
     }
 
     @Provides
     @Singleton
     fun provideRecentBlockhashUseCase(
-        solanaRpcClient: SolanaRpcClient
+        networkConnectionManager: NetworkConnectionManager
     ): RecentBlockhashUseCase {
-        return RecentBlockhashUseCase(solanaRpcClient)
+        return RecentBlockhashUseCase(networkConnectionManager)
     }
 
     // Solana Wallet Service
@@ -465,9 +467,9 @@ object AppModule {
         @ApplicationContext context: Context,
         walletAdapter: MobileWalletAdapter,
         recentBlockhashUseCase: RecentBlockhashUseCase,
-        solanaRpcClient: SolanaRpcClient
+        networkConnectionManager: NetworkConnectionManager
     ): IMerchantRepository {
-        return SolanaMerchantDataSource(context, walletAdapter, recentBlockhashUseCase, solanaRpcClient)
+        return SolanaMerchantDataSource(context, walletAdapter, recentBlockhashUseCase, networkConnectionManager)
     }
 
     @Provides
@@ -498,9 +500,9 @@ object AppModule {
         @ApplicationContext context: Context,
         walletAdapter: MobileWalletAdapter,
         recentBlockhashUseCase: RecentBlockhashUseCase,
-        solanaRpcClient: SolanaRpcClient
+        networkConnectionManager: NetworkConnectionManager
     ): SolanaFaucetDataSource {
-        return SolanaFaucetDataSource(context, walletAdapter, recentBlockhashUseCase, solanaRpcClient)
+        return SolanaFaucetDataSource(context, walletAdapter, recentBlockhashUseCase, networkConnectionManager)
     }
 
     @Provides
@@ -525,8 +527,8 @@ object AppModule {
         @ApplicationContext context: Context,
         walletAdapter: MobileWalletAdapter,
         recentBlockhashUseCase: RecentBlockhashUseCase,
-        solanaRpcClient: SolanaRpcClient
+        networkConnectionManager: NetworkConnectionManager
     ): SolanaVaultDataSource {
-        return SolanaVaultDataSource(context, walletAdapter, recentBlockhashUseCase, solanaRpcClient)
+        return SolanaVaultDataSource(context, walletAdapter, recentBlockhashUseCase, networkConnectionManager)
     }
 }

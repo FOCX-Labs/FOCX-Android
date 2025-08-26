@@ -18,6 +18,7 @@ import com.focx.domain.entity.VotingProgress
 import com.focx.domain.repository.IGovernanceRepository
 import com.focx.domain.usecase.RecentBlockhashUseCase
 import com.focx.utils.GovernanceUtils
+import com.focx.core.network.NetworkConnectionManager
 import com.focx.utils.GovernanceUtils.calcVoteResult
 import com.focx.utils.Log
 import com.focx.utils.ShopUtils
@@ -30,7 +31,6 @@ import com.solana.mobilewalletadapter.clientlib.TransactionResult
 import com.solana.mobilewalletadapter.clientlib.successPayload
 import com.solana.programs.SystemProgram
 import com.solana.publickey.SolanaPublicKey
-import com.solana.rpc.SolanaRpcClient
 import com.solana.serialization.AnchorInstructionSerializer
 import com.solana.transaction.AccountMeta
 import com.solana.transaction.Message.Builder
@@ -38,7 +38,6 @@ import com.solana.transaction.Transaction
 import com.solana.transaction.TransactionInstruction
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
-import org.sol4k.Connection
 import java.nio.ByteBuffer
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -50,8 +49,7 @@ import javax.inject.Singleton
 class SolanaGovernanceDataSource @Inject constructor(
     private val walletAdapter: MobileWalletAdapter,
     private val recentBlockhashUseCase: RecentBlockhashUseCase,
-    private val solanaRpcClient: SolanaRpcClient,
-    private val sol4kConnection: Connection
+    private val networkConnectionManager: NetworkConnectionManager
 ) : IGovernanceRepository {
 
     companion object {
@@ -65,7 +63,7 @@ class SolanaGovernanceDataSource @Inject constructor(
 
     override suspend fun getProposals(page: Int, pageSize: Int): Flow<List<Proposal>> = flow {
         try {
-            val proposals = GovernanceUtils.getProposalList(solanaRpcClient, page, pageSize)
+            val proposals = GovernanceUtils.getProposalList(networkConnectionManager.getSolanaRpcClient(), page, pageSize)
             emit(proposals)
         } catch (e: Exception) {
             Log.e(
@@ -83,7 +81,7 @@ class SolanaGovernanceDataSource @Inject constructor(
 
     override suspend fun getActiveProposals(): Flow<List<Proposal>> = flow {
         try {
-            val proposals = GovernanceUtils.getProposalList(solanaRpcClient)
+            val proposals = GovernanceUtils.getProposalList(networkConnectionManager.getSolanaRpcClient())
             emit(proposals.filter { it.status == ProposalStatus.PENDING })
         } catch (e: Exception) {
             Log.e(
@@ -97,7 +95,7 @@ class SolanaGovernanceDataSource @Inject constructor(
 
     override suspend fun getActiveProposals(page: Int, pageSize: Int): Flow<List<Proposal>> = flow {
         try {
-            val proposals = GovernanceUtils.getProposalList(solanaRpcClient, page, pageSize)
+            val proposals = GovernanceUtils.getProposalList(networkConnectionManager.getSolanaRpcClient(), page, pageSize)
             emit(proposals.filter { it.status == ProposalStatus.PENDING })
         } catch (e: Exception) {
             Log.e(
@@ -117,9 +115,9 @@ class SolanaGovernanceDataSource @Inject constructor(
 
 
                 // Use manual parsing function to handle committeeMembers fixed-length array
-                val config = GovernanceUtils.getGovernanceConfigManual(solanaRpcClient)
+                val config = GovernanceUtils.getGovernanceConfigManual(networkConnectionManager.getSolanaRpcClient())
                 Log.d(TAG, "config $config")
-                val totalPower = GovernanceUtils.getTotalVotingPower(config, solanaRpcClient)
+                val totalPower = GovernanceUtils.getTotalVotingPower(config, networkConnectionManager.getSolanaRpcClient())
 
                 // Check if current user is a committee member
                 val isCommitteeMember = currentUserPubKey?.let { userPubKey ->
@@ -166,7 +164,7 @@ class SolanaGovernanceDataSource @Inject constructor(
             val result = walletAdapter.transact(activityResultSender) { authResult ->
                 val builder = Builder()
 
-                val config = GovernanceUtils.getGovernanceConfigManual(solanaRpcClient)!!
+                val config = GovernanceUtils.getGovernanceConfigManual(networkConnectionManager.getSolanaRpcClient())!!
                 val proposalId = config.proposalCounter + 1UL
                 val proposalPda = GovernanceUtils.getProposalPda(proposalId)
                 val governancePda = GovernanceUtils.getGovernanceConfigPda()
@@ -224,7 +222,7 @@ class SolanaGovernanceDataSource @Inject constructor(
                         )
 
                         // Confirm transaction
-                        val confirmationResult = Utils.confirmTransaction(solanaRpcClient, signatureString)
+                        val confirmationResult = Utils.confirmTransaction(networkConnectionManager.getSolanaRpcClient(), signatureString)
                         if (confirmationResult.isSuccess && confirmationResult.getOrNull() == true) {
                             Log.d(TAG, "Transaction confirmed: $signatureString")
                             Result.success(Unit)
@@ -272,7 +270,7 @@ class SolanaGovernanceDataSource @Inject constructor(
                 val builder = Builder()
 
                 // Generate vote instruction
-                val config = GovernanceUtils.getGovernanceConfigManual(solanaRpcClient)
+                val config = GovernanceUtils.getGovernanceConfigManual(networkConnectionManager.getSolanaRpcClient())
                 val proposalPda = GovernanceUtils.getProposalPda(proposalId)
                 val governancePda = GovernanceUtils.getGovernanceConfigPda()
                 val votePda = GovernanceUtils.getVotePda(proposalId, voterPubKey)
@@ -324,7 +322,7 @@ class SolanaGovernanceDataSource @Inject constructor(
                         )
 
                         // Confirm transaction
-                        val confirmationResult = Utils.confirmTransaction(solanaRpcClient, signatureString)
+                        val confirmationResult = Utils.confirmTransaction(networkConnectionManager.getSolanaRpcClient(), signatureString)
                         if (confirmationResult.isSuccess && confirmationResult.getOrNull() == true) {
                             Log.d(TAG, "Transaction confirmed: $signatureString")
                             Result.success(Unit)
@@ -373,7 +371,7 @@ class SolanaGovernanceDataSource @Inject constructor(
                 builder.addInstruction(genPreInstruction(400_000))
 
                 // Generate finalize instruction
-                val config = GovernanceUtils.getGovernanceConfigManual(solanaRpcClient)
+                val config = GovernanceUtils.getGovernanceConfigManual(networkConnectionManager.getSolanaRpcClient())
                 val proposalPda = GovernanceUtils.getProposalPda(proposalId)
                 val governancePda = GovernanceUtils.getGovernanceConfigPda()
                 val committeeTokenMint = config?.committeeTokenMint ?: AppConstants.App.getMint()
@@ -392,7 +390,7 @@ class SolanaGovernanceDataSource @Inject constructor(
                     }
                 }
                 val voteAccounts =
-                    GovernanceUtils.getVoteAccounts(proposalId, config!!, solanaRpcClient)
+                    GovernanceUtils.getVoteAccounts(proposalId, config!!, networkConnectionManager.getSolanaRpcClient())
 
                 val ix = ShopUtils.genTransactionInstruction(
                     listOf(
@@ -442,7 +440,7 @@ class SolanaGovernanceDataSource @Inject constructor(
                         )
 
                         // Confirm transaction
-                        val confirmationResult = Utils.confirmTransaction(solanaRpcClient, signatureString)
+                        val confirmationResult = Utils.confirmTransaction(networkConnectionManager.getSolanaRpcClient(), signatureString)
                         if (confirmationResult.isSuccess && confirmationResult.getOrNull() == true) {
                             Log.d(TAG, "Transaction confirmed: $signatureString")
                             Result.success(Unit)
@@ -602,7 +600,7 @@ class SolanaGovernanceDataSource @Inject constructor(
                         )
 
                         // Confirm transaction
-                        val confirmationResult = Utils.confirmTransaction(solanaRpcClient, signatureString)
+                        val confirmationResult = Utils.confirmTransaction(networkConnectionManager.getSolanaRpcClient(), signatureString)
                         if (confirmationResult.isSuccess && confirmationResult.getOrNull() == true) {
                             Log.d(TAG, "Transaction confirmed: $signatureString")
                             
@@ -656,8 +654,8 @@ class SolanaGovernanceDataSource @Inject constructor(
 
     override suspend fun getVotingProgress(proposalId: ULong): Result<VotingProgress> {
         return try {
-            val config = GovernanceUtils.getGovernanceConfigManual(solanaRpcClient)
-            val result = calcVoteResult(proposalId, config!!, solanaRpcClient)
+            val config = GovernanceUtils.getGovernanceConfigManual(networkConnectionManager.getSolanaRpcClient())
+            val result = calcVoteResult(proposalId, config!!, networkConnectionManager.getSolanaRpcClient())
             Log.d(TAG, "getVotingProgress: $result")
 
             return Result.success(result)

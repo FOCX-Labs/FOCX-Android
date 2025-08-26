@@ -11,6 +11,7 @@ import com.focx.domain.repository.IOrderRepository
 import com.focx.domain.usecase.RecentBlockhashUseCase
 import com.focx.utils.Log
 import com.focx.utils.ShopUtils
+import com.focx.core.network.NetworkConnectionManager
 import com.focx.utils.Utils
 import com.funkatronics.encoders.Base58
 import com.funkatronics.kborsh.Borsh
@@ -20,7 +21,6 @@ import com.solana.mobilewalletadapter.clientlib.TransactionResult
 import com.solana.mobilewalletadapter.clientlib.successPayload
 import com.solana.programs.SystemProgram
 import com.solana.publickey.SolanaPublicKey
-import com.solana.rpc.SolanaRpcClient
 import com.solana.rpc.getAccountInfo
 import com.solana.serialization.AnchorInstructionSerializer
 import com.solana.transaction.AccountMeta
@@ -36,7 +36,7 @@ import javax.inject.Singleton
 class SolanaOrderDataSource @Inject constructor(
     private val walletAdapter: MobileWalletAdapter,
     private val recentBlockhashUseCase: RecentBlockhashUseCase,
-    private val solanaRpcClient: SolanaRpcClient
+    private val networkConnectionManager: NetworkConnectionManager
 ) : IOrderRepository {
 
     companion object {
@@ -51,7 +51,7 @@ class SolanaOrderDataSource @Inject constructor(
         return try {
             Log.d("SolanaOrder", "Fetching order by ID: $id")
             val orderPda = SolanaPublicKey.from(id)
-            ShopUtils.getOrderInfoByPda(orderPda, solanaRpcClient)
+            ShopUtils.getOrderInfoByPda(orderPda, networkConnectionManager.getSolanaRpcClient())
         } catch (e: Exception) {
             Log.e("SolanaOrder", "Error fetching order by ID: $id", e)
             null
@@ -59,11 +59,11 @@ class SolanaOrderDataSource @Inject constructor(
     }
 
     override suspend fun getOrdersByBuyer(buyerId: String): Flow<List<Order>> = flow {
-        emit(ShopUtils.getOrdersByBuyer(buyerId, solanaRpcClient))
+        emit(ShopUtils.getOrdersByBuyer(buyerId, networkConnectionManager.getSolanaRpcClient()))
     }
 
     override suspend fun getOrdersBySeller(sellerId: String): Flow<List<Order>> = flow {
-        emit(ShopUtils.getOrdersBySeller(sellerId, solanaRpcClient))
+        emit(ShopUtils.getOrdersBySeller(sellerId, networkConnectionManager.getSolanaRpcClient()))
     }
 
     override suspend fun getOrdersByStatus(status: OrderManagementStatus): Flow<List<Order>> =
@@ -109,7 +109,7 @@ class SolanaOrderDataSource @Inject constructor(
                         Log.d("SolanaOrder", "Order created successfully: $signatureString")
                         
                         // Confirm transaction
-                        val confirmationResult = Utils.confirmTransaction(solanaRpcClient, signatureString)
+                        val confirmationResult = Utils.confirmTransaction(networkConnectionManager.getSolanaRpcClient(), signatureString)
                         if (confirmationResult.isSuccess && confirmationResult.getOrNull() == true) {
                             Log.d("SolanaOrder", "Transaction confirmed: $signatureString")
                             Result.success(
@@ -183,7 +183,7 @@ class SolanaOrderDataSource @Inject constructor(
         val productPda = ShopUtils.getProductBasePDA(product.id).getOrNull()!!
         val merchantOrderCountPDA = ShopUtils.getMerchantOrderCountPDA(merchantPubKey).getOrNull()!!
         val merchantOrderCount =
-            ShopUtils.getMerchantOrderCount(merchantOrderCountPDA, solanaRpcClient)
+            ShopUtils.getMerchantOrderCount(merchantOrderCountPDA, networkConnectionManager.getSolanaRpcClient())
         val nextMerchantOrderPDA =
             ShopUtils.getMerchantOrderPDA(merchantPubKey, merchantOrderCount + 1UL).getOrNull()!!
 
@@ -246,7 +246,7 @@ class SolanaOrderDataSource @Inject constructor(
     private suspend fun getCurrentPurchaseCount(userPurchaseCountPda: SolanaPublicKey): ULong {
         return try {
             val userPurchaseCountAccount =
-                solanaRpcClient.getAccountInfo<UserPurchaseCount>(userPurchaseCountPda).result?.data
+                networkConnectionManager.getSolanaRpcClient().getAccountInfo<UserPurchaseCount>(userPurchaseCountPda).result?.data
             if (userPurchaseCountAccount !== null) {
                 userPurchaseCountAccount.purchaseCount
             } else {
@@ -335,7 +335,7 @@ class SolanaOrderDataSource @Inject constructor(
                         Log.d("SolanaOrder", "Tracking number updated successfully: $signatureString")
                         
                         // Confirm transaction
-                        val confirmationResult = Utils.confirmTransaction(solanaRpcClient, signatureString)
+                        val confirmationResult = Utils.confirmTransaction(networkConnectionManager.getSolanaRpcClient(), signatureString)
                         if (confirmationResult.isSuccess && confirmationResult.getOrNull() == true) {
                             Log.d("SolanaOrder", "Transaction confirmed: $signatureString")
                             Result.success(Unit)
@@ -390,7 +390,7 @@ class SolanaOrderDataSource @Inject constructor(
                 val systemConfigPDA = ShopUtils.getSystemConfigPDA().getOrNull()!!
                 val depositEscrowPda = ShopUtils.getDepositEscrowPda().getOrNull()!!
                 val merchantInfoPda = ShopUtils.getMerchantInfoPda(merchantPubKey).getOrNull()!!
-                val systemConfig = ShopUtils.getSystemConfig(solanaRpcClient)
+                val systemConfig = ShopUtils.getSystemConfig(networkConnectionManager.getSolanaRpcClient())
 
                 val ix = ShopUtils.genTransactionInstruction(
                     listOf(
@@ -439,7 +439,7 @@ class SolanaOrderDataSource @Inject constructor(
                         Log.d("SolanaOrder", "Receipt confirmed successfully: $signatureString")
                         
                         // Confirm transaction
-                        val confirmationResult = Utils.confirmTransaction(solanaRpcClient, signatureString)
+                        val confirmationResult = Utils.confirmTransaction(networkConnectionManager.getSolanaRpcClient(), signatureString)
                         if (confirmationResult.isSuccess && confirmationResult.getOrNull() == true) {
                             Log.d("SolanaOrder", "Transaction confirmed: $signatureString")
                             Result.success(Unit)

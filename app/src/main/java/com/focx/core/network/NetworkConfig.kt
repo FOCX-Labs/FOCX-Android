@@ -38,6 +38,152 @@ object NetworkConfig {
     const val BURST_CAPACITY = 20
 
     /**
+     * Public endpoint configuration data class
+     */
+    data class PublicEndpoint(
+        val name: String,
+        val url: String,
+        val networkType: String,
+        val isActive: Boolean = true,
+        val priority: Int = 0
+    )
+
+    /**
+     * List of 13 public endpoints from the configuration
+     */
+    val PUBLIC_ENDPOINTS = listOf(
+        // Mainnet endpoints (10)
+        PublicEndpoint(
+            name = "GetBlock",
+            url = "https://go.getblock.us/86aac42ad4484f3c813079afc201451c",
+            networkType = MAINNET,
+            priority = 1
+        ),
+        PublicEndpoint(
+            name = "PublicNode",
+            url = "https://solana-rpc.publicnode.com",
+            networkType = MAINNET,
+            priority = 2
+        ),
+        PublicEndpoint(
+            name = "BlockEden",
+            url = "https://api.blockeden.xyz/solana/KeCh6p22EX5AeRHxMSmc",
+            networkType = MAINNET,
+            priority = 3
+        ),
+        PublicEndpoint(
+            name = "DRPC",
+            url = "https://solana.drpc.org/",
+            networkType = MAINNET,
+            priority = 4
+        ),
+        PublicEndpoint(
+            name = "Grove City",
+            url = "https://solana.rpc.grove.city/v1/01fdb492",
+            networkType = MAINNET,
+            priority = 5
+        ),
+        PublicEndpoint(
+            name = "LeoRPC",
+            url = "https://solana.leorpc.com/?api_key=FREE",
+            networkType = MAINNET,
+            priority = 6
+        ),
+        PublicEndpoint(
+            name = "OnFinality",
+            url = "https://solana.api.onfinality.io/public",
+            networkType = MAINNET,
+            priority = 7
+        ),
+        PublicEndpoint(
+            name = "Solana Official",
+            url = "https://api.mainnet-beta.solana.com",
+            networkType = MAINNET,
+            priority = 8
+        ),
+        PublicEndpoint(
+            name = "SolanaVibeStation",
+            url = "https://public.rpc.solanavibestation.com/",
+            networkType = MAINNET,
+            priority = 9
+        ),
+        PublicEndpoint(
+            name = "TheRPC",
+            url = "https://solana.therpc.io",
+            networkType = MAINNET,
+            priority = 10
+        ),
+        
+        // Devnet endpoints (2)
+        PublicEndpoint(
+            name = "OnFinality Devnet",
+            url = "https://solana-devnet.api.onfinality.io/public",
+            networkType = DEVNET,
+            priority = 1
+        ),
+        PublicEndpoint(
+            name = "Solana Devnet Official",
+            url = "https://api.devnet.solana.com",
+            networkType = DEVNET,
+            priority = 2
+        ),
+        
+        // Testnet endpoints (1)
+        PublicEndpoint(
+            name = "Solana Testnet Official",
+            url = "https://api.testnet.solana.com",
+            networkType = TESTNET,
+            priority = 1
+        )
+    )
+
+    /**
+     * Get public endpoints for specified network type
+     */
+    fun getPublicEndpoints(networkType: String = currentNetwork): List<PublicEndpoint> {
+        return PUBLIC_ENDPOINTS.filter { it.networkType == networkType && it.isActive }
+            .sortedBy { it.priority }
+    }
+
+    /**
+     * Get all active public endpoints
+     */
+    fun getAllActivePublicEndpoints(): List<PublicEndpoint> {
+        return PUBLIC_ENDPOINTS.filter { it.isActive }.sortedBy { it.priority }
+    }
+
+    /**
+     * Get endpoint by name
+     */
+    fun getEndpointByName(name: String): PublicEndpoint? {
+        return PUBLIC_ENDPOINTS.find { it.name == name && it.isActive }
+    }
+
+    /**
+     * Get endpoint by URL
+     */
+    fun getEndpointByUrl(url: String): PublicEndpoint? {
+        return PUBLIC_ENDPOINTS.find { it.url == url && it.isActive }
+    }
+
+    /**
+     * Get random endpoint for specified network type
+     */
+    fun getRandomEndpoint(networkType: String = currentNetwork): PublicEndpoint? {
+        val endpoints = getPublicEndpoints(networkType)
+        return if (endpoints.isNotEmpty()) {
+            endpoints.random()
+        } else null
+    }
+
+    /**
+     * Get primary endpoint for specified network type (highest priority)
+     */
+    fun getPrimaryEndpoint(networkType: String = currentNetwork): PublicEndpoint? {
+        return getPublicEndpoints(networkType).firstOrNull()
+    }
+
+    /**
      * Current active network type
      * Can be changed at runtime for testing purposes
      */
@@ -63,8 +209,16 @@ object NetworkConfig {
 
     /**
      * Get RPC URL for specified network type
+     * Now uses public endpoints configuration
      */
     fun getRpcUrl(networkType: String = DEFAULT_NETWORK): String {
+        // First try to get from public endpoints
+        val publicEndpoint = getPrimaryEndpoint(networkType)
+        if (publicEndpoint != null) {
+            return publicEndpoint.url
+        }
+        
+        // Fallback to original hardcoded URLs
         return when (networkType) {
             MAINNET -> SOLANA_MAINNET_RPC_URL
             DEVNET -> SOLANA_DEVNET_RPC_URL
@@ -99,6 +253,14 @@ object NetworkConfig {
      */
     fun getCurrentRpcUrl(): String {
         return getRpcUrl(currentNetwork)
+    }
+
+    /**
+     * Get current RPC URL with custom URL support
+     * This method should be used when NetworkPreferences is available
+     */
+    fun getCurrentRpcUrlWithCustom(customUrl: String? = null): String {
+        return customUrl ?: getRpcUrl(currentNetwork)
     }
 
     /**
@@ -175,5 +337,44 @@ object NetworkConfig {
      */
     fun resetToDefault() {
         currentNetwork = DEFAULT_NETWORK
+    }
+
+    /**
+     * Enable/disable endpoint by name
+     */
+    fun setEndpointActive(name: String, isActive: Boolean) {
+        val endpoint = PUBLIC_ENDPOINTS.find { it.name == name }
+        if (endpoint != null) {
+            // Since PUBLIC_ENDPOINTS is immutable, we would need to recreate the list
+            // For now, this is a placeholder for future implementation
+            // In a real implementation, you might want to use a mutable list or database
+        }
+    }
+
+    /**
+     * Get endpoint statistics
+     */
+    fun getEndpointStatistics(): Map<String, Int> {
+        return PUBLIC_ENDPOINTS.groupBy { it.networkType }
+            .mapValues { it.value.size }
+    }
+
+    /**
+     * Get endpoints by priority range
+     */
+    fun getEndpointsByPriorityRange(
+        networkType: String = currentNetwork,
+        minPriority: Int = 1,
+        maxPriority: Int = Int.MAX_VALUE
+    ): List<PublicEndpoint> {
+        return getPublicEndpoints(networkType)
+            .filter { it.priority in minPriority..maxPriority }
+    }
+
+    /**
+     * Get endpoint count by network type
+     */
+    fun getEndpointCount(networkType: String): Int {
+        return getPublicEndpoints(networkType).size
     }
 }

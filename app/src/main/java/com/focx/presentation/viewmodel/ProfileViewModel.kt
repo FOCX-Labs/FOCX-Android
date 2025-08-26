@@ -31,8 +31,10 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 import com.focx.data.datasource.local.AddressLocalDataSource
 import com.focx.domain.entity.Vault
-import com.focx.utils.ShopUtils
 import com.focx.utils.VaultUtils
+import com.focx.core.network.NetworkPreferences
+import com.focx.core.network.NetworkManager
+import com.focx.core.network.NetworkConnectionManager
 
 data class ProfileUiState(
     val isLoading: Boolean = false,
@@ -59,7 +61,10 @@ class ProfileViewModel @Inject constructor(
     private val loginWithWalletUseCase: LoginWithWalletUseCase,
     private val solanaWalletConnectUseCase: SolanaWalletConnectUseCase,
     private val requestUsdcFaucetUseCase: RequestUsdcFaucetUseCase,
-    private val addressLocalDataSource: AddressLocalDataSource
+    private val addressLocalDataSource: AddressLocalDataSource,
+    private val networkPreferences: NetworkPreferences,
+    private val networkManager: NetworkManager,
+    private val networkConnectionManager: NetworkConnectionManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProfileUiState())
@@ -505,5 +510,48 @@ class ProfileViewModel @Inject constructor(
                 )
             }
         }
+    }
+
+    /**
+     * Update network configuration
+     */
+    fun updateNetworkConfiguration(networkType: String, customUrl: String?) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            
+            try {
+                // Update network configuration using NetworkManager
+                networkManager.updateNetworkConfiguration(networkType, customUrl)
+                
+                // Force refresh connections to ensure they use the new configuration
+                networkConnectionManager.refreshConnections()
+                
+                Log.d("ProfileViewModel", "Network configuration updated: $networkType, customUrl: $customUrl")
+                
+                // Refresh wallet data with new network configuration
+                val user = _uiState.value.user
+                if (user?.walletAddress != null) {
+                    loadWalletData(user.walletAddress)
+                }
+                
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = null
+                )
+            } catch (e: Exception) {
+                Log.e("ProfileViewModel", "Exception in updateNetworkConfiguration: ${e.message}", e)
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = "Failed to update network configuration: ${e.message}"
+                )
+            }
+        }
+    }
+    
+    /**
+     * Get current RPC URL from NetworkConnectionManager
+     */
+    fun getCurrentRpcUrl(): String {
+        return networkConnectionManager.getCurrentRpcUrl()
     }
 }
