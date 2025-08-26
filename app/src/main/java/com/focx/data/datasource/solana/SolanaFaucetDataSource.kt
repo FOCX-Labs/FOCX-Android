@@ -3,6 +3,7 @@ package com.focx.data.datasource.solana
 import android.content.Context
 import com.focx.core.constants.AppConstants
 import com.focx.core.network.NetworkConfig
+import com.focx.core.network.NetworkConnectionManager
 import com.focx.domain.usecase.RecentBlockhashUseCase
 import com.focx.utils.Log
 import com.focx.utils.ShopUtils
@@ -16,7 +17,6 @@ import com.solana.mobilewalletadapter.clientlib.successPayload
 import com.solana.programs.SystemProgram
 import com.solana.publickey.ProgramDerivedAddress
 import com.solana.publickey.SolanaPublicKey
-import com.solana.rpc.SolanaRpcClient
 import com.solana.serialization.AnchorInstructionSerializer
 import com.solana.transaction.AccountMeta
 import com.solana.transaction.Message
@@ -32,7 +32,7 @@ class SolanaFaucetDataSource @Inject constructor(
     private val context: Context,
     private val walletAdapter: MobileWalletAdapter,
     private val recentBlockhashUseCase: RecentBlockhashUseCase,
-    private val solanaRpcClient: SolanaRpcClient
+    private val networkConnectionManager: NetworkConnectionManager
 ) {
     companion object {
         private const val TAG = "SFDS"
@@ -96,7 +96,7 @@ class SolanaFaucetDataSource @Inject constructor(
                         Log.d(TAG, "USDC faucet successful: $signatureString")
                         
                         // Confirm transaction
-                        val confirmationResult = Utils.confirmTransaction(solanaRpcClient, signatureString)
+                        val confirmationResult = Utils.confirmTransaction(networkConnectionManager.getSolanaRpcClient(), signatureString)
                         if (confirmationResult.isSuccess && confirmationResult.getOrNull() == true) {
                             Log.d(TAG, "Transaction confirmed: $signatureString")
                             emit(Result.success(signatureString))
@@ -138,7 +138,7 @@ class SolanaFaucetDataSource @Inject constructor(
         val faucetAuthority = SolanaPublicKey.from("DjBk7pZfKTnvHg1nhowR6HzTJpVijgoWzZTArm7Yra6X")
 
         val instructions = ArrayList<TransactionInstruction>()
-        val userTokenData = solanaRpcClient.getAccountInfo(userTokenAccount).result?.data
+        val userTokenData = networkConnectionManager.getSolanaRpcClient().getAccountInfo(userTokenAccount).result?.data
 
         if (userTokenData == null) {
             val createTokenAccountInstruction = genTransactionInstruction(

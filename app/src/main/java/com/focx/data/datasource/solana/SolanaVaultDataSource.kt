@@ -3,6 +3,7 @@ package com.focx.data.datasource.solana
 import android.content.Context
 import com.focx.core.constants.AppConstants
 import com.focx.core.network.NetworkConfig
+import com.focx.core.network.NetworkConnectionManager
 import com.focx.domain.entity.StakeActivity
 
 import com.focx.domain.entity.Vault
@@ -23,8 +24,6 @@ import com.solana.mobilewalletadapter.clientlib.successPayload
 import com.solana.programs.SystemProgram
 import com.solana.publickey.SolanaPublicKey
 import com.solana.rpc.AccountRequest
-import com.solana.rpc.Commitment
-import com.solana.rpc.SolanaRpcClient
 import com.solana.rpc.getAccountInfo
 import com.solana.serialization.AnchorInstructionSerializer
 import com.solana.transaction.AccountMeta
@@ -41,7 +40,7 @@ class SolanaVaultDataSource @Inject constructor(
     private val context: Context,
     private val walletAdapter: MobileWalletAdapter,
     private val recentBlockhashUseCase: RecentBlockhashUseCase,
-    private val solanaRpcClient: SolanaRpcClient
+    private val networkConnectionManager: NetworkConnectionManager
 ) {
     companion object {
         private const val TAG = "SVDS"
@@ -130,7 +129,7 @@ class SolanaVaultDataSource @Inject constructor(
                         Log.d(TAG, "Stake USDC successful: $signatureString")
                         
                         // Confirm transaction
-                        val confirmationResult = Utils.confirmTransaction(solanaRpcClient, signatureString)
+                        val confirmationResult = Utils.confirmTransaction(networkConnectionManager.getSolanaRpcClient(), signatureString)
                         if (confirmationResult.isSuccess && confirmationResult.getOrNull() == true) {
                             Log.d(TAG, "Transaction confirmed: $signatureString")
                             emit(Result.success(signatureString))
@@ -204,7 +203,7 @@ class SolanaVaultDataSource @Inject constructor(
                         Log.d(TAG, "Unstake USDC successful: $signatureString")
                         
                         // Confirm transaction
-                        val confirmationResult = Utils.confirmTransaction(solanaRpcClient, signatureString)
+                        val confirmationResult = Utils.confirmTransaction(networkConnectionManager.getSolanaRpcClient(), signatureString)
                         if (confirmationResult.isSuccess && confirmationResult.getOrNull() == true) {
                             Log.d(TAG, "Transaction confirmed: $signatureString")
                             emit(Result.success(signatureString))
@@ -278,7 +277,7 @@ class SolanaVaultDataSource @Inject constructor(
                         Log.d(TAG, "Unstake USDC successful: $signatureString")
                         
                         // Confirm transaction
-                        val confirmationResult = Utils.confirmTransaction(solanaRpcClient, signatureString)
+                        val confirmationResult = Utils.confirmTransaction(networkConnectionManager.getSolanaRpcClient(), signatureString)
                         if (confirmationResult.isSuccess && confirmationResult.getOrNull() == true) {
                             Log.d(TAG, "Transaction confirmed: $signatureString")
                             emit(Result.success(signatureString))
@@ -354,7 +353,7 @@ class SolanaVaultDataSource @Inject constructor(
                         Log.d(TAG, "Initialize vault depositor successful: $signatureString")
                         
                         // Confirm transaction
-                        val confirmationResult = Utils.confirmTransaction(solanaRpcClient, signatureString)
+                        val confirmationResult = Utils.confirmTransaction(networkConnectionManager.getSolanaRpcClient(), signatureString)
                         if (confirmationResult.isSuccess && confirmationResult.getOrNull() == true) {
                             Log.d(TAG, "Transaction confirmed: $signatureString")
                             emit(Result.success(signatureString))
@@ -393,7 +392,7 @@ class SolanaVaultDataSource @Inject constructor(
                 val vault = getVaultInfoFromChain(accountPublicKey)
 
                 // Get total stakers count
-                val totalStakers = VaultUtils.getTotalStakers(solanaRpcClient)
+                val totalStakers = VaultUtils.getTotalStakers(networkConnectionManager.getSolanaRpcClient())
 
                 // Combine into wrapper
                 val vaultInfoWithStakers = VaultInfoWithStakers(
@@ -414,7 +413,7 @@ class SolanaVaultDataSource @Inject constructor(
         Log.d(TAG, "vault pda : ${pda.base58()}")
 
         try {
-            val vaultData = solanaRpcClient.getAccountInfo<Vault>(
+            val vaultData = networkConnectionManager.getSolanaRpcClient().getAccountInfo<Vault>(
                 pda,
                 dataSlice = AccountRequest.DataSlice(
                     297, 40
@@ -463,7 +462,7 @@ class SolanaVaultDataSource @Inject constructor(
         val vaultDepositorPda =
             VaultUtils.getVaultDepositorPda(SolanaPublicKey.from(accountPublicKey))
         val vaultDepositor =
-            solanaRpcClient.getAccountInfo<VaultDepositor>(
+            networkConnectionManager.getSolanaRpcClient().getAccountInfo<VaultDepositor>(
                 vaultDepositorPda,
             ).result?.data
         Log.d(TAG, "Staking info is : $vaultDepositor")

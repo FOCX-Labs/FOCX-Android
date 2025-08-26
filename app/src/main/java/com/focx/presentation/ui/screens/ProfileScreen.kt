@@ -10,13 +10,17 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.AccountBalanceWallet
@@ -30,6 +34,9 @@ import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material.icons.filled.TrendingUp
+import androidx.compose.material.pullrefresh.PullRefreshIndicator
+import androidx.compose.material.pullrefresh.pullRefresh
+import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -37,11 +44,12 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material.pullrefresh.PullRefreshIndicator
-import androidx.compose.material.pullrefresh.pullRefresh
-import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -50,36 +58,33 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.focx.core.network.NetworkConfig
+import com.focx.core.network.NetworkConfig.PublicEndpoint
 import com.focx.domain.entity.UserAddress
-import com.focx.presentation.ui.theme.FocxTheme
-import com.focx.presentation.viewmodel.ProfileViewModel
-import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
-import java.text.NumberFormat
-import java.util.Locale
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.ui.draw.clip
 import com.focx.presentation.ui.components.CardStyle
 import com.focx.presentation.ui.components.TechButton
 import com.focx.presentation.ui.components.TechButtonStyle
 import com.focx.presentation.ui.components.TechCard
+import com.focx.presentation.ui.theme.FocxTheme
 import com.focx.presentation.ui.theme.OnSurface
 import com.focx.presentation.ui.theme.OnSurfaceVariant
-import androidx.compose.material.ExperimentalMaterialApi
+import com.focx.presentation.viewmodel.ProfileViewModel
+import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
 
 @Composable
 fun ProfileScreen(
@@ -90,6 +95,8 @@ fun ProfileScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showFaucetDialog by remember { mutableStateOf(false) }
+    var showNetworkDialog by remember { mutableStateOf(false) }
+    var networkConfigKey by remember { mutableStateOf(0) }
 
     LaunchedEffect(Unit) {
         viewModel.loadProfileData()
@@ -125,7 +132,11 @@ fun ProfileScreen(
             onNavigateToOrders = onNavigateToOrders,
             onRequestUsdcFaucet = {
                 showFaucetDialog = true
-            }
+            },
+            onNetworkClick = {
+                showNetworkDialog = true
+            },
+            networkConfigKey = networkConfigKey
         )
     }
 
@@ -138,6 +149,21 @@ fun ProfileScreen(
             },
             onDismiss = {
                 showFaucetDialog = false
+            }
+        )
+    }
+
+    // Network Selection Dialog
+    if (showNetworkDialog) {
+        NetworkSelectionDialog(
+            viewModel = viewModel,
+            onConfirm = { networkType, customUrl ->
+                viewModel.updateNetworkConfiguration(networkType, customUrl)
+                showNetworkDialog = false
+                networkConfigKey++ // Force recomposition to update network display
+            },
+            onDismiss = {
+                showNetworkDialog = false
             }
         )
     }
@@ -269,7 +295,9 @@ fun ProfileContent(
     onClearError: () -> Unit,
     onNavigateToAddresses: () -> Unit,
     onNavigateToOrders: () -> Unit,
-    onRequestUsdcFaucet: () -> Unit = {}
+    onRequestUsdcFaucet: () -> Unit = {},
+    onNetworkClick: () -> Unit = {},
+    networkConfigKey: Int = 0
 ) {
     val pullRefreshState = rememberPullRefreshState(
         refreshing = uiState.isLoading,
@@ -329,12 +357,9 @@ fun ProfileContent(
             // Network Config Info at bottom
             item {
                 Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    modifier = Modifier.fillMaxWidth(),
-                    text = NetworkConfig.getCurrentNetwork(),
-                    style = MaterialTheme.typography.bodySmall,
-                    textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                NetworkConfigInfo(
+                    key = networkConfigKey,
+                    onNetworkClick = onNetworkClick
                 )
                 Spacer(modifier = Modifier.height(16.dp))
             }
@@ -851,6 +876,246 @@ fun FaucetDialog(
                             style = TechButtonStyle.PRIMARY,
                             modifier = Modifier.weight(1f),
                             enabled = solAmount.toDoubleOrNull() != null && solAmount.toDoubleOrNull()!! > 0
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun NetworkConfigInfo(
+    key: Int = 0,
+    onNetworkClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onNetworkClick() }
+            .padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = NetworkConfig.getCurrentNetworkDisplayName(),
+            style = MaterialTheme.typography.bodySmall,
+            textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(modifier = Modifier.width(4.dp))
+        Icon(
+            imageVector = Icons.Default.ChevronRight,
+            contentDescription = "Select Network",
+            modifier = Modifier.size(12.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+fun NetworkSelectionDialog(
+    viewModel: ProfileViewModel,
+    onConfirm: (String, String?) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var selectedEndpoint by remember { mutableStateOf<PublicEndpoint?>(null) }
+    var customUrl by remember { mutableStateOf("") }
+    var showCustomUrlInput by remember { mutableStateOf(false) }
+    
+    val currentNetwork = NetworkConfig.getCurrentNetwork()
+    val availableEndpoints = NetworkConfig.getPublicEndpoints(currentNetwork)
+    
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false
+        )
+    ) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            TechCard(
+                style = CardStyle.ELEVATED,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(32.dp)
+                    .clip(RoundedCornerShape(16.dp))
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "RPC Endpoint Selection",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = OnSurface
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Current Network Info
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer
+                        ),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = "Network",
+                                modifier = Modifier.size(16.dp),
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column {
+                                Text(
+                                    text = NetworkConfig.getNetworkDisplayName(currentNetwork),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                                Text(
+                                    text = viewModel.getCurrentRpcUrl(),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Endpoint Selection
+                    if (availableEndpoints.isNotEmpty()) {
+                        Text(
+                            text = "Available Endpoints",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.align(Alignment.Start)
+                        )
+                        
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        // Scrollable endpoint list
+                        LazyColumn(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(max = 200.dp), // Limit height for scrolling
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            items(availableEndpoints) { endpoint ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { 
+                                            selectedEndpoint = endpoint
+                                            showCustomUrlInput = false
+                                        }
+                                        .padding(vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    RadioButton(
+                                        selected = selectedEndpoint == endpoint,
+                                        onClick = { 
+                                            selectedEndpoint = endpoint
+                                            showCustomUrlInput = false
+                                        }
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = endpoint.name,
+                                            style = MaterialTheme.typography.bodyMedium
+                                        )
+                                        Text(
+                                            text = endpoint.url,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Custom URL Option
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Switch(
+                            checked = showCustomUrlInput,
+                            onCheckedChange = { 
+                                showCustomUrlInput = it
+                                if (it) {
+                                    selectedEndpoint = null
+                                }
+                            },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = MaterialTheme.colorScheme.primary,
+                                checkedTrackColor = MaterialTheme.colorScheme.primaryContainer
+                            )
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Use Custom RPC URL",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+
+                    // Custom URL Input
+                    if (showCustomUrlInput) {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        OutlinedTextField(
+                            value = customUrl,
+                            onValueChange = { customUrl = it },
+                            label = { Text("Custom RPC URL") },
+                            placeholder = { Text("https://your-rpc-endpoint.com") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Uri,
+                                imeAction = ImeAction.Done
+                            )
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // Action Buttons
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        TechButton(
+                            text = "Cancel",
+                            onClick = onDismiss,
+                            style = TechButtonStyle.OUTLINE,
+                            modifier = Modifier.weight(1f)
+                        )
+                        TechButton(
+                            text = "Apply",
+                            onClick = { 
+                                val finalUrl = when {
+                                    showCustomUrlInput && customUrl.isNotBlank() -> customUrl
+                                    selectedEndpoint != null -> selectedEndpoint!!.url
+                                    else -> NetworkConfig.getRpcUrl(currentNetwork)
+                                }
+                                onConfirm(currentNetwork, finalUrl)
+                            },
+                            style = TechButtonStyle.PRIMARY,
+                            modifier = Modifier.weight(1f),
+                            enabled = !showCustomUrlInput || customUrl.isNotBlank()
                         )
                     }
                 }

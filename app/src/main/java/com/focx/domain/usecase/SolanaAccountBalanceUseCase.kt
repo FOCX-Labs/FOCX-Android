@@ -1,21 +1,21 @@
 package com.focx.domain.usecase
 
+import com.focx.core.network.NetworkConnectionManager
 import com.focx.utils.Log
 import com.solana.publickey.SolanaPublicKey
-import com.solana.rpc.SolanaRpcClient
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class SolanaAccountBalanceUseCase @Inject constructor(
-    private val solanaRpcClient: SolanaRpcClient
+    private val networkConnectionManager: NetworkConnectionManager
 ) {
     private val TAG = SolanaAccountBalanceUseCase::class.simpleName
 
     suspend fun getBalance(address: SolanaPublicKey): Long {
         return try {
             val address58 = address.base58()
-            val rpcResponse = solanaRpcClient.getBalance(address)
+            val rpcResponse = networkConnectionManager.getSolanaRpcClient().getBalance(address)
             val balance = rpcResponse.result ?: 0L
 
             Log.d(TAG, "getBalance pubKey=${address58}, balance=$balance")

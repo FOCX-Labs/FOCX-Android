@@ -5,6 +5,7 @@ import android.content.Context
 import android.text.TextUtils
 import com.focx.core.constants.AppConstants
 import com.focx.core.network.NetworkConfig
+import com.focx.core.network.NetworkConnectionManager
 import com.focx.data.datasource.mock.mockProducts
 import com.focx.domain.entity.AddProductToKeywordIndex
 import com.focx.domain.entity.AddProductToPriceIndex
@@ -34,7 +35,6 @@ import com.solana.mobilewalletadapter.clientlib.TransactionResult
 import com.solana.mobilewalletadapter.clientlib.successPayload
 import com.solana.programs.SystemProgram
 import com.solana.publickey.SolanaPublicKey
-import com.solana.rpc.SolanaRpcClient
 import com.solana.rpc.getAccountInfo
 import com.solana.serialization.AnchorInstructionSerializer
 import com.solana.transaction.AccountMeta
@@ -52,7 +52,7 @@ class SolanaProductDataSource @Inject constructor(
     private val context: Context,
     private val walletAdapter: MobileWalletAdapter,
     private val recentBlockhashUseCase: RecentBlockhashUseCase,
-    private val solanaRpcClient: SolanaRpcClient
+    private val networkConnectionManager: NetworkConnectionManager
 ) : IProductRepository {
     companion object {
         private const val TAG = "SPDS"
@@ -111,7 +111,7 @@ class SolanaProductDataSource @Inject constructor(
             return emptyList()
         } else {
             return distinctIds.subList(start, end)
-                .mapNotNull { id -> ShopUtils.getProductInfoById(id, solanaRpcClient) }
+                .mapNotNull { id -> ShopUtils.getProductInfoById(id, networkConnectionManager.getSolanaRpcClient()) }
         }
     }
 
@@ -140,9 +140,9 @@ class SolanaProductDataSource @Inject constructor(
         val keywordRootPda = ShopUtils.getKeywordRootPda(keyword).getOrNull()!!
         val keywordShardPda = ShopUtils.getTargetShardPda(keyword).getOrNull()!!
 
-        val keywordRoot = solanaRpcClient.getAccountInfo<KeywordRoot>(keywordRootPda).result?.data
+        val keywordRoot = networkConnectionManager.getSolanaRpcClient().getAccountInfo<KeywordRoot>(keywordRootPda).result?.data
         val result =
-            solanaRpcClient.getAccountInfo<KeywordShard>(keywordShardPda).result?.data?.productIds
+            networkConnectionManager.getSolanaRpcClient().getAccountInfo<KeywordShard>(keywordShardPda).result?.data?.productIds
 
         return result ?: emptyList()
     }
@@ -151,7 +151,7 @@ class SolanaProductDataSource @Inject constructor(
         val priceIndexPda = ShopUtils.getPriceIndexPDA(priceRange).getOrNull()!!
 
         val result =
-            solanaRpcClient.getAccountInfo<PriceIndexNode>(priceIndexPda).result?.data?.productIds
+            networkConnectionManager.getSolanaRpcClient().getAccountInfo<PriceIndexNode>(priceIndexPda).result?.data?.productIds
 
         return result ?: emptyList()
     }
@@ -160,13 +160,13 @@ class SolanaProductDataSource @Inject constructor(
         val salesIndexPda = ShopUtils.getSalesIndexPDA(salesRange).getOrNull()!!
 
         val result =
-            solanaRpcClient.getAccountInfo<SalesIndexNode>(salesIndexPda).result?.data?.productIds
+            networkConnectionManager.getSolanaRpcClient().getAccountInfo<SalesIndexNode>(salesIndexPda).result?.data?.productIds
 
         return result ?: emptyList()
     }
 
     override suspend fun getProductById(productId: ULong): Flow<Product?> = flow {
-        val product = ShopUtils.getProductInfoById(productId, solanaRpcClient)
+        val product = ShopUtils.getProductInfoById(productId, networkConnectionManager.getSolanaRpcClient())
         emit(product)
     }
 
@@ -175,7 +175,7 @@ class SolanaProductDataSource @Inject constructor(
             Log.d(TAG, "Getting merchant products for: $merchantAddress")
             val merchantPublicKey = SolanaPublicKey.from(merchantAddress)
 
-            val products = ShopUtils.getMerchantProducts(merchantPublicKey, solanaRpcClient)
+            val products = ShopUtils.getMerchantProducts(merchantPublicKey, networkConnectionManager.getSolanaRpcClient())
             emit(Result.success(products))
         } catch (e: Exception) {
             Log.e(TAG, "Failed to get merchant products: ${e.message}", e)
@@ -269,7 +269,7 @@ class SolanaProductDataSource @Inject constructor(
                         )
                         
                         // Confirm transaction
-                        val confirmationResult = Utils.confirmTransaction(solanaRpcClient, signatureString)
+                        val confirmationResult = Utils.confirmTransaction(networkConnectionManager.getSolanaRpcClient(), signatureString)
                         if (confirmationResult.isSuccess && confirmationResult.getOrNull() == true) {
                             Log.d(TAG, "Transaction confirmed: $signatureString")
                             // Add to local list only after successful blockchain transaction
@@ -453,7 +453,7 @@ class SolanaProductDataSource @Inject constructor(
         merchantIdAccountPDA: SolanaPublicKey
     ): SolanaPublicKey {
         val idAccount =
-            solanaRpcClient.getAccountInfo<MerchantIdAccount>(merchantIdAccountPDA).result?.data
+            networkConnectionManager.getSolanaRpcClient().getAccountInfo<MerchantIdAccount>(merchantIdAccountPDA).result?.data
 
         if (idAccount != null) {
             return idAccount.activeChunk
@@ -468,7 +468,7 @@ class SolanaProductDataSource @Inject constructor(
     ): ULong {
         try {
             val activeChunkPda = getActiveChunkPDA(accountPublicKey, merchantIdAccountPDA)
-            val activeChunk = solanaRpcClient.getAccountInfo<IdChunk>(activeChunkPda).result?.data
+            val activeChunk = networkConnectionManager.getSolanaRpcClient().getAccountInfo<IdChunk>(activeChunkPda).result?.data
             if (activeChunk != null) {
                 Log.d(
                     TAG,
@@ -531,7 +531,7 @@ class SolanaProductDataSource @Inject constructor(
                         )
                         
                         // Confirm transaction
-                        val confirmationResult = Utils.confirmTransaction(solanaRpcClient, signatureString)
+                        val confirmationResult = Utils.confirmTransaction(networkConnectionManager.getSolanaRpcClient(), signatureString)
                         if (confirmationResult.isSuccess && confirmationResult.getOrNull() == true) {
                             Log.d(TAG, "Transaction confirmed: $signatureString")
                             // Update local list only after successful blockchain transaction
@@ -614,7 +614,7 @@ class SolanaProductDataSource @Inject constructor(
                         )
                         
                         // Confirm transaction
-                        val confirmationResult = Utils.confirmTransaction(solanaRpcClient, signatureString)
+                        val confirmationResult = Utils.confirmTransaction(networkConnectionManager.getSolanaRpcClient(), signatureString)
                         if (confirmationResult.isSuccess && confirmationResult.getOrNull() == true) {
                             Log.d(TAG, "Transaction confirmed: $signatureString")
                             // Remove from local list only after successful blockchain transaction
