@@ -9,6 +9,7 @@ import com.focx.domain.usecase.GetProductByIdUseCase
 import com.focx.domain.usecase.GetCurrentWalletAddressUseCase
 import com.focx.domain.usecase.UpdateProductUseCase
 import com.focx.domain.usecase.DeleteProductUseCase
+import com.focx.domain.usecase.CacheManagementUseCase
 import com.focx.presentation.intent.ProductListIntent
 import com.focx.presentation.state.FilterState
 import com.focx.presentation.state.ProductListState
@@ -32,7 +33,8 @@ class ProductListViewModel @Inject constructor(
     private val getProductByIdUseCase: GetProductByIdUseCase,
     private val getCurrentWalletAddressUseCase: GetCurrentWalletAddressUseCase,
     private val updateProductUseCase: UpdateProductUseCase,
-    private val deleteProductUseCase: DeleteProductUseCase
+    private val deleteProductUseCase: DeleteProductUseCase,
+    private val cacheManagementUseCase: CacheManagementUseCase
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(ProductListState(isLoading = true))
@@ -459,6 +461,25 @@ class ProductListViewModel @Inject constructor(
             } else {
                 _effect.emit(ProductListEffect.ShowMessage("Wallet not connected"))
             }
+        }
+    }
+
+    fun clearRecommendCache() {
+        cacheManagementUseCase.clearRecommendCache()
+        Log.d("ProductListViewModel", "clearRecommendCache")
+    }
+
+    fun hasValidRecommendCache(): Boolean {
+        return cacheManagementUseCase.hasValidRecommendCache()
+    }
+
+    fun smartRefreshProducts() {
+        if (hasValidRecommendCache()) {
+            Log.d("ProductListViewModel", "smartRefreshProducts use cache, background fetching")
+            loadProducts(refresh = false)
+        } else {
+            Log.d("ProductListViewModel", "smartRefreshProducts no invalid cache")
+            loadProducts(refresh = true)
         }
     }
 }

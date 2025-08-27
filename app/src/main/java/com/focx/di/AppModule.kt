@@ -11,6 +11,7 @@ import com.focx.data.datasource.mock.MockSellerDataSource
 import com.focx.data.datasource.mock.MockUserDataSource
 import com.focx.data.datasource.local.AddressLocalDataSource
 import com.focx.data.datasource.local.AccountCacheDataSource
+import com.focx.data.datasource.local.RecommendProductCacheDataSource
 import com.focx.data.datasource.solana.SolanaMerchantDataSource
 import com.focx.data.datasource.solana.SolanaOrderDataSource
 import com.focx.data.datasource.solana.SolanaProductDataSource
@@ -63,6 +64,7 @@ import com.focx.domain.usecase.CreateProposalUseCase
 import com.focx.domain.usecase.FinalizeProposalUseCase
 import com.focx.domain.usecase.InitiateDisputeUseCase
 import com.focx.domain.usecase.GetMerchantProductsUseCase
+import com.focx.domain.usecase.CacheManagementUseCase
 import com.solana.mobilewalletadapter.clientlib.ConnectionIdentity
 import com.solana.mobilewalletadapter.clientlib.MobileWalletAdapter
 import dagger.Module
@@ -138,6 +140,13 @@ object AppModule {
         productRepository: IProductRepository
     ): DeleteProductUseCase {
         return DeleteProductUseCase(productRepository)
+    }
+
+    @Provides
+    fun provideCacheManagementUseCase(
+        productRepository: IProductRepository
+    ): CacheManagementUseCase {
+        return CacheManagementUseCase(productRepository)
     }
 
     @Provides
@@ -394,6 +403,14 @@ object AppModule {
         @ApplicationContext context: Context
     ): AccountCacheDataSource {
         return AccountCacheDataSource(context)
+    }
+
+    @Provides
+    @Singleton
+    fun provideRecommendProductCacheDataSource(
+        @ApplicationContext context: Context
+    ): RecommendProductCacheDataSource {
+        return RecommendProductCacheDataSource(context)
     }
 
     @Provides
