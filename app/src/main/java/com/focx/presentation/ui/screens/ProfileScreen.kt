@@ -112,23 +112,27 @@ fun ProfileScreen(
 
     if (uiState.user == null) {
         // Show login prompt when user is not logged in
-        LoginPromptScreen(onConnectWallet = {
-            viewModel.connectWallet(activityResultSender)
-        }, isLoading = uiState.isLoading, error = uiState.error, onClearError = { viewModel.clearError() })
+        LoginPromptScreen(
+            onConnectWallet = {
+                viewModel.connectWallet(activityResultSender)
+            },
+            isLoading = uiState.isLoading,
+            error = uiState.error,
+            onClearError = { viewModel.clearError() })
     } else {
         // Show profile content when user is logged in
         ProfileContent(
-            uiState = uiState, 
+            uiState = uiState,
             onRefresh = {
                 viewModel.refresh()
-            }, 
+            },
             onDisconnectWallet = {
                 viewModel.disconnectWallet()
-            }, 
+            },
             onClearError = {
                 viewModel.clearError()
-            }, 
-            onNavigateToAddresses = onNavigateToAddresses, 
+            },
+            onNavigateToAddresses = onNavigateToAddresses,
             onNavigateToOrders = onNavigateToOrders,
             onRequestUsdcFaucet = {
                 showFaucetDialog = true
@@ -171,7 +175,10 @@ fun ProfileScreen(
 
 @Composable
 fun LoginPromptScreen(
-    onConnectWallet: () -> Unit, isLoading: Boolean, error: String? = null, onClearError: () -> Unit = {}
+    onConnectWallet: () -> Unit,
+    isLoading: Boolean,
+    error: String? = null,
+    onClearError: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier
@@ -330,7 +337,7 @@ fun ProfileContent(
             // Wallet Balance Card
             item {
                 WalletBalanceCard(
-                    walletBalance = uiState.walletBalance, 
+                    walletBalance = uiState.walletBalance,
                     isLoading = uiState.isLoading,
                     onRequestUsdcFaucet = onRequestUsdcFaucet
                 )
@@ -421,7 +428,7 @@ fun ProfileContent(
 
 @Composable
 fun UserProfileHeader(
-    user: com.focx.domain.entity.User?, 
+    user: com.focx.domain.entity.User?,
     onDisconnectWallet: () -> Unit,
 ) {
     val clipboardManager = LocalClipboardManager.current
@@ -481,7 +488,7 @@ fun UserProfileHeader(
 
 @Composable
 fun WalletBalanceCard(
-    walletBalance: com.focx.domain.entity.WalletBalance?, 
+    walletBalance: com.focx.domain.entity.WalletBalance?,
     isLoading: Boolean,
     onRequestUsdcFaucet: () -> Unit = {}
 ) {
@@ -502,7 +509,9 @@ fun WalletBalanceCard(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Wallet Balance", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold
+                    text = "Wallet Balance",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
                 )
             }
 
@@ -531,9 +540,11 @@ fun WalletBalanceCard(
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.weight(1f)
                         )
-                        
+
                         // Show faucet button only in devnet
-                        if (NetworkConfig.getCurrentNetwork().contains("devnet", ignoreCase = true)) {
+                        if (NetworkConfig.getCurrentNetwork()
+                                .contains("devnet", ignoreCase = true)
+                        ) {
                             Button(
                                 onClick = onRequestUsdcFaucet,
                                 modifier = Modifier.height(32.dp),
@@ -575,54 +586,85 @@ fun StakingInfoCard(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Staking Info", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold
+                    text = "Staking Info",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
                 )
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            if (isLoading) {
-                CircularProgressIndicator(modifier = Modifier.size(24.dp))
-            } else {
-                stakingInfo?.let { vaultDepositor ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Column {
-                            Text(
-                                text = "Total Staked",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                text = "$userAssetValue USDC",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF4CAF50)
-                            )
-                        }
-
-                        Column {
-                            Text(
-                                text = "Total Rewards",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                text = "${String.format("%.2f", vaultDepositor.totalRewardsClaimed.toDouble() / 1_000_000_000.0)} USDC",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
+            stakingInfo?.let { vaultDepositor ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column {
+                        Text(
+                            text = "Total Staked",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = "$userAssetValue USDC",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF4CAF50)
+                        )
                     }
-                } ?: run {
-                    Text(
-                        text = "No staking information available",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+
+                    Column {
+                        Text(
+                            text = "Total Rewards",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = "${
+                                String.format(
+                                    "%.2f",
+                                    vaultDepositor.totalRewardsClaimed.toDouble() / 1_000_000_000.0
+                                )
+                            } USDC",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            } ?: run {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column {
+                        Text(
+                            text = "Total Staked",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = "-",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF4CAF50)
+                        )
+                    }
+
+                    Column {
+                        Text(
+                            text = "Total Rewards",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = "-",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
+
         }
     }
 }
@@ -679,7 +721,9 @@ fun MenuItemRow(
             modifier = Modifier.weight(1f)
         ) {
             Text(
-                text = title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium
             )
             Text(
                 text = subtitle,
@@ -713,7 +757,9 @@ fun AddressCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = address.label, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold
+                    text = address.label,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
                 )
 
                 if (address.isDefault) {
@@ -809,7 +855,7 @@ fun FaucetDialog(
                     // SOL Amount Input
                     OutlinedTextField(
                         value = solAmount,
-                        onValueChange = { 
+                        onValueChange = {
                             // Only allow numbers and decimal point
                             if (it.isEmpty() || it.matches(Regex("^\\d*\\.?\\d*$"))) {
                                 solAmount = it
@@ -867,7 +913,7 @@ fun FaucetDialog(
                         )
                         TechButton(
                             text = "Confirm",
-                            onClick = { 
+                            onClick = {
                                 val amount = solAmount.toDoubleOrNull()
                                 if (amount != null && amount > 0) {
                                     onConfirm(amount)
@@ -922,10 +968,10 @@ fun NetworkSelectionDialog(
     var selectedEndpoint by remember { mutableStateOf<PublicEndpoint?>(null) }
     var customUrl by remember { mutableStateOf("") }
     var showCustomUrlInput by remember { mutableStateOf(false) }
-    
+
     val currentNetwork = NetworkConfig.getCurrentNetwork()
     val availableEndpoints = NetworkConfig.getPublicEndpoints(currentNetwork)
-    
+
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(
@@ -1001,9 +1047,9 @@ fun NetworkSelectionDialog(
                             fontWeight = FontWeight.Medium,
                             modifier = Modifier.align(Alignment.Start)
                         )
-                        
+
                         Spacer(modifier = Modifier.height(8.dp))
-                        
+
                         // Scrollable endpoint list
                         LazyColumn(
                             modifier = Modifier
@@ -1015,7 +1061,7 @@ fun NetworkSelectionDialog(
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .clickable { 
+                                        .clickable {
                                             selectedEndpoint = endpoint
                                             showCustomUrlInput = false
                                         }
@@ -1024,7 +1070,7 @@ fun NetworkSelectionDialog(
                                 ) {
                                     RadioButton(
                                         selected = selectedEndpoint == endpoint,
-                                        onClick = { 
+                                        onClick = {
                                             selectedEndpoint = endpoint
                                             showCustomUrlInput = false
                                         }
@@ -1055,7 +1101,7 @@ fun NetworkSelectionDialog(
                     ) {
                         Switch(
                             checked = showCustomUrlInput,
-                            onCheckedChange = { 
+                            onCheckedChange = {
                                 showCustomUrlInput = it
                                 if (it) {
                                     selectedEndpoint = null
@@ -1105,7 +1151,7 @@ fun NetworkSelectionDialog(
                         )
                         TechButton(
                             text = "Apply",
-                            onClick = { 
+                            onClick = {
                                 val finalUrl = when {
                                     showCustomUrlInput && customUrl.isNotBlank() -> customUrl
                                     selectedEndpoint != null -> selectedEndpoint!!.url
