@@ -76,6 +76,7 @@ import com.focx.presentation.ui.theme.SurfaceDark
 import com.focx.presentation.viewmodel.ProductListViewModel
 import com.focx.presentation.viewmodel.ProfileViewModel
 import com.focx.presentation.intent.ProductListIntent
+import com.focx.presentation.viewmodel.ProductListEffect
 import com.focx.utils.ShopUtils
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -127,6 +128,22 @@ fun ProductDetailScreen(
     LaunchedEffect(state.error) {
         state.error?.let { error ->
             Toast.makeText(context, "Failed to load product: $error", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    // Listen for effects from ViewModel
+    LaunchedEffect(Unit) {
+        viewModel.effect.collect { effect ->
+            when (effect) {
+                is ProductListEffect.ShowMessage -> {
+                    Toast.makeText(context, effect.message, Toast.LENGTH_LONG).show()
+                    // If the message indicates successful deletion, navigate back
+                    if (effect.message.contains("deleted successfully", ignoreCase = true)) {
+                        onNavigateBack()
+                    }
+                }
+                else -> {}
+            }
         }
     }
 
