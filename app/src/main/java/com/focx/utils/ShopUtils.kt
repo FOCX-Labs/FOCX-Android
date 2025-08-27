@@ -532,24 +532,17 @@ object ShopUtils {
         pageSize: Int = 10,
         sortOrder: SortOrder = SortOrder.DESC
     ): List<Product> {
-//        val accounts = solanaRpcClient.getProgramAccounts(
-//            AppConstants.App.getShopProgramId(),
-//            filters = listOf(
-//                ProgramAccountsRequest.MemCompare(16, merchantPublicKey.base58())
-//            )
-//        ).result
-
-        val productCount = getMerchantInfo(merchantPublicKey, solanaRpcClient).productCount
-
-        val pageInfo = calcPageInfo(page, pageSize, productCount.toInt(), sortOrder)
-        if (productCount.toInt() < pageInfo.first) {
-            return emptyList()
-        }
         val merchantIdAccountPDA = getMerchantIdPda(merchantPublicKey).getOrNull()!!
         val activeChunkPda =
             solanaRpcClient.getAccountInfo<MerchantIdAccount>(merchantIdAccountPDA).result?.data!!.activeChunk
         val activeChunk = solanaRpcClient.getAccountInfo<IdChunk>(activeChunkPda).result?.data!!
+        val productTotalCount = activeChunk.nextAvailable
         val startId = activeChunk.startId - 1UL
+
+        val pageInfo = calcPageInfo(page, pageSize, productTotalCount.toInt(), sortOrder)
+        if (productTotalCount.toInt() < pageInfo.first) {
+            return emptyList()
+        }
 
         val productList = ArrayList<Product>()
         for (i in pageInfo.first..pageInfo.second) {
