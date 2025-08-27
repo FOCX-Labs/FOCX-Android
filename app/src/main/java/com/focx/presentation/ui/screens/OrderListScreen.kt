@@ -34,6 +34,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -44,6 +45,12 @@ import com.focx.presentation.viewmodel.OrderViewModel
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.Locale
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.widget.Toast
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -145,21 +152,34 @@ fun EmptyOrderState() {
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun OrderListItem(
     order: Order,
     onClick: () -> Unit
 ) {
+    val context = LocalContext.current
+    
+    fun copyToClipboard(text: String, label: String) {
+        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val clip = ClipData.newPlainText(label, text)
+        clipboard.setPrimaryClip(clip)
+        Toast.makeText(context, "$label copied to clipboard", Toast.LENGTH_SHORT).show()
+    }
+    
     Card(
         modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() },
+            .fillMaxWidth(),
         shape = RoundedCornerShape(12.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp)
+                .combinedClickable(
+                    onClick = { onClick() },
+                    onLongClick = { /* Do nothing on long click for the card */ }
+                )
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -212,7 +232,11 @@ fun OrderListItem(
             Text(
                 text = "Order: ${order.id}",
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.combinedClickable(
+                    onClick = { onClick() },
+                    onLongClick = { copyToClipboard(order.id, "Order ID") }
+                )
             )
         }
     }

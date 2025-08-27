@@ -82,8 +82,14 @@ import kotlinx.coroutines.launch
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.Locale
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.widget.Toast
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun OrderDetailScreen(
     orderId: String,
@@ -93,8 +99,16 @@ fun OrderDetailScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val order = state.order
+    val context = LocalContext.current
 
     var showConfirmReceiptDialog by remember { mutableStateOf(false) }
+    
+    fun copyToClipboard(text: String, label: String) {
+        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val clip = ClipData.newPlainText(label, text)
+        clipboard.setPrimaryClip(clip)
+        Toast.makeText(context, "$label copied to clipboard", Toast.LENGTH_SHORT).show()
+    }
 
     LaunchedEffect(orderId) {
         viewModel.loadOrder(orderId)
@@ -107,7 +121,11 @@ fun OrderDetailScreen(
                     Text(
                         text = "Order Details",
                         style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.combinedClickable(
+                            onClick = { /* Do nothing on click */ },
+                            onLongClick = { copyToClipboard(orderId, "Order ID") }
+                        )
                     )
                 },
                 navigationIcon = {
@@ -245,8 +263,18 @@ fun OrderDetailScreen(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun OrderInfoCard(order: Order) {
+    val context = LocalContext.current
+    
+    fun copyToClipboard(text: String, label: String) {
+        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val clip = ClipData.newPlainText(label, text)
+        clipboard.setPrimaryClip(clip)
+        Toast.makeText(context, "$label copied to clipboard", Toast.LENGTH_SHORT).show()
+    }
+    
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp)
@@ -263,7 +291,12 @@ fun OrderInfoCard(order: Order) {
                     text = "Order ${order.id}",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier
+                        .weight(1f)
+                        .combinedClickable(
+                            onClick = { /* Do nothing on click */ },
+                            onLongClick = { copyToClipboard(order.id, "Order ID") }
+                        )
                 )
             }
 

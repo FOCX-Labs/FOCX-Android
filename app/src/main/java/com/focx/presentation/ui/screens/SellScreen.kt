@@ -45,6 +45,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -62,6 +63,14 @@ import com.focx.presentation.viewmodel.SellerRegistrationViewModel
 import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
 import kotlinx.coroutines.delay
 import com.focx.utils.Log
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.widget.Toast
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.ExperimentalFoundationApi
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -420,21 +429,34 @@ fun SectionHeaderPreview() {
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun OrderCard(
     order: Order,
     onOrderClick: () -> Unit
 ) {
+    val context = LocalContext.current
+    
+    fun copyToClipboard(text: String, label: String) {
+        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val clip = ClipData.newPlainText(label, text)
+        clipboard.setPrimaryClip(clip)
+        Toast.makeText(context, "$label copied to clipboard", Toast.LENGTH_SHORT).show()
+    }
+    
     Card(
         modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onOrderClick() },
+            .fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(Spacing.medium)
+                .combinedClickable(
+                    onClick = { onOrderClick() },
+                    onLongClick = { /* Do nothing on long click for the card */ }
+                )
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -450,13 +472,21 @@ fun OrderCard(
                     Text(
                         text = "Order: ${order.id}",
                         style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.Medium
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.combinedClickable(
+                            onClick = { onOrderClick() },
+                            onLongClick = { copyToClipboard(order.id, "Order ID") }
+                        )
                     )
                     Text(
                         text = "Buyer: ${order.buyerId}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontWeight = FontWeight.Medium
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.combinedClickable(
+                            onClick = { onOrderClick() },
+                            onLongClick = { copyToClipboard(order.buyerId, "Buyer ID") }
+                        )
                     )
                 }
 
@@ -468,8 +498,8 @@ fun OrderCard(
                         color = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                                        text = java.text.SimpleDateFormat("MM-dd HH:mm", java.util.Locale.US)
-                    .format(java.util.Date(order.orderDate * 1000)),
+                        text = java.text.SimpleDateFormat("MM-dd HH:mm", java.util.Locale.US)
+                            .format(java.util.Date(order.orderDate * 1000)),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

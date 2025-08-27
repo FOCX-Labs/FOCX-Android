@@ -64,6 +64,11 @@ import androidx.compose.material.icons.automirrored.filled.Note
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Note
 import androidx.compose.material.icons.filled.Paid
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -104,7 +109,17 @@ fun SoldOrderDetailScreen(
                         text = "Order $orderId",
                         style = MaterialTheme.typography.titleMedium,
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.pointerInput(Unit) {
+                            detectTapGestures(
+                                onLongPress = {
+                                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                    val clip = ClipData.newPlainText("Order ID", orderId)
+                                    clipboard.setPrimaryClip(clip)
+                                    Toast.makeText(context, "Order ID copied to clipboard", Toast.LENGTH_SHORT).show()
+                                }
+                            )
+                        }
                     ) 
                 },
                 navigationIcon = {
@@ -500,6 +515,15 @@ fun CustomerInfoCard(
     paymentMethod: String,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    
+    fun copyToClipboard(text: String, label: String) {
+        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val clip = ClipData.newPlainText(label, text)
+        clipboard.setPrimaryClip(clip)
+        Toast.makeText(context, "$label copied to clipboard", Toast.LENGTH_SHORT).show()
+    }
+    
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -522,7 +546,8 @@ fun CustomerInfoCard(
             CustomerInfoRow(
                 icon = Icons.Default.Person,
                 label = "Buyer",
-                value = customer
+                value = customer,
+                onLongPress = { copyToClipboard(customer, "Buyer ID") }
             )
 
             Spacer(modifier = Modifier.height(Spacing.small))
@@ -530,7 +555,8 @@ fun CustomerInfoCard(
             CustomerInfoRow(
                 icon = Icons.Default.Home,
                 label = "Address",
-                value = shippingAddress
+                value = shippingAddress,
+                onLongPress = { copyToClipboard(shippingAddress, "Shipping Address") }
             )
 
             Spacer(modifier = Modifier.height(Spacing.small))
@@ -538,7 +564,8 @@ fun CustomerInfoCard(
             CustomerInfoRow(
                 icon = Icons.AutoMirrored.Filled.Note,
                 label = "Note",
-                value = note
+                value = note,
+                onLongPress = { copyToClipboard(note, "Order Note") }
             )
 
             Spacer(modifier = Modifier.height(Spacing.small))
@@ -561,7 +588,14 @@ fun CustomerInfoCard(
                     )
                     Text(
                         text = paymentMethod,
-                        style = MaterialTheme.typography.bodyMedium
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.pointerInput(Unit) {
+                            detectTapGestures(
+                                onLongPress = {
+                                    copyToClipboard(paymentMethod, "Payment Method")
+                                }
+                            )
+                        }
                     )
                 }
             }
@@ -574,7 +608,8 @@ fun CustomerInfoRow(
     icon: ImageVector,
     label: String,
     value: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onLongPress: (() -> Unit)? = null
 ) {
     Row(
         modifier = modifier,
@@ -595,7 +630,16 @@ fun CustomerInfoRow(
             )
             Text(
                 text = value,
-                style = MaterialTheme.typography.bodyMedium
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = if (onLongPress != null) {
+                    Modifier.pointerInput(Unit) {
+                        detectTapGestures(
+                            onLongPress = { onLongPress() }
+                        )
+                    }
+                } else {
+                    Modifier
+                }
             )
         }
     }
