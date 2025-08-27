@@ -7,6 +7,7 @@ import com.focx.core.constants.AppConstants
 import com.focx.core.network.NetworkConfig
 import com.focx.core.network.NetworkConnectionManager
 import com.focx.data.datasource.mock.mockProducts
+import com.focx.data.datasource.local.RecommendProductCacheDataSource
 import com.focx.domain.entity.AddProductToKeywordIndex
 import com.focx.domain.entity.AddProductToPriceIndex
 import com.focx.domain.entity.AddProductToSalesIndex
@@ -59,25 +60,47 @@ class SolanaProductDataSource @Inject constructor(
     }
 
     private var products: MutableList<Product> = mockProducts.toMutableList()
+    
+    private val recommendProductCacheDataSource by lazy {
+        RecommendProductCacheDataSource(context)
+    }
 
     override suspend fun getProducts(
         page: Int,
         pageSize: Int,
         refresh: Boolean
     ): Flow<List<Product>> = flow {
-//        delay(500) // Simulate network delay
-//        if (refresh) {
-//            products = mockProducts.shuffled().toMutableList()
-//        }
-//        val start = (page - 1) * pageSize
-//        val end = minOf(start + pageSize, products.size)
-//        if (start >= products.size) {
-//            emit(emptyList())
-//        } else {
-//            emit(products.subList(start, end))
-//        }
-
-        emit(getProductsFromChain(page, pageSize))
+        if (!refresh && page == 1) {
+            val cachedProducts = recommendProductCacheDataSource.getCachedRecommendProducts()
+            if (cachedProducts != null) {
+                val start = 0
+                val end = minOf(pageSize, cachedProducts.size)
+                emit(cachedProducts.subList(start, end))
+                
+                try {
+                    val freshProducts = getProductsFromChain(page, pageSize)
+                    if (freshProducts.isNotEmpty()) {
+                        recommendProductCacheDataSource.cacheRecommendProducts(freshProducts)
+                        if (freshProducts != cachedProducts) {
+                            val freshStart = 0
+                            val freshEnd = minOf(pageSize, freshProducts.size)
+                            emit(freshProducts.subList(freshStart, freshEnd))
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to fetch fresh recommend products: ${e.message}", e)
+                }
+                return@flow
+            }
+        }
+        
+        val products = getProductsFromChain(page, pageSize)
+        
+        if (page == 1 && products.isNotEmpty()) {
+            recommendProductCacheDataSource.cacheRecommendProducts(products)
+        }
+        
+        emit(products)
     }
 
     private suspend fun getProductsFromChain(
@@ -134,6 +157,8 @@ class SolanaProductDataSource @Inject constructor(
             1010014UL
         )
     }
+
+
 
 
     private suspend fun searchByKeywordFormChain(keyword: String): List<ULong> {
@@ -711,6 +736,14 @@ class SolanaProductDataSource @Inject constructor(
                 )
             )
         )
+    }
+
+    override fun clearRecommendCache() {
+        recommendProductCacheDataSource.clearCache()
+    }
+
+    override fun hasValidRecommendCache(): Boolean {
+        return recommendProductCacheDataSource.hasValidCache()
     }
 
 }

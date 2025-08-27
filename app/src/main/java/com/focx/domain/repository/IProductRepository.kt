@@ -12,4 +12,7 @@ interface IProductRepository {
     suspend fun saveProduct(product: Product, accountPublicKey: String, activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender)
     suspend fun updateProduct(product: Product, accountPublicKey: String, activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender)
     suspend fun deleteProduct(productId: ULong, accountPublicKey: String, activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender)
+    
+    fun clearRecommendCache()
+    fun hasValidRecommendCache(): Boolean
 }
