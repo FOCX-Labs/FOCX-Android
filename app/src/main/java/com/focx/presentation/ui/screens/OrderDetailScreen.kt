@@ -321,9 +321,27 @@ fun OrderInfoCard(order: Order) {
                     color = Color.White
                 )
             }
-
+            
+            // Display tracking number if available and order is shipped or delivered
+            if (order.trackingNumber != null &&
+                (order.status == OrderManagementStatus.Shipped || order.status == OrderManagementStatus.Delivered)) {
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                Text(
+                    text = "Tracking number: ${order.trackingNumber}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .combinedClickable(
+                            onClick = { /* Do nothing on click */ },
+                            onLongClick = { copyToClipboard(order.trackingNumber!!, "Tracking Number") }
+                        )
+                )
+            }
+            
             Spacer(modifier = Modifier.height(8.dp))
-
+            
             Text(
                 text = "Placed on ${
                     SimpleDateFormat(
