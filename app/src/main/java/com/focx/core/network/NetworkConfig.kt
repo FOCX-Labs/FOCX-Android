@@ -96,7 +96,7 @@ object NetworkConfig {
             priority = 7
         ),
         PublicEndpoint(
-            name = "Solana Official",
+            name = "Solana Foundation",
             url = "https://api.mainnet-beta.solana.com",
             networkType = MAINNET,
             priority = 8
@@ -116,13 +116,13 @@ object NetworkConfig {
         
         // Devnet endpoints (2)
         PublicEndpoint(
-            name = "OnFinality Devnet",
+            name = "OnFinality",
             url = "https://solana-devnet.api.onfinality.io/public",
             networkType = DEVNET,
             priority = 1
         ),
         PublicEndpoint(
-            name = "Solana Devnet Official",
+            name = "Solana Foundation",
             url = "https://api.devnet.solana.com",
             networkType = DEVNET,
             priority = 2
@@ -130,7 +130,7 @@ object NetworkConfig {
         
         // Testnet endpoints (1)
         PublicEndpoint(
-            name = "Solana Testnet Official",
+            name = "Solana Foundation",
             url = "https://api.testnet.solana.com",
             networkType = TESTNET,
             priority = 1
