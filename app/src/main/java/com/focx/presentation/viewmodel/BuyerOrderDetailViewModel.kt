@@ -73,14 +73,12 @@ class BuyerOrderDetailViewModel @Inject constructor(
                     loadOrder(orderId)
                 } else {
                     _state.value = _state.value.copy(
-                        isLoading = false,
-                        error = result.exceptionOrNull()?.message ?: "Failed to confirm receipt"
+                        isLoading = false
                     )
                 }
             } catch (e: Exception) {
                 _state.value = _state.value.copy(
-                    isLoading = false,
-                    error = e.message ?: "Failed to confirm receipt"
+                    isLoading = false
                 )
             }
         }
