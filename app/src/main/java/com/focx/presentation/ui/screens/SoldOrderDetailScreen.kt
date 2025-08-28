@@ -304,7 +304,7 @@ fun OrderStatusCard(
             
             if (trackingNumber != null) {
                 Text(
-                    text = "Tracking: $trackingNumber",
+                    text = "Tracking number: $trackingNumber",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
