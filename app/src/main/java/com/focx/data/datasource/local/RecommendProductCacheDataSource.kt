@@ -21,7 +21,7 @@ class RecommendProductCacheDataSource @Inject constructor(
     companion object {
         private const val KEY_RECOMMEND_PRODUCTS = "recommend_products"
         private const val KEY_CACHE_TIMESTAMP = "cache_timestamp"
-        private const val CACHE_DURATION = 10 * 60 * 1000L // 10 minutes cache duration
+        private const val CACHE_DURATION = 3 * 24 * 60 * 1000L // 3 days cache duration
     }
 
     fun getCachedRecommendProducts(): List<Product>? {
