@@ -258,7 +258,6 @@ fun GovernanceScreen(
                             onViewProgress = { proposalId ->
                                 viewModel.getVotingProgress(proposalId)
                             },
-                            isVoting = uiState.isVoting,
                             canVote = uiState.stats.canVote
                         )
                     }
@@ -456,7 +455,6 @@ fun ProposalCard(
     onVoteNoWithVeto: (ULong) -> Unit = {},
     onFinalizeProposal: (ULong, SolanaPublicKey) -> Unit,
     onViewProgress: (ULong) -> Unit = {},
-    isVoting: Boolean = false,
     canVote: Boolean = false
 ) {
     Card(
@@ -549,7 +547,6 @@ fun ProposalCard(
                     )
                     OutlinedButton(
                         onClick = { onViewProgress(proposal.id) },
-                        enabled = !isVoting,
                         modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.outlinedButtonColors(
                             contentColor = Color(0xFFFF5722)
@@ -665,7 +662,6 @@ fun ProposalCard(
                 ) {
                     OutlinedButton(
                         onClick = { onVoteFor(proposal.id) },
-                        enabled = !isVoting,
                         modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.outlinedButtonColors(
                             contentColor = Color(0xFF4CAF50)
@@ -674,19 +670,10 @@ fun ProposalCard(
                             1.dp, Color(0xFF4CAF50)
                         )
                     ) {
-                        if (isVoting) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(16.dp),
-                                color = Color(0xFF4CAF50),
-                                strokeWidth = 2.dp
-                            )
-                        } else {
-                            Text("Yes")
-                        }
+                        Text("Yes")
                     }
                     OutlinedButton(
                         onClick = { onVoteAgainst(proposal.id) },
-                        enabled = !isVoting,
                         modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.outlinedButtonColors(
                             contentColor = Color(0xFFFF5722)
@@ -695,15 +682,7 @@ fun ProposalCard(
                             1.dp, Color(0xFFFF5722)
                         )
                     ) {
-                        if (isVoting) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(16.dp),
-                                color = Color(0xFFFF5722),
-                                strokeWidth = 2.dp
-                            )
-                        } else {
-                            Text("No")
-                        }
+                        Text("No")
                     }
                 }
 
@@ -716,7 +695,6 @@ fun ProposalCard(
                 ) {
                     OutlinedButton(
                         onClick = { onVoteAbstain(proposal.id) },
-                        enabled = !isVoting,
                         modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.outlinedButtonColors(
                             contentColor = Color(0xFF9E9E9E)
@@ -725,19 +703,10 @@ fun ProposalCard(
                             1.dp, Color(0xFF9E9E9E)
                         )
                     ) {
-                        if (isVoting) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(16.dp),
-                                color = Color(0xFF9E9E9E),
-                                strokeWidth = 2.dp
-                            )
-                        } else {
-                            Text("Abstain")
-                        }
+                        Text("Abstain")
                     }
                     OutlinedButton(
                         onClick = { onVoteNoWithVeto(proposal.id) },
-                        enabled = !isVoting,
                         modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.outlinedButtonColors(
                             contentColor = Color(0xFF9C27B0)
@@ -746,15 +715,7 @@ fun ProposalCard(
                             1.dp, Color(0xFF9C27B0)
                         )
                     ) {
-                        if (isVoting) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(16.dp),
-                                color = Color(0xFF9C27B0),
-                                strokeWidth = 2.dp
-                            )
-                        } else {
-                            Text("No with Veto")
-                        }
+                        Text("No with Veto")
                     }
                 }
             }
@@ -767,7 +728,6 @@ fun ProposalCard(
                 ) {
                     OutlinedButton(
                         onClick = { onFinalizeProposal(proposal.id, proposal.proposer) },
-                        enabled = !isVoting,
                         modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.outlinedButtonColors(
                             contentColor = Color(0xFF4CAF50)
@@ -776,15 +736,7 @@ fun ProposalCard(
                             1.dp, Color(0xFF4CAF50)
                         )
                     ) {
-                        if (isVoting) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(16.dp),
-                                color = Color(0xFF4CAF50),
-                                strokeWidth = 2.dp
-                            )
-                        } else {
-                            Text("Finalize Proposal")
-                        }
+                        Text("Finalize Proposal")
                     }
                 }
             }
