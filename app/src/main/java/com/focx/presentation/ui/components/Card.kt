@@ -1,5 +1,11 @@
 package com.focx.presentation.ui.components
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.widget.Toast
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
@@ -136,6 +142,7 @@ fun ProductCardExt(
             .clickable { onClick(product) }) {}
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ProductCard(
     product: Product,
@@ -144,6 +151,14 @@ fun ProductCard(
     showFavoriteButton: Boolean = false,
     onFavoriteClick: ((Product) -> Unit)? = null
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    
+    fun copyToClipboard(text: String, label: String) {
+        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val clip = ClipData.newPlainText(label, text)
+        clipboard.setPrimaryClip(clip)
+        Toast.makeText(context, "$label copied to clipboard", Toast.LENGTH_SHORT).show()
+    }
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -221,7 +236,11 @@ fun ProductCard(
             Text(
                 text = product.name, style = MaterialTheme.typography.titleSmall.copy(
                     fontWeight = FontWeight.SemiBold
-                ), color = OnSurface, minLines = 2, maxLines = 2, overflow = TextOverflow.Ellipsis
+                ), color = OnSurface, minLines = 2, maxLines = 2, overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.combinedClickable(
+                    onClick = { /* Do nothing on click */ },
+                    onLongClick = { copyToClipboard(product.name, "Product Name") }
+                )
             )
 
             Spacer(modifier = Modifier.height(4.dp))
@@ -239,7 +258,16 @@ fun ProductCard(
             Text(
                 text = "${String.format("%.2f", product.price.toDouble() / AppConstants.App.TOKEN_DECIMAL)} ${product.currency}", style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.Bold
-                ), color = PriceColor
+                ), color = PriceColor,
+                modifier = Modifier.combinedClickable(
+                    onClick = { /* Do nothing on click */ },
+                    onLongClick = {
+                        copyToClipboard(
+                            "${String.format("%.2f", product.price.toDouble() / AppConstants.App.TOKEN_DECIMAL)} ${product.currency}",
+                            "Price"
+                        )
+                    }
+                )
             )
         }
     }

@@ -1,8 +1,12 @@
 package com.focx.presentation.ui.screens
 
 import android.widget.Toast
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -103,6 +107,13 @@ fun ProductDetailScreen(
     var selectedQuantity by remember { mutableStateOf(1) }
     var showBuyDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    
+    fun copyToClipboard(text: String, label: String) {
+       val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+       val clip = ClipData.newPlainText(label, text)
+       clipboard.setPrimaryClip(clip)
+       Toast.makeText(context, "$label copied to clipboard", Toast.LENGTH_SHORT).show()
+   }
     
     // Get current back stack entry to access saved state
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
@@ -358,7 +369,11 @@ fun ProductDetailScreen(
                         text = currentProduct.name,
                         style = MaterialTheme.typography.titleLarge,
                         color = OnSurface,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.combinedClickable(
+                            onClick = { /* Do nothing on click */ },
+                            onLongClick = { copyToClipboard(currentProduct.name, "Product Name") }
+                        )
                     )
 
 //                    Spacer(modifier = Modifier.height(Spacing.small))
@@ -400,7 +415,11 @@ fun ProductDetailScreen(
                             text = "$${ShopUtils.getPriceShow(currentProduct.price)}",
                             style = MaterialTheme.typography.headlineLarge,
                             color = Primary,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.combinedClickable(
+                                onClick = { /* Do nothing on click */ },
+                                onLongClick = { copyToClipboard("$${ShopUtils.getPriceShow(currentProduct.price)}", "Price") }
+                            )
                         )
 
                         // Note: Original price and discount features can be added to Product entity if needed
@@ -541,7 +560,11 @@ fun ProductDetailScreen(
                         text = currentProduct.description,
                         style = MaterialTheme.typography.bodyLarge,
                         color = OnSurface,
-                        lineHeight = 24.sp
+                        lineHeight = 24.sp,
+                        modifier = Modifier.combinedClickable(
+                            onClick = { /* Do nothing on click */ },
+                            onLongClick = { copyToClipboard(currentProduct.description, "Description") }
+                        )
                     )
 
                     Spacer(modifier = Modifier.height(Spacing.large))
