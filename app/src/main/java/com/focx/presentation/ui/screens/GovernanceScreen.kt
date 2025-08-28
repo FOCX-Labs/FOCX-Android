@@ -549,10 +549,10 @@ fun ProposalCard(
                         onClick = { onViewProgress(proposal.id) },
                         modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = Color(0xFFFF5722)
+                            contentColor = Color(0xFF2196F3)
                         ),
                         border = androidx.compose.foundation.BorderStroke(
-                            1.dp, Color(0xFFFF5722)
+                            1.dp, Color(0xFF2196F3)
                         )
                     ) {
                         Text("View Progress")
