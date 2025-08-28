@@ -994,7 +994,7 @@ fun NetworkSelectionDialog(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "RPC Endpoint Selection",
+                        text = "Network and RPC Endpoint Selection",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         color = OnSurface
@@ -1014,13 +1014,6 @@ fun NetworkSelectionDialog(
                             modifier = Modifier.padding(12.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Refresh,
-                                contentDescription = "Network",
-                                modifier = Modifier.size(16.dp),
-                                tint = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
                             Column {
                                 Text(
                                     text = NetworkConfig.getNetworkDisplayName(currentNetwork),
