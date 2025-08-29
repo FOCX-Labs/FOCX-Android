@@ -28,6 +28,7 @@ import javax.inject.Inject
 
 data class EarnUiState(
     val isLoading: Boolean = false,
+    val isInitialLoading: Boolean = false,
     val error: String? = null,
     val vault: Vault? = null,
     val totalStakers: Int = 0,
@@ -62,6 +63,7 @@ class EarnViewModel @Inject constructor(
             if (walletAddress == null) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
+                    isInitialLoading = false,
                     error = "Wallet not connected"
                 )
                 return@launch
@@ -69,6 +71,7 @@ class EarnViewModel @Inject constructor(
             
             _uiState.value = _uiState.value.copy(
                 isLoading = true,
+                isInitialLoading = true,
                 error = null,
                 userWalletAddress = walletAddress
             )
@@ -132,14 +135,13 @@ class EarnViewModel @Inject constructor(
                     Log.e("EarnViewModel", "Failed to load USDC balance: ${e.message}", e)
                     // Don't set error for balance failure, just log it
                 }
-
-                _uiState.value = _uiState.value.copy(isLoading = false)
             } catch (e: Exception) {
                 Log.e("EarnViewModel", "Exception in loadEarnData: ${e.message}", e)
                 _uiState.value = _uiState.value.copy(
-                    isLoading = false,
                     error = "Failed to load earn data: ${e.message}"
                 )
+            } finally {
+                _uiState.value = _uiState.value.copy(isLoading = false, isInitialLoading = false)
             }
         }
     }
@@ -186,25 +188,18 @@ class EarnViewModel @Inject constructor(
                                 // Refresh data after successful stake
                                 loadEarnData()
                                 _uiState.value = _uiState.value.copy(
-                                    isLoading = false,
                                     error = null
                                 )
                             },
                             onFailure = { error ->
                                 Log.e("EarnViewModel", "Stake USDC failed: ${error.message}")
-                                _uiState.value = _uiState.value.copy(
-                                    isLoading = false,
-                                    error = "Stake failed: ${error.message}"
-                                )
                             }
                         )
                     }
             } catch (e: Exception) {
                 Log.e("EarnViewModel", "Exception in stakeUsdc: ${e.message}", e)
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    error = "Stake failed: ${e.message}"
-                )
+            } finally {
+                _uiState.value = _uiState.value.copy(isLoading = false)
             }
         }
     }
@@ -230,25 +225,18 @@ class EarnViewModel @Inject constructor(
                                 // Refresh data after successful unstake
                                 loadEarnData()
                                 _uiState.value = _uiState.value.copy(
-                                    isLoading = false,
                                     error = null
                                 )
                             },
                             onFailure = { error ->
                                 Log.e("EarnViewModel", "Unstake USDC failed: ${error.message}")
-                                _uiState.value = _uiState.value.copy(
-                                    isLoading = false,
-                                    error = "Unstake failed: ${error.message}"
-                                )
                             }
                         )
                     }
             } catch (e: Exception) {
                 Log.e("EarnViewModel", "Exception in unstakeUsdc: ${e.message}", e)
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    error = "Unstake failed: ${e.message}"
-                )
+            } finally {
+                _uiState.value = _uiState.value.copy(isLoading = false)
             }
         }
     }
@@ -274,25 +262,18 @@ class EarnViewModel @Inject constructor(
                                 // Refresh data after successful unstake
                                 loadEarnData()
                                 _uiState.value = _uiState.value.copy(
-                                    isLoading = false,
                                     error = null
                                 )
                             },
                             onFailure = { error ->
                                 Log.e("EarnViewModel", "Unstake USDC failed: ${error.message}")
-                                _uiState.value = _uiState.value.copy(
-                                    isLoading = false,
-                                    error = "Unstake failed: ${error.message}"
-                                )
                             }
                         )
                     }
             } catch (e: Exception) {
                 Log.e("EarnViewModel", "Exception in unstakeUsdc: ${e.message}", e)
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    error = "Unstake failed: ${e.message}"
-                )
+            } finally {
+                _uiState.value = _uiState.value.copy(isLoading = false)
             }
         }
     }
@@ -342,8 +323,6 @@ class EarnViewModel @Inject constructor(
                             onFailure = { error ->
                                 Log.e("EarnViewModel", "Initialize vault depositor failed: ${error.message}")
                                 _uiState.value = _uiState.value.copy(
-                                    isLoading = false,
-                                    error = "Initialize vault depositor failed: ${error.message}",
                                     showInitializeVaultDepositorDialog = false,
                                     pendingStakeAmount = null
                                 )
@@ -353,11 +332,11 @@ class EarnViewModel @Inject constructor(
             } catch (e: Exception) {
                 Log.e("EarnViewModel", "Exception in confirmInitializeVaultDepositor: ${e.message}", e)
                 _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    error = "Initialize vault depositor failed: ${e.message}",
                     showInitializeVaultDepositorDialog = false,
                     pendingStakeAmount = null
                 )
+            } finally {
+                _uiState.value = _uiState.value.copy(isLoading = false)
             }
         }
     }

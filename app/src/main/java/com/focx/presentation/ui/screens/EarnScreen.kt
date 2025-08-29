@@ -277,7 +277,21 @@ fun EarnScreen(
             )
 
             // Show full screen loading only for initial load
-            if (uiState.isLoading) {
+            if (uiState.isInitialLoading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    androidx.compose.material3.CircularProgressIndicator()
+                }
+            }
+            
+            // Show transaction loading indicator
+            if (uiState.isLoading && !uiState.isInitialLoading) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
