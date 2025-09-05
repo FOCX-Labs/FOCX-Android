@@ -80,6 +80,7 @@ fun SellScreen(
     onNavigateToSellerRegistration: () -> Unit = {},
     onNavigateToAddProduct: () -> Unit = {},
     onNavigateToOrderDetail: (String) -> Unit = {},
+    onNavigateToOrderList: () -> Unit = {},
     viewModel: SellViewModel = hiltViewModel(),
     registrationViewModel: SellerRegistrationViewModel = hiltViewModel()
 ) {
@@ -247,19 +248,12 @@ fun SellScreen(
                         )
                     }
 
-                    // Recent Orders Section
+                    // My Orders Section
                     item {
                         SectionHeader(
-                            title = "Recent Orders",
+                            title = "My Orders",
                             actionText = "View All",
-                            onActionClick = { /* Navigate to all orders */ }
-                        )
-                    }
-
-                    items(uiState.recentOrders) { order ->
-                        OrderCard(
-                            order = order,
-                            onOrderClick = { onNavigateToOrderDetail(order.id) }
+                            onActionClick = onNavigateToOrderList
                         )
                     }
 
