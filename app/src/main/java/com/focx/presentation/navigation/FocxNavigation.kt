@@ -35,6 +35,7 @@ import com.focx.presentation.viewmodel.AddEditProductEffect
 import com.focx.presentation.intent.AddEditProductIntent
 import com.focx.presentation.ui.screens.OrderDetailScreen
 import com.focx.presentation.ui.screens.OrderListScreen
+import com.focx.presentation.ui.screens.SellerOrderListScreen
 import com.focx.presentation.viewmodel.OrderViewModel
 import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
 import com.focx.utils.Log
@@ -57,7 +58,8 @@ private val fullScreenRoutes = setOf(
     "add_address",
     "edit_address",
     "order_list",
-    "order_detail"
+    "order_detail",
+    "seller_order_list"
 )
 
 @Composable
@@ -101,6 +103,8 @@ fun FocxNavigation(activityResultSender: ActivityResultSender) {
                         navController.navigate("add_product")
                     }, onNavigateToOrderDetail = { orderId ->
                         navController.navigate("sold_order_detail/$orderId")
+                    }, onNavigateToOrderList = {
+                        navController.navigate("seller_order_list")
                     })
             }
 
@@ -357,6 +361,16 @@ fun FocxNavigation(activityResultSender: ActivityResultSender) {
                     activityResultSender = activityResultSender,
                     onNavigateBack = {
                         navController.popBackStack()
+                    })
+            }
+
+            // Seller Order List
+            composable("seller_order_list") {
+                SellerOrderListScreen(
+                    onNavigateBack = {
+                        navController.popBackStack()
+                    }, onOrderClick = { orderId ->
+                        navController.navigate("sold_order_detail/$orderId")
                     })
             }
 
