@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -31,6 +32,8 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -60,9 +63,33 @@ fun SellerOrderListScreen(
     viewModel: SellerOrderListViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val listState = rememberLazyListState()
+    
+    // Generate a stable key for this composition
+    val screenKey = remember { System.currentTimeMillis() }
 
-    LaunchedEffect(Unit) {
-        viewModel.loadSellerOrders()
+    // Check if we need to load more items when scrolling
+    val shouldLoadMore = remember {
+        derivedStateOf {
+            val layoutInfo = listState.layoutInfo
+            val totalItemsNumber = layoutInfo.totalItemsCount
+            val lastVisibleItemIndex = (layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0) + 1
+
+            lastVisibleItemIndex > (totalItemsNumber - 3) && // Load more when 3 items from bottom
+                !uiState.isLoadingMore &&
+                uiState.hasMoreOrders &&
+                !uiState.isLoading
+        }
+    }
+
+    LaunchedEffect(shouldLoadMore.value) {
+        if (shouldLoadMore.value) {
+            viewModel.loadMoreOrders()
+        }
+    }
+
+    LaunchedEffect(screenKey) {
+        viewModel.resetAndLoadOrders()
     }
 
     Scaffold(
@@ -87,6 +114,7 @@ fun SellerOrderListScreen(
         }
     ) { paddingValues ->
         LazyColumn(
+            state = listState,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
@@ -94,7 +122,7 @@ fun SellerOrderListScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
             contentPadding = PaddingValues(vertical = 16.dp)
         ) {
-            if (uiState.isLoading) {
+            if (uiState.isLoading && uiState.orders.isEmpty()) {
                 item {
                     Box(
                         modifier = Modifier.fillMaxWidth(),
@@ -103,7 +131,7 @@ fun SellerOrderListScreen(
                         CircularProgressIndicator()
                     }
                 }
-            } else if (uiState.orders.isEmpty()) {
+            } else if (uiState.orders.isEmpty() && !uiState.isLoading) {
                 item {
                     SellerEmptyOrderState()
                 }
@@ -113,6 +141,40 @@ fun SellerOrderListScreen(
                         order = order,
                         onClick = { onOrderClick(order.id) }
                     )
+                }
+                
+                // Loading more indicator
+                if (uiState.isLoadingMore) {
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
+                }
+                
+                // No more orders message
+                if (!uiState.hasMoreOrders && uiState.orders.isNotEmpty()) {
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "No more orders",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
                 }
             }
         }

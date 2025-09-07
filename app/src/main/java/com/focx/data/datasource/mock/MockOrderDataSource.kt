@@ -176,10 +176,36 @@ class MockOrderDataSource @Inject constructor() : IOrderRepository {
         delay(300)
         emit(mockOrders.filter { it.buyerId == buyerId })
     }
+    
+    override suspend fun getOrdersByBuyerPaged(buyerId: String, page: Int, pageSize: Int): Flow<List<Order>> = flow {
+        delay(300)
+        val allBuyerOrders = mockOrders.filter { it.buyerId == buyerId }
+        val startIndex = (page - 1) * pageSize
+        val endIndex = minOf(startIndex + pageSize, allBuyerOrders.size)
+        
+        if (startIndex < allBuyerOrders.size) {
+            emit(allBuyerOrders.subList(startIndex, endIndex))
+        } else {
+            emit(emptyList())
+        }
+    }
 
     override suspend fun getOrdersBySeller(sellerId: String): Flow<List<Order>> = flow {
         delay(300)
         emit(mockOrders.filter { it.sellerId == sellerId })
+    }
+    
+    override suspend fun getOrdersBySellerPaged(sellerId: String, page: Int, pageSize: Int): Flow<List<Order>> = flow {
+        delay(300)
+        val allSellerOrders = mockOrders.filter { it.sellerId == sellerId }
+        val startIndex = (page - 1) * pageSize
+        val endIndex = minOf(startIndex + pageSize, allSellerOrders.size)
+        
+        if (startIndex < allSellerOrders.size) {
+            emit(allSellerOrders.subList(startIndex, endIndex))
+        } else {
+            emit(emptyList())
+        }
     }
 
     override suspend fun getOrdersByStatus(status: OrderManagementStatus): Flow<List<Order>> = flow {

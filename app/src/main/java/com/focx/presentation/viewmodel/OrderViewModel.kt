@@ -5,55 +5,85 @@ import androidx.lifecycle.viewModelScope
 import com.focx.domain.entity.*
 import com.focx.domain.usecase.CreateOrderUseCase
 import com.focx.domain.usecase.GetOrderByIdUseCase
-import com.focx.domain.usecase.GetOrdersByBuyerUseCase
+import com.focx.domain.usecase.GetOrdersByBuyerPagedUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.cancelChildren
 import javax.inject.Inject
+import com.focx.utils.Log
 
 data class OrderUiState(
     val orders: List<Order> = emptyList(),
     val isLoading: Boolean = false,
-    val error: String? = null
+    val isLoadingMore: Boolean = false,
+    val error: String? = null,
+    val currentPage: Int = 0,
+    val hasMoreOrders: Boolean = true,
+    val totalOrders: Int = 0
 )
 
 @HiltViewModel
 class OrderViewModel @Inject constructor(
     private val createOrderUseCase: CreateOrderUseCase,
     private val getOrderByIdUseCase: GetOrderByIdUseCase,
-    private val getOrdersByBuyerUseCase: GetOrdersByBuyerUseCase
+    private val getOrdersByBuyerPagedUseCase: GetOrdersByBuyerPagedUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(OrderUiState())
     val uiState: StateFlow<OrderUiState> = _uiState.asStateFlow()
+    
+    private val PAGE_SIZE = 5 // Number of orders to display per page
 
     @Inject
     lateinit var getCurrentWalletAddressUseCase: com.focx.domain.usecase.GetCurrentWalletAddressUseCase
 
-    fun loadOrders() {
+    fun resetAndLoadOrders() {
+        Log.d("OrderViewModel", "resetAndLoadOrders called")
+        
+        // Cancel any ongoing coroutines to prevent interference
+        viewModelScope.coroutineContext.cancelChildren()
+        
+        // Force reset state completely
+        _uiState.value = OrderUiState()
+        
+        // Add a small delay to ensure state is fully reset
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
+            kotlinx.coroutines.delay(50) // Small delay to ensure state reset
+            loadOrders()
+        }
+    }
+
+    fun loadOrders(initialLoad: Int = PAGE_SIZE) {
+        Log.d("OrderViewModel", "loadOrders called")
+        
+        viewModelScope.launch {
+            // Reset state and start fresh load
+            _uiState.value = OrderUiState(isLoading = true)
+            
             try {
                 val buyer = getCurrentWalletAddressUseCase.execute()!!
-                getOrdersByBuyerUseCase(buyer)
+                getOrdersByBuyerPagedUseCase(buyer, 1, initialLoad)
                     .catch { e ->
                         _uiState.value = _uiState.value.copy(
                             isLoading = false,
                             error = e.message
                         )
                     }.collect { result ->
-
                         result.fold(
                             onSuccess = { orders ->
-                                // Only show the 5 most recent orders
-                                val recentOrders = orders.take(5)
+                                Log.d("OrderViewModel", "Initial orders fetched: ${orders.size}")
+                                
                                 _uiState.value = _uiState.value.copy(
-                                    orders = recentOrders,
+                                    orders = orders,
                                     isLoading = false,
-                                    error = null
+                                    error = null,
+                                    currentPage = 1,
+                                    hasMoreOrders = orders.size == initialLoad,
+                                    totalOrders = orders.size
                                 )
                             },
                             onFailure = { e ->
@@ -68,6 +98,76 @@ class OrderViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     error = e.message
+                )
+            }
+        }
+    }
+    
+    fun loadMoreOrders() {
+        val currentState = _uiState.value
+        Log.d("OrderViewModel", "loadMoreOrders called - currentPage: ${currentState.currentPage}, hasMore: ${currentState.hasMoreOrders}, isLoadingMore: ${currentState.isLoadingMore}, ordersCount: ${currentState.orders.size}")
+        
+        if (currentState.isLoadingMore || !currentState.hasMoreOrders) {
+            Log.d("OrderViewModel", "loadMoreOrders skipped - isLoadingMore: ${currentState.isLoadingMore}, hasMoreOrders: ${currentState.hasMoreOrders}")
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoadingMore = true)
+
+            try {
+                val buyer = getCurrentWalletAddressUseCase.execute()!!
+                val nextPage = currentState.currentPage + 1
+                
+                Log.d("OrderViewModel", "Loading page $nextPage for buyer: ${buyer.take(8)}...")
+                
+                getOrdersByBuyerPagedUseCase(buyer, nextPage, PAGE_SIZE)
+                    .catch { e ->
+                        Log.e("OrderViewModel", "Error loading more orders: ${e.message}")
+                        _uiState.value = _uiState.value.copy(
+                            hasMoreOrders = false,
+                            isLoadingMore = false
+                        )
+                    }
+                    .collect { result ->
+                        result.fold(
+                            onSuccess = { newOrders ->
+                                Log.d("OrderViewModel", "Fetched ${newOrders.size} more orders for page $nextPage")
+                                
+                                if (newOrders.isEmpty()) {
+                                    _uiState.value = _uiState.value.copy(
+                                        hasMoreOrders = false,
+                                        isLoadingMore = false
+                                    )
+                                } else {
+                                    val currentOrders = _uiState.value.orders
+                                    val updatedOrders = currentOrders + newOrders
+                                    
+                                    Log.d("OrderViewModel", "Total orders after update: ${updatedOrders.size} (was ${currentOrders.size}, added ${newOrders.size})")
+                                    
+                                    _uiState.value = _uiState.value.copy(
+                                        orders = updatedOrders,
+                                        currentPage = nextPage,
+                                        hasMoreOrders = newOrders.size == PAGE_SIZE,
+                                        isLoadingMore = false,
+                                        totalOrders = updatedOrders.size
+                                    )
+                                }
+                            },
+                            onFailure = { e ->
+                                Log.e("OrderViewModel", "Failed to load more orders: ${e.message}")
+                                _uiState.value = _uiState.value.copy(
+                                    hasMoreOrders = false,
+                                    isLoadingMore = false
+                                )
+                            }
+                        )
+                    }
+            } catch (e: Exception) {
+                Log.e("OrderViewModel", "Error loading more orders: ${e.message}")
+                _uiState.value = _uiState.value.copy(
+                    error = "Failed to load more orders: ${e.message}",
+                    isLoadingMore = false
                 )
             }
         }

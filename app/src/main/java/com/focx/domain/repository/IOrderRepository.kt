@@ -11,7 +11,9 @@ interface IOrderRepository {
     suspend fun getOrders(): Flow<List<Order>>
     suspend fun getOrderById(id: String): Order?
     suspend fun getOrdersByBuyer(buyerId: String): Flow<List<Order>>
+    suspend fun getOrdersByBuyerPaged(buyerId: String, page: Int, pageSize: Int): Flow<List<Order>>
     suspend fun getOrdersBySeller(sellerId: String): Flow<List<Order>>
+    suspend fun getOrdersBySellerPaged(sellerId: String, page: Int, pageSize: Int): Flow<List<Order>>
     suspend fun getOrdersByStatus(status: OrderManagementStatus): Flow<List<Order>>
     suspend fun createOrder(product: Product, quantity: UInt, buyer: String, shippingAddress: com.focx.domain.entity.ShippingAddress, orderNote: String, activityResultSender: ActivityResultSender): Result<Order>
     suspend fun updateOrderStatus(orderId: String, status: OrderManagementStatus): Result<Unit>

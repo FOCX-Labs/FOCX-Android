@@ -428,13 +428,15 @@ object ShopUtils {
         total: Int,
         sortOrder: SortOrder = SortOrder.DESC
     ): Pair<Int, Int> {
-        val startIndex = if (sortOrder == SortOrder.DESC) max(
-            1,
-            total - page * pageSize + 1
-        ) else min(1 + pageSize * (page - 1), total)
-        val endIndex = min(total, startIndex + pageSize)
-
-        return Pair(startIndex, endIndex)
+        return if (sortOrder == SortOrder.DESC) {
+            val endIndex = max(1, total - (page - 1) * pageSize)
+            val startIndex = max(1, endIndex - pageSize + 1)
+            Pair(startIndex, endIndex)
+        } else {
+            val startIndex = min((page - 1) * pageSize + 1, total)
+            val endIndex = min(startIndex + pageSize - 1, total)
+            Pair(startIndex, endIndex)
+        }
     }
 
     suspend fun getOrdersBySeller(
