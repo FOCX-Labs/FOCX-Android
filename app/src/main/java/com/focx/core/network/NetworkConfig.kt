@@ -54,8 +54,8 @@ object NetworkConfig {
     val PUBLIC_ENDPOINTS = listOf(
         // Mainnet endpoints (10)
         PublicEndpoint(
-            name = "GetBlock",
-            url = "https://go.getblock.us/86aac42ad4484f3c813079afc201451c",
+            name = "Solana Foundation",
+            url = "https://api.mainnet-beta.solana.com",
             networkType = MAINNET,
             priority = 1
         ),
@@ -96,8 +96,8 @@ object NetworkConfig {
             priority = 7
         ),
         PublicEndpoint(
-            name = "Solana Foundation",
-            url = "https://api.mainnet-beta.solana.com",
+            name = "GetBlock",
+            url = "https://go.getblock.us/86aac42ad4484f3c813079afc201451c",
             networkType = MAINNET,
             priority = 8
         ),
@@ -116,14 +116,14 @@ object NetworkConfig {
         
         // Devnet endpoints (2)
         PublicEndpoint(
-            name = "OnFinality",
-            url = "https://solana-devnet.api.onfinality.io/public",
+            name = "Solana Foundation",
+            url = "https://api.devnet.solana.com",
             networkType = DEVNET,
             priority = 1
         ),
         PublicEndpoint(
-            name = "Solana Foundation",
-            url = "https://api.devnet.solana.com",
+            name = "OnFinality",
+            url = "https://solana-devnet.api.onfinality.io/public",
             networkType = DEVNET,
             priority = 2
         ),
