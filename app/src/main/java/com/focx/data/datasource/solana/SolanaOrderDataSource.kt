@@ -61,9 +61,17 @@ class SolanaOrderDataSource @Inject constructor(
     override suspend fun getOrdersByBuyer(buyerId: String): Flow<List<Order>> = flow {
         emit(ShopUtils.getOrdersByBuyer(buyerId, networkConnectionManager.getSolanaRpcClient()))
     }
+    
+    override suspend fun getOrdersByBuyerPaged(buyerId: String, page: Int, pageSize: Int): Flow<List<Order>> = flow {
+        emit(ShopUtils.getOrdersByBuyer(buyerId, networkConnectionManager.getSolanaRpcClient(), page, pageSize))
+    }
 
     override suspend fun getOrdersBySeller(sellerId: String): Flow<List<Order>> = flow {
         emit(ShopUtils.getOrdersBySeller(sellerId, networkConnectionManager.getSolanaRpcClient()))
+    }
+    
+    override suspend fun getOrdersBySellerPaged(sellerId: String, page: Int, pageSize: Int): Flow<List<Order>> = flow {
+        emit(ShopUtils.getOrdersBySeller(sellerId, networkConnectionManager.getSolanaRpcClient(), page, pageSize))
     }
 
     override suspend fun getOrdersByStatus(status: OrderManagementStatus): Flow<List<Order>> =
