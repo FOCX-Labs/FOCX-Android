@@ -24,7 +24,7 @@ android {
 
         val majorV = 1
         val minorV = 3
-        val patchV = 0
+        val patchV = 1
 
         versionCode = day.toInt() * 1000 + majorV * 100 + minorV * 10 + patchV
         versionName = "${majorV}.${minorV}.${patchV}"
