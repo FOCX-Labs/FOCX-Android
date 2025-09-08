@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -42,6 +43,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -78,12 +80,36 @@ fun SellerManagementScreen(
     val context = LocalContext.current
     var searchQuery by remember { mutableStateOf("") }
     var selectedFilter by remember { mutableStateOf("All") }
+    val listState = rememberLazyListState()
     
     // Get current back stack entry to access saved state
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     
     // State to track if we need to refresh
     var shouldRefresh by remember { mutableStateOf(false) }
+
+    // Generate a stable key for this composition
+    val screenKey = remember { System.currentTimeMillis() }
+
+    // Check if we need to load more items when scrolling
+    val shouldLoadMore = remember {
+        derivedStateOf {
+            val layoutInfo = listState.layoutInfo
+            val totalItemsNumber = layoutInfo.totalItemsCount
+            val lastVisibleItemIndex = (layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0) + 1
+
+            lastVisibleItemIndex > (totalItemsNumber - 3) && // Load more when 3 items from bottom
+                !uiState.isLoadingMore &&
+                uiState.hasMoreProducts &&
+                !uiState.isLoading
+        }
+    }
+
+    LaunchedEffect(shouldLoadMore.value) {
+        if (shouldLoadMore.value) {
+            viewModel.loadMoreProducts()
+        }
+    }
 
     // Debug log for merchant address
     LaunchedEffect(merchantAddress) {
@@ -94,7 +120,7 @@ fun SellerManagementScreen(
     LaunchedEffect(merchantAddress) {
         merchantAddress?.let { address ->
             Log.d("SellerManagementScreen", "Loading merchant products for address: $address")
-            viewModel.loadMerchantProducts(address)
+            viewModel.resetAndLoadProducts(address)
         } ?: run {
             Log.w("SellerManagementScreen", "merchantAddress is null, cannot load products")
         }
@@ -214,7 +240,7 @@ fun SellerManagementScreen(
                     )
                 }
             }
-        } else if (uiState.isLoading) {
+        } else if (uiState.isLoading && uiState.products.isEmpty()) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -225,20 +251,13 @@ fun SellerManagementScreen(
             }
         } else {
             LazyColumn(
+                state = listState,
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
                     .padding(horizontal = Spacing.medium),
                 verticalArrangement = Arrangement.spacedBy(Spacing.medium)
             ) {
-                item {
-                    Text(
-                        text = "${filteredProducts.size} products found",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
                 if (filteredProducts.isEmpty() && !uiState.isLoading) {
                     item {
                         Box(
@@ -259,6 +278,40 @@ fun SellerManagementScreen(
                             onProductClick = { onProductClick(product.id.toString()) },
                             onEditClick = { onEditProductClick(product.id.toString()) }
                         )
+                    }
+                    
+                    // Loading more indicator
+                    if (uiState.isLoadingMore) {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                        }
+                    }
+                    
+                    // No more products message
+                    if (!uiState.hasMoreProducts && uiState.products.isNotEmpty()) {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "No more products",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
                     }
                 }
 

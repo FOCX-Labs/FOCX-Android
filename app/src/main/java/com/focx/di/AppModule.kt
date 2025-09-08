@@ -64,6 +64,7 @@ import com.focx.domain.usecase.CreateProposalUseCase
 import com.focx.domain.usecase.FinalizeProposalUseCase
 import com.focx.domain.usecase.InitiateDisputeUseCase
 import com.focx.domain.usecase.GetMerchantProductsUseCase
+import com.focx.domain.usecase.GetMerchantProductsPagedUseCase
 import com.focx.domain.usecase.CacheManagementUseCase
 import com.solana.mobilewalletadapter.clientlib.ConnectionIdentity
 import com.solana.mobilewalletadapter.clientlib.MobileWalletAdapter
@@ -536,6 +537,14 @@ object AppModule {
         productDataSource: SolanaProductDataSource
     ): GetMerchantProductsUseCase {
         return GetMerchantProductsUseCase(productDataSource)
+    }
+
+    @Provides
+    @Singleton
+    fun provideGetMerchantProductsPagedUseCase(
+        productDataSource: SolanaProductDataSource
+    ): GetMerchantProductsPagedUseCase {
+        return GetMerchantProductsPagedUseCase(productDataSource)
     }
 
     @Provides
