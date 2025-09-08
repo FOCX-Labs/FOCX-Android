@@ -612,24 +612,6 @@ fun StakingInfoCard(
                             color = Color(0xFF4CAF50)
                         )
                     }
-
-                    Column {
-                        Text(
-                            text = "Total Rewards",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = "${
-                                String.format(
-                                    "%.2f",
-                                    vaultDepositor.totalRewardsClaimed.toDouble() / 1_000_000_000.0
-                                )
-                            } USDC",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
                 }
             } ?: run {
                 Row(
@@ -647,19 +629,6 @@ fun StakingInfoCard(
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF4CAF50)
-                        )
-                    }
-
-                    Column {
-                        Text(
-                            text = "Total Rewards",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = "-",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
                         )
                     }
                 }
