@@ -207,6 +207,26 @@ class SolanaProductDataSource @Inject constructor(
             emit(Result.failure(Exception("Failed to get merchant products: ${e.message}")))
         }
     }
+    
+    suspend fun getMerchantProductsPaged(merchantAddress: String, page: Int, pageSize: Int): Flow<Result<List<Product>>> = flow {
+        try {
+            Log.d(TAG, "Getting merchant products paged for: $merchantAddress, page: $page, pageSize: $pageSize")
+            val merchantPublicKey = SolanaPublicKey.from(merchantAddress)
+
+            // Use ShopUtils pagination directly instead of getting all products
+            val products = ShopUtils.getMerchantProducts(
+                merchantPublicKey, 
+                networkConnectionManager.getSolanaRpcClient(),
+                page = page,
+                pageSize = pageSize
+            )
+            Log.d(TAG, "Received ${products.size} products for page $page")
+            emit(Result.success(products))
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to get merchant products paged: ${e.message}", e)
+            emit(Result.failure(Exception("Failed to get merchant products: ${e.message}")))
+        }
+    }
 
     override suspend fun searchProducts(
         query: String,
